@@ -170,13 +170,21 @@ Route::middleware(['auth', 'admin'])
                 Route::get('/{id}', 'show')->whereNumber('id')->name('show');
             });
 
-        Route::controller(TestlabController::class)
+       Route::controller(TestlabController::class)
             ->prefix('testlab')
             ->name('testlab.')
             ->group(function () {
                 Route::get('/', 'index')->name('index');
                 Route::get('/results', 'results')->name('results');
+                Route::post('/', 'store')->name('store');
+                Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+                Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
             });
+
+        Route::put('/testlab/results/{resultId}', [TestlabController::class, 'updateResult'])
+            ->whereNumber('resultId')
+            ->name('testlab.results.update');
+
 
         Route::controller(BenchmarkController::class)
             ->prefix('benchmarks')
@@ -240,7 +248,18 @@ Route::middleware(['auth', 'admin'])
                     Route::post('/{id}/flag', 'flag')->whereNumber('id')->name('flag');
                     Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
                 });
-             Route::get('/social', [SocialController::class, 'index'])->name('social');
+            Route::controller(SocialController::class)
+                ->prefix('social')
+                ->name('social.')
+                ->group(function () {
+                    Route::get('/', 'index')->name('index');
+                    Route::get('/create', 'create')->name('create');
+                    Route::post('/', 'store')->name('store');
+                    Route::get('/{id}/edit', 'edit')->whereNumber('id')->name('edit');
+                    Route::put('/{id}', 'update')->whereNumber('id')->name('update');
+                    Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
+                });
+
 
             Route::get('/approval-workflow', [ApprovalWorkflowController::class, 'index'])
                 ->name('approval-workflow');
@@ -336,6 +355,7 @@ Route::middleware(['auth', 'admin'])
                 ->name('errors.')
                 ->group(function () {
                     Route::get('/', 'index')->name('index');
+                    Route::put('/{id}', 'updateStatus')->whereNumber('id')->name('update-status');
                     Route::get('/{id}', 'show')->whereNumber('id')->name('show');
                 });
             Route::controller(FeatureFlagController::class)
