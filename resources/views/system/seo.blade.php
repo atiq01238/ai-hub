@@ -1,50 +1,54 @@
 @extends('layouts.admin')
-@section('title', 'SEO Management')
+@section('title', 'SEO Health')
 
 @section('content')
 
-<x-page-header title="SEO Management" subtitle="Titles, meta, and indexing across all content types" :breadcrumb="['System', 'SEO']" />
+<x-page-header title="SEO Health" subtitle="Which published content is missing SEO details" :breadcrumb="['System', 'SEO']" />
 
-<div class="tabs">
-    <div class="tab is-active">Global SEO</div>
-    <div class="tab">Tool SEO</div>
-    <div class="tab">Model SEO</div>
-    <div class="tab">Company SEO</div>
-    <div class="tab">Article SEO</div>
-    <div class="tab">News SEO</div>
+<div class="kpi-grid" style="grid-template-columns:repeat(2,1fr); margin-bottom:20px;">
+    <x-kpi-card icon="wrench" label="Tools Missing SEO" value="{{ $toolsMissing->count() }} / {{ $toolsTotal }}" />
+    <x-kpi-card icon="file-text" label="Articles Missing SEO" value="{{ $articlesMissing->count() }} / {{ $articlesTotal }}" />
 </div>
 
-<div class="grid-12">
-    <div class="col-7 card card-pad">
-        <div class="section-title">Edit SEO — ChatGPT</div>
-        <div class="form-field" style="margin-bottom:12px;"><label>SEO Title</label><input class="input" value="ChatGPT Review, Pricing &amp; Alternatives (2026) | AI Hub"></div>
-        <div class="form-field" style="margin-bottom:12px;"><label>Meta Description</label><textarea class="input" rows="3">Everything you need to know about ChatGPT — features, pricing plans, ratings, and how it compares to Claude and Gemini.</textarea></div>
-        <div class="grid-2">
-            <div class="form-field"><label>Slug</label><input class="input" value="/tools/chatgpt"></div>
-            <div class="form-field"><label>Canonical URL</label><input class="input" value="https://aihub.io/tools/chatgpt"></div>
-        </div>
-        <div class="grid-2" style="margin-top:12px;">
-            <div class="form-field"><label>Index Status</label><select class="select"><option>Indexed</option><option>Noindex</option></select></div>
-            <div class="form-field"><label>Schema Type</label><select class="select"><option>SoftwareApplication</option><option>Product</option></select></div>
-        </div>
-        <button class="btn btn-primary btn-sm" style="margin-top:16px;"><i data-lucide="check"></i> Save SEO Settings</button>
+<div class="card" style="margin-bottom:16px;">
+    <div class="card-head"><h3>Tools Missing SEO Title or Meta Description</h3></div>
+    <div class="table-wrap">
+    <table class="data-table">
+        <thead><tr><th>Tool</th><th>SEO Title</th><th>Meta Description</th><th></th></tr></thead>
+        <tbody>
+        @forelse ($toolsMissing as $tool)
+        <tr>
+            <td><b>{{ $tool->name }}</b></td>
+            <td>{{ $tool->seo_title ? '✓' : '—' }}</td>
+            <td>{{ $tool->meta_description ? '✓' : '—' }}</td>
+            <td><a href="{{ route('admin.tools.edit', $tool->id) }}" class="btn btn-secondary btn-sm">Fix Now</a></td>
+        </tr>
+        @empty
+        <tr><td colspan="4" class="text-sub" style="text-align:center; padding:24px;">All published tools have SEO fields filled in.</td></tr>
+        @endforelse
+        </tbody>
+    </table>
     </div>
-    <div class="col-5 card card-pad">
-        <div class="section-title">Google Search Preview</div>
-        <div style="background:#fff; border-radius:10px; padding:14px 16px; color:#202124;">
-            <div style="font-size:12px; color:#1a0dab; margin-bottom:2px;">aihub.io › tools › chatgpt</div>
-            <div style="font-size:16px; color:#1a0dab; margin-bottom:4px; font-family: arial, sans-serif;">ChatGPT Review, Pricing &amp; Alternatives (2026) | AI Hub</div>
-            <div style="font-size:12.5px; color:#4d5156; line-height:1.5;">Everything you need to know about ChatGPT — features, pricing plans, ratings, and how it compares to Claude and Gemini.</div>
-        </div>
-        <div class="divider"></div>
-        <div class="section-title">Open Graph Preview</div>
-        <div class="card" style="overflow:hidden;">
-            <div class="thumb lg" style="width:100%; height:110px; border-radius:0;"><i data-lucide="image"></i></div>
-            <div style="padding:10px 12px;">
-                <div class="cell-sub">AIHUB.IO</div>
-                <b style="font-size:13px;">ChatGPT Review, Pricing &amp; Alternatives</b>
-            </div>
-        </div>
+</div>
+
+<div class="card">
+    <div class="card-head"><h3>Articles Missing SEO Title or Meta Description</h3></div>
+    <div class="table-wrap">
+    <table class="data-table">
+        <thead><tr><th>Article</th><th>SEO Title</th><th>Meta Description</th><th></th></tr></thead>
+        <tbody>
+        @forelse ($articlesMissing as $article)
+        <tr>
+            <td><b>{{ $article->title }}</b></td>
+            <td>{{ $article->seo_title ? '✓' : '—' }}</td>
+            <td>{{ $article->meta_description ? '✓' : '—' }}</td>
+            <td><a href="{{ route('admin.content.articles.editor.edit', $article->id) }}" class="btn btn-secondary btn-sm">Fix Now</a></td>
+        </tr>
+        @empty
+        <tr><td colspan="4" class="text-sub" style="text-align:center; padding:24px;">All published articles have SEO fields filled in.</td></tr>
+        @endforelse
+        </tbody>
+    </table>
     </div>
 </div>
 @endsection

@@ -44,6 +44,7 @@ use App\Http\Controllers\Admin\System\IntegrationController;
 use App\Http\Controllers\Admin\System\SettingController;
 use App\Http\Controllers\Admin\System\NotificationRuleController;
 use App\Http\Controllers\PublicReviewController;
+use App\Http\Controllers\Admin\SubmissionController as AdminSubmissionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -162,7 +163,11 @@ Route::middleware(['auth', 'admin'])
             ->group(function () {
                 Route::get('/', 'index')->name('index');
                 Route::get('/builder', 'builder')->name('builder');
-                Route::get('/metrics', 'metrics')->name('metrics');
+                Route::post('/', 'store')->name('store');
+                Route::get('/{id}/edit', 'edit')->whereNumber('id')->name('edit');
+                Route::put('/{id}', 'update')->whereNumber('id')->name('update');
+                Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
+                Route::get('/{id}', 'show')->whereNumber('id')->name('show');
             });
 
         Route::controller(TestlabController::class)
@@ -194,8 +199,14 @@ Route::middleware(['auth', 'admin'])
                 Route::get('/', 'index')->name('index');
                 Route::get('/api', 'api')->name('api');
                 Route::get('/history', 'history')->name('history');
-                Route::get('/changes', 'history')->name('changes'); // alias of history
+                Route::get('/changes', 'history')->name('changes'); // alias, same page
+                Route::get('/create', 'create')->name('create');
+                Route::post('/', 'store')->name('store');
+                Route::get('/{id}/edit', 'edit')->whereNumber('id')->name('edit');
+                Route::put('/{id}', 'update')->whereNumber('id')->name('update');
+                Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
             });
+
 
         /*
         |----------------------------------------------------------------
@@ -211,6 +222,10 @@ Route::middleware(['auth', 'admin'])
                     Route::get('/drafts', 'drafts')->name('drafts');
                     Route::get('/editor', 'editor')->name('editor.create');
                     Route::get('/editor/{id}', 'editor')->whereNumber('id')->name('editor.edit');
+                    Route::post('/', 'store')->name('store');
+                    Route::put('/{id}', 'update')->whereNumber('id')->name('update');
+                    Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
+                    Route::get('/{id}', 'show')->whereNumber('id')->name('show');
                 });
             Route::get('/guides', [ArticleController::class, 'guides'])->name('guides');
 
@@ -221,9 +236,11 @@ Route::middleware(['auth', 'admin'])
                     Route::get('/', 'index')->name('index');
                     Route::get('/editor', 'editor')->name('editor');
                     Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+                    Route::post('/{id}/approve', 'approve')->whereNumber('id')->name('approve');
+                    Route::post('/{id}/flag', 'flag')->whereNumber('id')->name('flag');
+                    Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
                 });
-
-            Route::get('/social', [SocialController::class, 'index'])->name('social');
+             Route::get('/social', [SocialController::class, 'index'])->name('social');
 
             Route::get('/approval-workflow', [ApprovalWorkflowController::class, 'index'])
                 ->name('approval-workflow');
@@ -247,13 +264,19 @@ Route::middleware(['auth', 'admin'])
         // Shares the reviews listing/controller — kept as an alias route.
         Route::get('/users/reviews', [ReviewController::class, 'index'])->name('users.reviews');
 
-        Route::controller(SubmissionController::class)
+
+        Route::controller(AdminSubmissionController::class)
             ->prefix('submissions')
             ->name('submissions.')
             ->group(function () {
                 Route::get('/', 'index')->name('index');
                 Route::get('/all', 'all')->name('all');
+                Route::post('/{id}/approve', 'approve')->whereNumber('id')->name('approve');
+                Route::post('/{id}/reject', 'reject')->whereNumber('id')->name('reject');
+                Route::post('/{id}/request-info', 'requestInfo')->whereNumber('id')->name('request-info');
             });
+        Route::get('/suggest-tool', [SubmissionController::class, 'create'])->name('submissions.create');
+        Route::post('/suggest-tool', [SubmissionController::class, 'store'])->name('submissions.store');
 
         /*
         |----------------------------------------------------------------
@@ -261,6 +284,7 @@ Route::middleware(['auth', 'admin'])
         |----------------------------------------------------------------
         */
         Route::get('/media', [MediaController::class, 'index'])->name('media');
+        Route::delete('/media', [MediaController::class, 'destroy'])->name('media.destroy');
 
         /*
         |----------------------------------------------------------------
@@ -285,8 +309,17 @@ Route::middleware(['auth', 'admin'])
         |----------------------------------------------------------------
         */
         Route::name('system.')->prefix('system')->group(function () {
+            Route::controller(NotificationController::class)
+                ->prefix('notifications')
+                ->name('notifications.')
+                ->group(function () {
+                    Route::get('/', 'index')->name('index');
+                    Route::post('/mark-all-read', 'markAllRead')->name('mark-all-read');
+                    Route::post('/{id}/mark-read', 'markRead')->whereNumber('id')->name('mark-read');
+                    Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
+                });
             Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications');
-            Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs');
+            Route::get('/activity-logs', [\App\Http\Controllers\Admin\System\ActivityLogController::class, 'index'])->name('activity-logs');
             Route::get('/roles', [RoleController::class, 'index'])->name('roles');
             Route::get('/security', [SecurityController::class, 'index'])->name('security');
             Route::get('/2fa', [TwoFactorController::class, 'index'])->name('2fa');
@@ -305,13 +338,22 @@ Route::middleware(['auth', 'admin'])
                     Route::get('/', 'index')->name('index');
                     Route::get('/{id}', 'show')->whereNumber('id')->name('show');
                 });
-
+            Route::controller(FeatureFlagController::class)
+                ->prefix('feature-flags')
+                ->name('feature-flags.')
+                ->group(function () {
+                    Route::get('/', 'index')->name('index');
+                    Route::post('/', 'store')->name('store');
+                    Route::post('/{id}/toggle', 'toggle')->whereNumber('id')->name('toggle');
+                    Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
+                });
             Route::get('/feature-flags', [FeatureFlagController::class, 'index'])->name('feature-flags');
+
             Route::get('/seo', [SeoController::class, 'index'])->name('seo');
             Route::get('/integrations', [IntegrationController::class, 'index'])->name('integrations');
 
-            Route::get('/settings', [SettingController::class, 'index'])->name('settings');
-            Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
+            Route::get('/settings', [\App\Http\Controllers\Admin\System\SettingController::class, 'index'])->name('settings');
+            Route::put('/settings', [\App\Http\Controllers\Admin\System\SettingController::class, 'update'])->name('settings.update');
 
             Route::get('/notification-rules', [NotificationRuleController::class, 'index'])->name('notification-rules');
         });

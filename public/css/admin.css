@@ -347,6 +347,13 @@ table.data-table{ width:100%; border-collapse:collapse; font-size:13px; min-widt
 .switch{ width:38px; height:22px; border-radius:99px; background:var(--surface-2); border:1px solid var(--border); position:relative; cursor:pointer; flex-shrink:0; }
 .switch.is-on{ background:var(--grad-brand); border-color:transparent; }
 .switch i{ position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:#fff; transition:left .15s; }
+
+/* Makes the decorative .switch actually work as a real form control:
+   a real (visually hidden) checkbox drives the look via CSS, so the
+   toggle's state gets submitted with the form like any other input. */
+.switch-checkbox{ position:absolute; opacity:0; width:0; height:0; }
+.switch-checkbox:checked + .switch{ background:var(--grad-brand); border-color:transparent; }
+.switch-checkbox:checked + .switch i{ left:18px; }
 .switch.is-on i{ left:18px; }
 
 /* ==================== MISC ==================== */

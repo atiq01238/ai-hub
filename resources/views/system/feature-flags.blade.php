@@ -3,67 +3,67 @@
 
 @section('content')
 
-<x-page-header title="Feature Flag Management" subtitle="Toggle experimental and rollout features" :breadcrumb="['System', 'Feature Flags']">
-    <x-slot:actions><button class="btn btn-primary btn-sm"><i data-lucide="plus"></i> New Flag</button></x-slot:actions>
-</x-page-header>
+<x-page-header title="Feature Flag Management" subtitle="Toggle experimental and rollout features" :breadcrumb="['System', 'Feature Flags']" />
+
+@if (session('status'))
+    <div class="alert alert-success" style="margin-bottom:16px;">{{ session('status') }}</div>
+@endif
+
+<div class="card card-pad" style="margin-bottom:16px;">
+    <form action="{{ route('admin.system.feature-flags.store') }}" method="POST" class="flex gap-8" style="flex-wrap:wrap; align-items:flex-end;">
+        @csrf
+        <div class="form-field"><label>Name</label><input class="input" name="name" placeholder="e.g. AI Test Lab" required></div>
+        <div class="form-field" style="flex:1; min-width:200px;"><label>Description</label><input class="input" name="description" placeholder="What this flag controls"></div>
+        <div class="form-field"><label>Environment</label>
+            <select class="select" name="environment">
+                <option value="staging">Staging</option>
+                <option value="production">Production</option>
+            </select>
+        </div>
+        <div class="form-field"><label>Rollout %</label><input class="input" type="number" name="rollout_percentage" value="0" min="0" max="100" style="width:80px;"></div>
+        <button type="submit" class="btn btn-primary btn-sm"><i data-lucide="plus"></i> New Flag</button>
+    </form>
+</div>
 
 <div class="card">
     <div class="table-wrap">
     <table class="data-table">
-        <thead><tr><th>Feature</th><th>Description</th><th>Environment</th><th>Rollout</th><th>Created</th><th>Status</th></tr></thead>
+        <thead><tr><th>Feature</th><th>Description</th><th>Environment</th><th>Rollout</th><th>Created</th><th>Status</th><th></th></tr></thead>
         <tbody>
-        @php
-        $flags = [
-            ['AI Test Lab','Side-by-side model prompt testing','Production',100,'Jun 2, 2026',true],
-            ['AI Recommendations','Personalized tool recommendations','Staging',40,'Jul 18, 2026',false],
-            ['New Comparison UI','Redesigned comparison builder flow','Staging',0,'Jul 30, 2026',false],
-            ['Price Tracker','Automated price change alerts','Production',100,'May 14, 2026',true],
-            ['Admin-only Mode','Restrict site to admin access','Production',0,'Jan 9, 2026',false],
-        ];
-        @endphp
-        @foreach($flags as $f)
+        @forelse ($flags as $flag)
         <tr>
-            <td><b>{{ $f[0] }}</b></td>
-            <td class="text-sub">{{ $f[1] }}</td>
-            <td><span class="badge badge-neutral">{{ $f[2] }}</span></td>
+            <td><b>{{ $flag->name }}</b></td>
+            <td class="text-sub">{{ $flag->description ?? '—' }}</td>
+            <td><span class="badge badge-neutral">{{ ucfirst($flag->environment) }}</span></td>
             <td style="width:140px;">
                 <div class="flex items-center gap-8">
-                    <div class="progress" style="flex:1;"><span style="width:{{ $f[3] }}%;"></span></div>
-                    <span class="mono cell-sub">{{ $f[3] }}%</span>
+                    <div class="progress" style="flex:1;"><span style="width:{{ $flag->rollout_percentage }}%;"></span></div>
+                    <span class="mono cell-sub">{{ $flag->rollout_percentage }}%</span>
                 </div>
             </td>
-            <td class="cell-sub">{{ $f[4] }}</td>
+            <td class="cell-sub">{{ $flag->created_at->format('M j, Y') }}</td>
             <td>
-                <div class="flex items-center gap-8" data-bs-toggle="modal" data-bs-target="#flagModal" style="cursor:pointer;">
-                    <div class="switch {{ $f[5] ? 'is-on' : '' }}"><i></i></div>
-                    <span style="font-size:12px; font-weight:600; color:{{ $f[5] ? 'var(--pos)' : 'var(--text-lo)' }};">{{ $f[5] ? 'ON' : 'OFF' }}</span>
-                </div>
+                <form action="{{ route('admin.system.feature-flags.toggle', $flag->id) }}" method="POST" onsubmit="{{ $flag->environment === 'production' ? "return confirm('This flag is in Production. Changing it may affect live users. Continue?')" : '' }}">
+                    @csrf
+                    <button type="submit" class="flex items-center gap-8" style="background:none; border:none; cursor:pointer; padding:0;">
+                        <div class="switch {{ $flag->is_enabled ? 'is-on' : '' }}"><i></i></div>
+                        <span style="font-size:12px; font-weight:600; color:{{ $flag->is_enabled ? 'var(--pos)' : 'var(--text-lo)' }};">{{ $flag->is_enabled ? 'ON' : 'OFF' }}</span>
+                    </button>
+                </form>
+            </td>
+            <td>
+                <form action="{{ route('admin.system.feature-flags.destroy', $flag->id) }}" method="POST" onsubmit="return confirm('Delete this flag?')">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="icon-btn" style="width:28px;height:28px;"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button>
+                </form>
             </td>
         </tr>
-        @endforeach
+        @empty
+        <tr><td colspan="7" class="text-sub" style="text-align:center; padding:32px;">No feature flags yet.</td></tr>
+        @endforelse
         </tbody>
     </table>
-    </div>
-</div>
-
-<div class="modal fade" id="flagModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="background:var(--bg-elevated); border:1px solid var(--border); border-radius:var(--radius-lg);">
-            <div class="modal-head">
-                <h3 style="margin:0; font-size:15px;">Confirm Feature Flag Change</h3>
-                <button class="icon-btn" data-bs-dismiss="modal"><i data-lucide="x"></i></button>
-            </div>
-            <div class="modal-body">
-                <p class="text-sub" style="font-size:13px;">
-                    This flag is marked critical. Changing it in Production may affect live users immediately.
-                    Are you sure you want to continue?
-                </p>
-            </div>
-            <div class="modal-foot">
-                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                <button class="btn btn-primary btn-sm">Confirm Change</button>
-            </div>
-        </div>
     </div>
 </div>
 @endsection

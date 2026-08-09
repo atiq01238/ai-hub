@@ -3,32 +3,25 @@
 
 @section('content')
 
-<x-page-header title="Integrations" subtitle="UI only — no real integrations are connected" :breadcrumb="['System', 'Integrations']" />
+<x-page-header title="Integrations" subtitle="Real status, read from your actual .env / config files" :breadcrumb="['System', 'Integrations']" />
 
 <div class="grid-3">
-    @php
-    $integrations = [
-        ['News APIs','newspaper','Connected','pos'],
-        ['Search APIs','search','Connected','pos'],
-        ['AI APIs','brain-circuit','Connected','pos'],
-        ['Analytics','activity','Warning','warn'],
-        ['Social Media','share-2','Not Connected','neutral'],
-        ['Email','mail','Connected','pos'],
-        ['Storage','hard-drive','Error','neg'],
-    ];
-    @endphp
-    @foreach($integrations as $i)
+    @foreach ($integrations as $i)
     <div class="card card-pad">
         <div class="flex items-center justify-between" style="margin-bottom:14px;">
-            <div class="kpi-icon"><i data-lucide="{{ $i[1] }}"></i></div>
-            <span class="badge badge-{{ $i[3] }}">{{ $i[2] }}</span>
+            <div class="kpi-icon"><i data-lucide="{{ $i['icon'] }}"></i></div>
+            <span class="badge {{ $i['connected'] ? 'badge-pos' : 'badge-neutral' }}">{{ $i['connected'] ? 'Connected' : 'Not Connected' }}</span>
         </div>
-        <b style="font-size:14px;">{{ $i[0] }}</b>
-        <div class="flex gap-8" style="margin-top:14px;">
-            <button class="btn btn-secondary btn-sm" style="flex:1; justify-content:center;">Configure</button>
-            <button class="btn btn-ghost btn-sm" style="flex:1; justify-content:center;">Test Connection</button>
-        </div>
+        <b style="font-size:14px;">{{ $i['name'] }}</b>
+        <div class="cell-sub" style="margin-top:6px;">{{ $i['detail'] }}</div>
     </div>
     @endforeach
 </div>
+
+<p class="text-sub" style="font-size:12px; margin-top:16px;">
+    "Configure" and "Test Connection" buttons aren't here — actually connecting a new service
+    (OAuth flow, API key setup, etc.) is different work for each integration. This page tells you
+    honestly what's set up right now, read from your real config, instead of pretending buttons
+    that don't do anything yet.
+</p>
 @endsection

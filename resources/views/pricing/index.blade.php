@@ -4,27 +4,54 @@
 @section('content')
 
 <x-page-header title="Pricing Management" subtitle="Plans, API pricing, and credits across all tools" :breadcrumb="['Pricing', 'Pricing Plans']">
-    <x-slot:actions><button class="btn btn-primary btn-sm"><i data-lucide="plus"></i> Add Pricing Plan</button></x-slot:actions>
+    <x-slot:actions><a href="{{ route('admin.pricing.create') }}" class="btn btn-primary btn-sm"><i data-lucide="plus"></i> Add Pricing Plan</a></x-slot:actions>
 </x-page-header>
 
+@if (session('status'))
+    <div class="alert alert-success" style="margin-bottom:16px;">{{ session('status') }}</div>
+@endif
+
 <div class="tabs">
-    <div class="tab is-active">Pricing Plans</div>
-    <div class="tab">API Pricing</div>
-    <a href="{{ url('/pricing/history') }}" class="tab">Price History</a>
-    <a href="{{ url('/pricing/changes') }}" class="tab">Price Changes</a>
+    <a href="{{ route('admin.pricing.index') }}" class="tab {{ !$onlyApi ? 'is-active' : '' }}">Pricing Plans</a>
+    <a href="{{ route('admin.pricing.api') }}" class="tab {{ $onlyApi ? 'is-active' : '' }}">API Pricing</a>
+    <a href="{{ route('admin.pricing.history') }}" class="tab">Price History</a>
 </div>
 
 <div class="card">
     <div class="table-wrap">
     <table class="data-table">
-        <thead><tr><th>Tool</th><th>Plan</th><th>Monthly</th><th>Yearly</th><th>API</th><th>Credits</th><th>Limits</th><th>Last Updated</th></tr></thead>
+        <thead><tr><th>Tool</th><th>Plan</th><th>Monthly</th><th>Yearly</th><th>API</th><th>Credits</th><th>Limits</th><th>Last Updated</th><th></th></tr></thead>
         <tbody>
-            <tr><td><b>ChatGPT</b></td><td class="text-sub">Plus</td><td class="mono">$22</td><td class="mono">$220</td><td class="mono">$3/1M</td><td class="text-sub">Unlimited*</td><td class="cell-sub">40 msgs/3hr</td><td class="cell-sub">Aug 5</td></tr>
-            <tr><td><b>Claude</b></td><td class="text-sub">Pro</td><td class="mono">$20</td><td class="mono">$204</td><td class="mono">$5/1M</td><td class="text-sub">Unlimited*</td><td class="cell-sub">45 msgs/5hr</td><td class="cell-sub">Aug 4</td></tr>
-            <tr><td><b>Midjourney</b></td><td class="text-sub">Pro</td><td class="mono">$48</td><td class="mono">$480</td><td class="mono">—</td><td class="text-sub">30 hr/mo GPU</td><td class="cell-sub">Unlimited relax</td><td class="cell-sub">Aug 3</td></tr>
-            <tr><td><b>Runway</b></td><td class="text-sub">Standard</td><td class="mono">$12</td><td class="mono">$144</td><td class="mono">$0.05/sec</td><td class="text-sub">625 credits</td><td class="cell-sub">—</td><td class="cell-sub">Aug 2</td></tr>
+        @forelse ($plans as $plan)
+        <tr>
+            <td><b>{{ $plan->tool->name ?? '—' }}</b></td>
+            <td class="text-sub">{{ $plan->plan_name }}</td>
+            <td class="mono">{{ $plan->monthly_price !== null ? '$'.number_format($plan->monthly_price, 0) : '—' }}</td>
+            <td class="mono">{{ $plan->yearly_price !== null ? '$'.number_format($plan->yearly_price, 0) : '—' }}</td>
+            <td class="mono">{{ $plan->api_price_label ?? '—' }}</td>
+            <td class="text-sub">{{ $plan->credits ?? '—' }}</td>
+            <td class="cell-sub">{{ $plan->limits ?? '—' }}</td>
+            <td class="cell-sub">{{ $plan->updated_at->format('M j') }}</td>
+            <td>
+                <div class="flex gap-8">
+                    <a href="{{ route('admin.pricing.edit', $plan->id) }}" class="icon-btn" style="width:28px;height:28px;"><i data-lucide="pencil" style="width:14px;height:14px;"></i></a>
+                    <form action="{{ route('admin.pricing.destroy', $plan->id) }}" method="POST" onsubmit="return confirm('Remove this pricing plan?')" style="display:inline;">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="icon-btn" style="width:28px;height:28px;"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button>
+                    </form>
+                </div>
+            </td>
+        </tr>
+        @empty
+        <tr><td colspan="9" class="text-sub" style="text-align:center; padding:32px;">No pricing plans yet.</td></tr>
+        @endforelse
         </tbody>
     </table>
+    </div>
+    <div class="pager">
+        <span>Showing {{ $plans->firstItem() ?? 0 }}–{{ $plans->lastItem() ?? 0 }} of {{ $plans->total() }}</span>
+        <div class="pager-btns">{{ $plans->links() }}</div>
     </div>
 </div>
 @endsection

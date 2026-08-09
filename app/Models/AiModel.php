@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 // Named AiModel (not "Model") so it doesn't clash with Eloquent's own base Model class.
 class AiModel extends Model
 {
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     protected $table = 'ai_models';
 
