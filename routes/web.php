@@ -274,12 +274,13 @@ Route::middleware(['auth', 'admin'])
             ->prefix('users')
             ->name('users.')
             ->group(function () {
-                Route::get('/', 'index')->name('index');
-                Route::get('/reports', 'reports')->name('reports');
-                Route::post('/{id}/suspend', 'suspend')->whereNumber('id')->name('suspend');
-                Route::post('/{id}/activate', 'activate')->whereNumber('id')->name('activate');
-                Route::get('/{id}', 'show')->whereNumber('id')->name('show');
-            });
+            Route::get('/', 'index')->name('index');
+            Route::get('/reports', 'reports')->name('reports');
+            Route::post('/{id}/suspend', 'suspend')->whereNumber('id')->name('suspend');
+            Route::post('/{id}/activate', 'activate')->whereNumber('id')->name('activate');
+            Route::post('/{id}/assign-role', 'assignRole')->whereNumber('id')->name('assign-role');
+            Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+        });
         // Shares the reviews listing/controller — kept as an alias route.
         Route::get('/users/reviews', [ReviewController::class, 'index'])->name('users.reviews');
 
@@ -339,6 +340,16 @@ Route::middleware(['auth', 'admin'])
                 });
             Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications');
             Route::get('/activity-logs', [\App\Http\Controllers\Admin\System\ActivityLogController::class, 'index'])->name('activity-logs');
+            Route::controller(RoleController::class)
+                ->prefix('roles')
+                ->name('roles.')
+                ->group(function () {
+                    Route::post('/', 'store')->name('store');
+                    Route::put('/{id}/permissions', 'updatePermissions')->whereNumber('id')->name('permissions.update');
+                    Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
+                    Route::post('/{id}/assign-role', 'assignRole')->whereNumber('id')->name('assign-role');
+
+                });
             Route::get('/roles', [RoleController::class, 'index'])->name('roles');
             Route::get('/security', [SecurityController::class, 'index'])->name('security');
             Route::get('/2fa', [TwoFactorController::class, 'index'])->name('2fa');
@@ -375,13 +386,25 @@ Route::middleware(['auth', 'admin'])
             Route::get('/settings', [\App\Http\Controllers\Admin\System\SettingController::class, 'index'])->name('settings');
             Route::put('/settings', [\App\Http\Controllers\Admin\System\SettingController::class, 'update'])->name('settings.update');
 
-            Route::get('/notification-rules', [NotificationRuleController::class, 'index'])->name('notification-rules');
+            Route::get('/notification-rules', [\App\Http\Controllers\Admin\System\NotificationRuleController::class, 'index'])->name('notification-rules');
+            Route::post('/notification-rules/{id}/toggle', [\App\Http\Controllers\Admin\System\NotificationRuleController::class, 'toggle'])
+                ->whereNumber('id')
+                ->name('notification-rules.toggle');
         });
 
         // News source management lives under /system in the sidebar but
         // is its own controller since it's really a News concern.
-        Route::get('/news/sources', [NewsSourceController::class, 'index'])->name('system.news-sources');
-    });
+        Route::controller(\App\Http\Controllers\Admin\System\NewsSourceController::class)
+            ->prefix('system/news-sources')
+            ->name('system.news-sources.')
+            ->group(function () {
+                Route::post('/', 'store')->name('store');
+                Route::post('/{id}/toggle', 'toggle')->whereNumber('id')->name('toggle');
+                Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
+            });
+
+        Route::get('/system/news-sources', [\App\Http\Controllers\Admin\System\NewsSourceController::class, 'index'])
+            ->name('system.news-sources');    });
 Route::middleware('auth')->group(function () {
     Route::get('/tools/{tool}/review', [PublicReviewController::class, 'create'])->name('reviews.create');
     Route::post('/tools/{tool}/review', [PublicReviewController::class, 'store'])->name('reviews.store');

@@ -3,13 +3,14 @@
 namespace App\Observers;
 
 use App\Models\AppNotification;
+use App\Models\NotificationRule;
 use App\Models\Review;
 
 class ReviewObserver
 {
     public function created(Review $review): void
     {
-        if ($review->status === 'pending') {
+        if ($review->status === 'pending' && NotificationRule::isEnabled('pending_review')) {
             AppNotification::broadcast(
                 'star',
                 'info',

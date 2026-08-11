@@ -3,62 +3,65 @@
 
 @section('content')
 
-<x-page-header title="News Source Management" subtitle="42 sources · 2 currently failing" :breadcrumb="['AI Intelligence', 'News Sources']">
-    <x-slot:actions><button class="btn btn-primary btn-sm"><i data-lucide="plus"></i> Add Source</button></x-slot:actions>
-</x-page-header>
+<x-page-header title="News Source Management" subtitle="{{ $sources->count() }} sources on your list" :breadcrumb="['AI Intelligence', 'News Sources']" />
 
-<div class="tabs">
-    <div class="tab is-active">News Sources</div>
-    <div class="tab">API Sources</div>
-    <div class="tab">Source Status</div>
-    <div class="tab">Source Reliability</div>
+@if (session('status'))
+    <div class="alert alert-success" style="margin-bottom:16px;">{{ session('status') }}</div>
+@endif
+
+<div class="card card-pad" style="margin-bottom:16px;">
+    <form action="{{ route('admin.system.news-sources.store') }}" method="POST" class="flex gap-8" style="align-items:flex-end; flex-wrap:wrap;">
+        @csrf
+        <div class="form-field"><label>Source Name</label><input class="input" name="name" placeholder="e.g. TechCrunch AI" required></div>
+        <div class="form-field"><label>Type</label>
+            <select class="select" name="type">
+                <option value="rss">RSS</option>
+                <option value="api">API</option>
+            </select>
+        </div>
+        <div class="form-field" style="flex:1; min-width:220px;"><label>URL</label><input class="input" name="url" placeholder="https://" required></div>
+        <button type="submit" class="btn btn-primary btn-sm"><i data-lucide="plus"></i> Add Source</button>
+    </form>
 </div>
 
 <div class="card">
     <div class="table-wrap">
     <table class="data-table">
-        <thead><tr><th>Source</th><th>Type</th><th>Status</th><th>Last Fetched</th><th>Articles Collected</th><th>Error Count</th><th>Reliability</th><th></th></tr></thead>
+        <thead><tr><th>Source</th><th>Type</th><th>URL</th><th>Status</th><th></th></tr></thead>
         <tbody>
-        @php
-        $sources = [
-            ['The Information','API','Connected','3 min ago',4820,0,97],
-            ['TechCrunch AI','RSS','Error','1 hr ago',3104,12,74],
-            ['Anthropic Blog','RSS','Connected','8 min ago',218,0,99],
-            ['The Verge','API','Connected','5 min ago',2966,2,91],
-            ['VentureBeat','RSS','Warning','40 min ago',1877,5,82],
-            ['DeepMind Blog','RSS','Connected','12 min ago',312,0,98],
-        ];
-        @endphp
-        @foreach($sources as $s)
+        @forelse ($sources as $source)
         <tr>
-            <td><div class="row-media"><div class="thumb">{{ substr($s[0],0,2) }}</div><b>{{ $s[0] }}</b></div></td>
-            <td><span class="badge badge-neutral">{{ $s[1] }}</span></td>
-            <td><x-status-badge :status="$s[2]" :type="$s[2]==='Connected' ? 'pos' : ($s[2]==='Warning' ? 'warn' : 'neg')" /></td>
-            <td class="cell-sub">{{ $s[3] }}</td>
-            <td class="mono">{{ number_format($s[4]) }}</td>
-            <td class="mono" style="color:{{ $s[5] > 5 ? 'var(--neg)' : 'var(--text-hi)' }};">{{ $s[5] }}</td>
-            <td><x-score-meter :value="$s[6]" :segments="5" /></td>
+            <td><div class="row-media"><div class="thumb">{{ substr($source->name, 0, 2) }}</div><b>{{ $source->name }}</b></div></td>
+            <td><span class="badge badge-neutral">{{ strtoupper($source->type) }}</span></td>
+            <td class="text-sub" style="font-size:12px;">{{ $source->url }}</td>
             <td>
-                <div class="flex gap-8">
-                    <button class="icon-btn" style="width:28px;height:28px;"><i data-lucide="settings" style="width:14px;height:14px;"></i></button>
-                    <button class="icon-btn" style="width:28px;height:28px;"><i data-lucide="zap" style="width:14px;height:14px;"></i></button>
-                    <button class="icon-btn" style="width:28px;height:28px;"><i data-lucide="history" style="width:14px;height:14px;"></i></button>
-                </div>
+                <form action="{{ route('admin.system.news-sources.toggle', $source->id) }}" method="POST" style="display:inline;">
+                    @csrf
+                    <button type="submit" style="background:none; border:none; cursor:pointer; padding:0;">
+                        <x-status-badge status="{{ ucfirst($source->status) }}" type="{{ $source->status === 'active' ? 'pos' : 'neutral' }}" />
+                    </button>
+                </form>
+            </td>
+            <td>
+                <form action="{{ route('admin.system.news-sources.destroy', $source->id) }}" method="POST" onsubmit="return confirm('Remove this source?')">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="icon-btn" style="width:28px;height:28px;"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button>
+                </form>
             </td>
         </tr>
-        @endforeach
+        @empty
+        <tr><td colspan="5" class="text-sub" style="text-align:center; padding:32px;">No sources yet — add one above.</td></tr>
+        @endforelse
         </tbody>
     </table>
     </div>
 </div>
 
-<div class="card card-pad" style="margin-top:20px;">
-    <div class="section-title">Source Reliability — Legend</div>
-    <div class="flex gap-12" style="flex-wrap:wrap;">
-        <span class="badge badge-pos">Excellent 90–100%</span>
-        <span class="badge badge-info">Good 75–89%</span>
-        <span class="badge badge-warn">Average 60–74%</span>
-        <span class="badge badge-neg">Poor &lt;60%</span>
-    </div>
-</div>
+<p class="text-sub" style="font-size:12px; margin-top:16px;">
+    This is just your source list — "Last Fetched", "Articles Collected", and "Reliability"
+    columns from the original design aren't here because nothing automated is actually pulling
+    from these sources yet. Once News API integration is built, this list becomes what it
+    fetches from, and those stats become real.
+</p>
 @endsection

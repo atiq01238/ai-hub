@@ -12,7 +12,7 @@
             ['AI Updates', '/admin/news/updates', 'refresh-cw'],
             ['Price Changes', '/admin/pricing/changes', 'tag'],
             ['Saved Intelligence', '/admin/news/saved', 'bookmark'],
-            ['News Sources', '/admin/news/sources', 'server'],
+            ['News Sources', '/admin/system/news-sources', 'server'],
             ['Automation Monitor', '/admin/system/automation-monitor', 'activity-square'],
         ],
         'AI Management' => [

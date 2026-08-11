@@ -30,8 +30,6 @@
     <x-kpi-card icon="star" label="Reviews Submitted" value="{{ $user->reviews_count }}" />
     <x-kpi-card icon="calendar" label="Member Since" value="{{ $user->created_at->format('M Y') }}" />
 </div>
-{{-- "Articles Authored", "Tools Submitted", and "Last Active"/Login History
-     aren't tracked yet — those need an activity-log table, which isn't built. --}}
 
 <div class="grid-12">
     <div class="col-8 card">
@@ -51,10 +49,23 @@
     </div>
     <div class="col-4 card card-pad">
         <div class="section-title">Profile</div>
-        <div class="flex items-center justify-between" style="padding:9px 0; border-bottom:1px solid var(--border-soft);"><span class="cell-sub">Role</span><span class="badge badge-violet">{{ ucfirst($user->role) }}</span></div>
+        <div class="flex items-center justify-between" style="padding:9px 0; border-bottom:1px solid var(--border-soft);"><span class="cell-sub">Access Level</span><span class="badge badge-violet">{{ ucfirst($user->role) }}</span></div>
         <div class="flex items-center justify-between" style="padding:9px 0; border-bottom:1px solid var(--border-soft);"><span class="cell-sub">Email</span><span style="font-size:12.5px;">{{ $user->email }}</span></div>
         <div class="flex items-center justify-between" style="padding:9px 0; border-bottom:1px solid var(--border-soft);"><span class="cell-sub">Joined</span><span style="font-size:12.5px;">{{ $user->created_at->format('M Y') }}</span></div>
         <div class="flex items-center justify-between" style="padding:9px 0;"><span class="cell-sub">Status</span><x-status-badge status="{{ ucfirst($user->status) }}" type="{{ $user->status === 'active' ? 'pos' : 'neg' }}" /></div>
+
+        <div class="divider"></div>
+        <div class="section-title">Permission Role</div>
+        <p class="cell-sub" style="margin-bottom:8px;">Separate from Access Level above — this ties into the granular Roles &amp; Permissions matrix.</p>
+        <form action="{{ route('admin.users.assign-role', $user->id) }}" method="POST" class="flex gap-8">
+            @csrf
+            <select class="select" name="role_id" style="flex:1;">
+                <option value="">No role assigned</option>
+                @foreach ($roles as $role)
+                    <option value="{{ $role->id }}" @selected($user->role_id == $role->id)>{{ $role->name }}</option>                @endforeach
+            </select>
+            <button type="submit" class="btn btn-secondary btn-sm">Save</button>
+        </form>
     </div>
 </div>
 @endsection

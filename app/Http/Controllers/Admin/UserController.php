@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -36,8 +37,9 @@ class UserController extends Controller
     {
         $user = User::withCount('reviews')->findOrFail($id);
         $recentReviews = $user->reviews()->with('tool')->latest()->take(5)->get();
+        $roles = Role::orderBy('name')->get();
 
-        return view('users.show', compact('user', 'recentReviews'));
+        return view('users.show', compact('user', 'recentReviews', 'roles'));
     }
 
     public function suspend(int $id)
@@ -58,10 +60,17 @@ class UserController extends Controller
         return redirect()->back()->with('status', 'User activated.');
     }
 
+    public function assignRole(Request $request, int $id)
+    {
+        $data = $request->validate(['role_id' => ['nullable', 'exists:roles,id']]);
+
+        User::findOrFail($id)->update(['role_id' => $data['role_id'] ?? null]);
+
+        return redirect()->back()->with('status', 'Role updated.');
+    }
+
     public function reports()
     {
-        // Placeholder — a real "reports" feed needs a user_reports table
-        // (visitors flagging reviews/content), which doesn't exist yet.
         return view('users.reports');
     }
 }

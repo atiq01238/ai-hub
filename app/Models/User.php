@@ -19,6 +19,11 @@ class User extends Authenticatable
      * @var list<string>
      */
 
+    public function roleModel()
+    {
+        return $this->belongsTo(\App\Models\Role::class, 'role_id');
+    }
+
      public function reviews()
     {
         return $this->hasMany(\App\Models\Review::class);
@@ -28,6 +33,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role_id',   
     ];
 
     /**

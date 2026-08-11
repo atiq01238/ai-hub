@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Models\AppNotification;
+use App\Models\NotificationRule;
 use App\Models\PricingHistory;
 use App\Models\PricingPlan;
 
@@ -36,13 +37,15 @@ class PricingPlanObserver
             'change_type' => $new > $old ? 'increase' : 'decrease',
         ]);
 
-        $toolName = $plan->tool->name ?? 'A tool';
-        AppNotification::broadcast(
-            'tag',
-            'warn',
-            'Price update detected',
-            "{$toolName} {$plan->plan_name} changed from \$" . number_format($old, 0) . ' to $' . number_format($new, 0)
-        );
+        if (NotificationRule::isEnabled('price_change')) {
+            $toolName = $plan->tool->name ?? 'A tool';
+            AppNotification::broadcast(
+                'tag',
+                'warn',
+                'Price update detected',
+                "{$toolName} {$plan->plan_name} changed from \$" . number_format($old, 0) . ' to $' . number_format($new, 0)
+            );
+        }
     }
 
     public function deleted(PricingPlan $plan): void

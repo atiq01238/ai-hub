@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AppNotification;
+use App\Models\NotificationRule;
 use App\Models\Submission;
 use Illuminate\Http\Request;
 
@@ -27,12 +28,14 @@ class SubmissionController extends Controller
 
         $submission = Submission::create($data);
 
-        AppNotification::broadcast(
-            'lightbulb',
-            'info',
-            'New tool submission',
-            "\"{$submission->tool_name}\" awaiting review"
-        );
+        if (NotificationRule::isEnabled('new_submission')) {
+            AppNotification::broadcast(
+                'lightbulb',
+                'info',
+                'New tool submission',
+                "\"{$submission->tool_name}\" awaiting review"
+            );
+        }
 
         return redirect()
             ->back()

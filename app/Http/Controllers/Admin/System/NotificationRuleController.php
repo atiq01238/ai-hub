@@ -3,14 +3,23 @@
 namespace App\Http\Controllers\Admin\System;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Models\NotificationRule;
 
 class NotificationRuleController extends Controller
 {
-
-    public function index(Request $request)
+    public function index()
     {
-        // TODO: replace with real query/paginated data
-        return view('system.notification-rules');
+        $rules = NotificationRule::orderBy('label')->get();
+
+        return view('system.notification-rules', compact('rules'));
+    }
+
+    public function toggle(int $id)
+    {
+        $rule = NotificationRule::findOrFail($id);
+        $rule->enabled = ! $rule->enabled;
+        $rule->save();
+
+        return redirect()->back()->with('status', $rule->label . ' turned ' . ($rule->enabled ? 'ON' : 'OFF') . '.');
     }
 }
