@@ -36,7 +36,13 @@ class User extends Authenticatable
         'role_id',   
     ];
 
-    /**
+    protected $casts = [
+        // ...keep whatever you already have here (e.g. 'email_verified_at' => 'datetime')...
+        'two_factor_secret'         => 'encrypted',
+        'two_factor_recovery_codes' => 'encrypted:array',
+        'two_factor_enabled'        => 'boolean',
+    ];
+        /**
      * The attributes that should be hidden for serialization.
      *
      * @var list<string>

@@ -45,6 +45,7 @@ use App\Http\Controllers\Admin\System\SettingController;
 use App\Http\Controllers\Admin\System\NotificationRuleController;
 use App\Http\Controllers\PublicReviewController;
 use App\Http\Controllers\Admin\SubmissionController as AdminSubmissionController;
+use App\Http\Controllers\Auth\TwoFactorChallengeController;
 
 /*
 |--------------------------------------------------------------------------
@@ -352,6 +353,13 @@ Route::middleware(['auth', 'admin'])
                 });
             Route::get('/roles', [RoleController::class, 'index'])->name('roles');
             Route::get('/security', [SecurityController::class, 'index'])->name('security');
+            Route::controller(TwoFactorController::class)
+                ->prefix('2fa')
+                ->name('2fa.')
+                ->group(function () {
+                    Route::post('/confirm', 'confirm')->name('confirm');
+                    Route::post('/disable', 'disable')->name('disable');
+                });
             Route::get('/2fa', [TwoFactorController::class, 'index'])->name('2fa');
             Route::get('/backups', [BackupController::class, 'index'])->name('backups');
             Route::get('/api-monitoring', [ApiMonitoringController::class, 'index'])->name('api-monitoring');
@@ -412,3 +420,7 @@ Route::middleware('auth')->group(function () {
 Route::post('/reviews/{id}/approve', [\App\Http\Controllers\Admin\Content\ReviewController::class, 'approve'])->name('reviews.approve');
 Route::post('/reviews/{id}/flag', [\App\Http\Controllers\Admin\Content\ReviewController::class, 'flag'])->name('reviews.flag');
 Route::delete('/reviews/{id}', [\App\Http\Controllers\Admin\Content\ReviewController::class, 'destroy'])->name('reviews.destroy');
+Route::middleware('guest')->group(function () {
+    Route::get('/login/2fa', [TwoFactorChallengeController::class, 'show'])->name('login.2fa');
+    Route::post('/login/2fa', [TwoFactorChallengeController::class, 'verify'])->name('login.2fa.verify');
+});

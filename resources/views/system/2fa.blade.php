@@ -3,52 +3,44 @@
 
 @section('content')
 
-<x-page-header title="Two-Factor Authentication" subtitle="Enabled via Authenticator App" :breadcrumb="['System', 'Security Center', '2FA']" />
+<x-page-header title="Two-Factor Authentication" subtitle="Extra protection for your own admin account" :breadcrumb="['System', '2FA']" />
 
-<div class="grid-12">
-    <div class="col-6 card card-pad" style="text-align:center;">
-        <div class="section-title" style="text-align:left;">Setup — Scan QR Code</div>
-        <div style="width:180px; height:180px; margin:16px auto; background:var(--surface-2); border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; border:1px dashed var(--border);">
-            <i data-lucide="qr-code" style="width:64px;height:64px; color:var(--text-lo);"></i>
-        </div>
-        <div class="text-sub" style="font-size:12.5px; margin-bottom:16px;">Scan with Google Authenticator, Authy, or 1Password.</div>
-        <div class="form-field" style="max-width:220px; margin:0 auto 14px;">
-            <label>Verification Code</label>
-            <input class="input" placeholder="000000" style="text-align:center; letter-spacing:.3em; font-family:var(--font-mono);">
-        </div>
-        <button class="btn btn-primary" style="width:100%; max-width:220px; justify-content:center;">Verify &amp; Enable</button>
-    </div>
+@if (session('status'))
+    <div class="alert alert-success" style="margin-bottom:16px;">{{ session('status') }}</div>
+@endif
 
-    <div class="col-6">
-        <div class="card card-pad" style="margin-bottom:16px;">
-            <div class="flex items-center justify-between">
-                <div>
-                    <b style="font-size:14px;">2FA Status</b>
-                    <div class="cell-sub">Currently protecting your account</div>
-                </div>
-                <span class="badge badge-pos">Enabled</span>
+<div class="card card-pad" style="max-width:520px;">
+    @if ($user->two_factor_enabled)
+        <div class="flex items-center gap-12" style="margin-bottom:16px;">
+            <div class="kpi-icon" style="color:var(--pos);"><i data-lucide="shield-check"></i></div>
+            <div>
+                <b>2FA is ON</b>
+                <div class="cell-sub">Your account requires a code from your authenticator app to log in.</div>
             </div>
         </div>
 
-        <div class="card card-pad" style="margin-bottom:16px;">
-            <div class="section-title">Backup Codes</div>
-            <div class="text-sub" style="font-size:12.5px; margin-bottom:12px;">Store these somewhere safe. Each code works once.</div>
-            <div class="grid-2 mono" style="gap:8px; font-size:12.5px;">
-                @foreach(['8X2K-91QF','3ML0-QW7Z','P29D-XX41','7VNC-K02L','B3XZ-19MQ','MK41-2Q0P'] as $code)
-                    <div class="card-pad" style="padding:8px 10px; background:var(--surface-2); border-radius:8px;">{{ $code }}</div>
-                @endforeach
+        <form action="{{ route('admin.system.2fa.disable') }}" method="POST">
+            @csrf
+            <div class="form-field" style="margin-bottom:12px;">
+                <label>Enter your password to disable</label>
+                <input class="input" type="password" name="password" required>
             </div>
-            <button class="btn btn-secondary btn-sm" style="margin-top:14px;"><i data-lucide="refresh-cw"></i> Regenerate Backup Codes</button>
+            @error('password')<div class="text-sub" style="color:var(--neg); margin-bottom:10px;">{{ $message }}</div>@enderror
+            <button type="submit" class="btn btn-danger btn-sm">Disable 2FA</button>
+        </form>
+    @else
+        <div class="flex items-center gap-12" style="margin-bottom:16px;">
+            <div class="kpi-icon" style="color:var(--text-lo);"><i data-lucide="shield-off"></i></div>
+            <div>
+                <b>2FA is OFF</b>
+                <div class="cell-sub">Add an authenticator app (Google Authenticator, Authy, etc.) for extra login security.</div>
+            </div>
         </div>
 
-        <div class="card card-pad">
-            <div class="section-title">Recovery &amp; Disable</div>
-            <div class="flex items-center justify-between" style="margin-bottom:12px;">
-                <span class="text-sub" style="font-size:13px;">Recovery email</span>
-                <span style="font-size:13px;">s••••@aihub.io</span>
-            </div>
-            <button class="btn btn-danger btn-sm"><i data-lucide="shield-off"></i> Disable 2FA</button>
-        </div>
-    </div>
+        <form action="{{ route('admin.system.2fa.setup') }}" method="POST">
+            @csrf
+            <button type="submit" class="btn btn-primary btn-sm"><i data-lucide="shield-plus"></i> Enable 2FA</button>
+        </form>
+    @endif
 </div>
 @endsection
