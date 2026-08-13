@@ -68,6 +68,7 @@
             ['Activity Logs', '/admin/system/activity-logs', 'scroll-text'],
             ['Roles & Permissions', '/admin/system/roles', 'shield-check'],
             ['Security Center', '/admin/system/security', 'lock'],
+            ['Two-Factor Auth', '/admin/system/2fa', 'shield-check'],
             ['Backups', '/admin/system/backups', 'database-backup'],
             ['Data Verification', '/admin/system/data-verification', 'file-check-2'],
             ['Source Reliability', '/admin/system/source-reliability', 'gauge-circle'],

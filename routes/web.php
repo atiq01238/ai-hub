@@ -352,14 +352,14 @@ Route::middleware(['auth', 'admin'])
 
                 });
             Route::get('/roles', [RoleController::class, 'index'])->name('roles');
-            Route::get('/security', [SecurityController::class, 'index'])->name('security');
-            Route::controller(TwoFactorController::class)
-                ->prefix('2fa')
-                ->name('2fa.')
+            Route::controller(\App\Http\Controllers\Admin\System\SecurityController::class)
+                ->prefix('security')
+                ->name('security.')
                 ->group(function () {
-                    Route::post('/confirm', 'confirm')->name('confirm');
-                    Route::post('/disable', 'disable')->name('disable');
+                    Route::post('/sessions/{sessionId}/revoke', 'revokeSession')->name('revoke-session');
                 });
+            Route::get('/security', [\App\Http\Controllers\Admin\System\SecurityController::class, 'index'])->name('security');
+
             Route::get('/2fa', [TwoFactorController::class, 'index'])->name('2fa');
             Route::get('/backups', [BackupController::class, 'index'])->name('backups');
             Route::get('/api-monitoring', [ApiMonitoringController::class, 'index'])->name('api-monitoring');
