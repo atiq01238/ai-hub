@@ -5,7 +5,7 @@
 
 <x-page-header title="Duplicate News Detection" subtitle="AI-matched near-identical stories across sources" :breadcrumb="['AI Intelligence', 'Duplicate Detection']">
     <x-slot:actions>
-        <a href="{{ url('/news') }}" class="btn btn-secondary btn-sm"><i data-lucide="arrow-left"></i> Back to News Feed</a>
+        <a href="{{ url('/admin/news') }}" class="btn btn-secondary btn-sm"><i data-lucide="arrow-left"></i> Back to News Feed</a>
     </x-slot:actions>
 </x-page-header>
 

@@ -11,405 +11,679 @@
 
 <style>
     .comparison-page {
-        --cp-border: var(--border-soft, rgba(148,163,184,.14));
-        --cp-text: var(--text, #eef2ff);
-        --cp-muted: var(--muted, #8d98ad);
-        --cp-blue: #6d8cff;
-        --cp-cyan: #22d3ee;
-        --cp-green: #32d583;
+        --cmp-text: #eef2f7;
+        --cmp-muted: #7d899d;
+        --cmp-muted-2: #5e697d;
+        --cmp-border: rgba(255,255,255,.065);
+        --cmp-border-hover: rgba(99,102,241,.28);
+        --cmp-primary: #6366f1;
+        --cmp-primary-soft: rgba(99,102,241,.11);
+        --cmp-cyan: #22d3ee;
+        --cmp-green: #34d399;
+        --cmp-card: rgba(15,20,31,.82);
+
+        color: var(--cmp-text);
     }
 
-    .comparison-page__hero {
+    /* =========================
+       HERO
+    ========================= */
+
+    .cmp-hero {
         position: relative;
         overflow: hidden;
         display: flex;
-        align-items: flex-end;
+        align-items: center;
         justify-content: space-between;
-        gap: 20px;
-        margin-bottom: 15px;
-        padding: 20px 21px;
-        border: 1px solid var(--cp-border);
-        border-radius: 17px;
+        gap: 25px;
+        min-height: 118px;
+        margin-bottom: 20px;
+        padding: 23px 25px;
+        border: 1px solid var(--cmp-border);
+        border-radius: 18px;
         background:
-            radial-gradient(circle at 90% 5%, rgba(109,140,255,.17), transparent 28%),
-            radial-gradient(circle at 62% 120%, rgba(34,211,238,.06), transparent 28%),
-            linear-gradient(145deg, rgba(255,255,255,.045), rgba(255,255,255,.012));
-        box-shadow: 0 16px 42px rgba(0,0,0,.07);
+            radial-gradient(
+                circle at 90% 0%,
+                rgba(99,102,241,.19),
+                transparent 30%
+            ),
+            radial-gradient(
+                circle at 60% 120%,
+                rgba(34,211,238,.055),
+                transparent 28%
+            ),
+            linear-gradient(
+                145deg,
+                rgba(255,255,255,.045),
+                rgba(255,255,255,.012)
+            );
+        box-shadow: 0 18px 45px rgba(0,0,0,.09);
     }
 
-    .comparison-page__hero-copy {
+    .cmp-hero::before {
+        content: "";
+        position: absolute;
+        width: 190px;
+        height: 190px;
+        right: 8%;
+        top: -150px;
+        border: 1px solid rgba(99,102,241,.08);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+
+    .cmp-hero-content {
         position: relative;
-        z-index: 1;
+        z-index: 2;
     }
 
-    .comparison-page__eyebrow {
+    .cmp-eyebrow {
         display: flex;
         align-items: center;
-        gap: 7px;
+        gap: 8px;
         margin-bottom: 7px;
-        color: var(--cp-cyan);
-        font-size: 8.5px;
+        color: #8795ff;
+        font-size: 8px;
         font-weight: 800;
         letter-spacing: .13em;
         text-transform: uppercase;
     }
 
-    .comparison-page__live {
+    .cmp-status-dot {
         width: 6px;
         height: 6px;
         border-radius: 50%;
-        background: var(--cp-green);
-        box-shadow: 0 0 0 4px rgba(50,213,131,.10);
+        background: var(--cmp-green);
+        box-shadow: 0 0 0 4px rgba(52,211,153,.09);
     }
 
-    .comparison-page__title {
+    .cmp-title {
         margin: 0;
-        color: var(--cp-text);
-        font-size: clamp(22px, 3vw, 29px);
+        color: #f3f5f9;
+        font-size: clamp(23px, 3vw, 29px);
         line-height: 1.15;
-        letter-spacing: -.035em;
         font-weight: 800;
+        letter-spacing: -.035em;
     }
 
-    .comparison-page__subtitle {
+    .cmp-subtitle {
         margin: 7px 0 0;
-        color: var(--cp-muted);
-        font-size: 9px;
+        color: var(--cmp-muted);
+        font-size: 10px;
     }
 
-    .comparison-page__hero-actions {
+    .cmp-actions {
         position: relative;
-        z-index: 1;
+        z-index: 3;
         display: flex;
-        gap: 7px;
+        gap: 8px;
+        flex-shrink: 0;
     }
 
-    .comparison-page__hero-actions .btn {
-        min-height: 37px;
+    .cmp-actions .btn {
+        min-height: 38px;
+        padding: 0 14px;
+        border-radius: 9px;
+        font-size: 10px;
+        font-weight: 700;
+    }
+
+    .cmp-actions .btn i,
+    .cmp-actions .btn svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    /* =========================
+       ERROR
+    ========================= */
+
+    .cmp-error {
+        display: flex;
+        gap: 11px;
+        align-items: flex-start;
+        margin-bottom: 18px;
+        padding: 13px 15px;
+        color: #ff9c9c;
+        background: rgba(239,68,68,.055);
+        border: 1px solid rgba(239,68,68,.15);
+        border-radius: 11px;
+        font-size: 10px;
+    }
+
+    .cmp-error-icon {
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 28px;
+        color: #f87171;
+        background: rgba(239,68,68,.08);
+        border-radius: 8px;
+    }
+
+    .cmp-error-icon svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .cmp-error-title {
+        margin-bottom: 4px;
+        color: #ffb0b0;
+        font-size: 10px;
+        font-weight: 750;
+    }
+
+    .cmp-error ul {
+        margin: 0;
+        padding-left: 16px;
+    }
+
+    .cmp-error li {
+        margin: 2px 0;
+    }
+
+    /* =========================
+       MAIN FORM
+    ========================= */
+
+    .cmp-title-card {
+        margin-bottom: 17px;
+        padding: 20px;
+        background:
+            linear-gradient(
+                145deg,
+                rgba(255,255,255,.035),
+                rgba(255,255,255,.012)
+            );
+        border: 1px solid var(--cmp-border);
+        border-radius: 16px;
+        box-shadow: 0 14px 38px rgba(0,0,0,.055);
+    }
+
+    .cmp-section-heading {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 13px;
+    }
+
+    .cmp-section-icon {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #9ba8ff;
+        background: rgba(99,102,241,.09);
+        border: 1px solid rgba(99,102,241,.14);
         border-radius: 9px;
     }
 
-    .comparison-page__notice {
-        display: flex;
-        align-items: flex-start;
-        gap: 9px;
-        margin-bottom: 14px;
-        padding: 11px 13px;
-        border: 1px solid rgba(255,90,90,.18);
-        border-radius: 10px;
-        color: #ff9d9d;
-        background: rgba(255,90,90,.055);
-        font-size: 9px;
+    .cmp-section-icon svg {
+        width: 15px;
+        height: 15px;
     }
 
-    .comparison-page__notice svg {
-        width: 14px;
-        height: 14px;
-        flex: 0 0 14px;
-        margin-top: 1px;
+    .cmp-section-title {
+        color: #e8ecf3;
+        font-size: 11px;
+        font-weight: 750;
     }
 
-    .comparison-page__title-card {
-        position: relative;
-        margin-bottom: 14px;
-        padding: 17px;
-        border: 1px solid var(--cp-border);
-        border-radius: 14px;
-        background: linear-gradient(145deg, rgba(255,255,255,.035), rgba(255,255,255,.012));
-        box-shadow: 0 12px 34px rgba(0,0,0,.055);
+    .cmp-section-desc {
+        margin-top: 3px;
+        color: var(--cmp-muted-2);
+        font-size: 8px;
     }
 
-    .comparison-page__section-head {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 11px;
-    }
-
-    .comparison-page__section-icon {
-        width: 28px;
-        height: 28px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border: 1px solid rgba(109,140,255,.16);
-        border-radius: 8px;
-        color: #9eafff;
-        background: rgba(109,140,255,.07);
-    }
-
-    .comparison-page__section-icon svg {
-        width: 14px;
-        height: 14px;
-    }
-
-    .comparison-page__section-title {
-        color: var(--cp-text);
-        font-size: 10.5px;
-        font-weight: 800;
-    }
-
-    .comparison-page__section-subtitle {
-        margin-top: 2px;
-        color: var(--cp-muted);
-        font-size: 7.5px;
-    }
-
-    .comparison-page__title-input {
+    .cmp-title-input {
         width: 100%;
-        min-height: 45px;
-        padding: 0 13px;
-        border: 1px solid var(--cp-border);
+        height: 47px;
+        padding: 0 14px;
+        color: #edf1f7;
+        background: rgba(0,0,0,.15);
+        border: 1px solid var(--cmp-border);
         border-radius: 10px;
         outline: none;
-        color: var(--cp-text);
-        background: rgba(255,255,255,.025);
         font-size: 11px;
-        transition: .16s ease;
+        transition: .18s ease;
     }
 
-    .comparison-page__title-input:focus {
-        border-color: rgba(109,140,255,.45);
-        box-shadow: 0 0 0 3px rgba(109,140,255,.08);
+    .cmp-title-input:hover {
+        border-color: rgba(255,255,255,.10);
     }
 
-    .comparison-page__title-input::placeholder {
-        color: #68748a;
+    .cmp-title-input:focus {
+        border-color: rgba(99,102,241,.45);
+        background: rgba(99,102,241,.025);
+        box-shadow: 0 0 0 3px rgba(99,102,241,.08);
     }
 
-    .comparison-page__columns {
+    .cmp-title-input::placeholder {
+        color: #586477;
+    }
+
+    /* =========================
+       SELECTOR GRID
+    ========================= */
+
+    .cmp-selector-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 14px;
+        grid-template-columns: repeat(2, minmax(0,1fr));
+        gap: 17px;
     }
 
-    .comparison-page__selector {
+    .cmp-selector {
         overflow: hidden;
-        border: 1px solid var(--cp-border);
-        border-radius: 14px;
-        background: linear-gradient(145deg, rgba(255,255,255,.035), rgba(255,255,255,.012));
-        box-shadow: 0 12px 34px rgba(0,0,0,.055);
+        background:
+            linear-gradient(
+                145deg,
+                rgba(255,255,255,.035),
+                rgba(255,255,255,.012)
+            );
+        border: 1px solid var(--cmp-border);
+        border-radius: 16px;
+        box-shadow: 0 14px 38px rgba(0,0,0,.055);
     }
 
-    .comparison-page__selector-head {
+    .cmp-selector-head {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        padding: 15px 16px;
-        border-bottom: 1px solid var(--cp-border);
+        padding: 17px;
+        border-bottom: 1px solid rgba(255,255,255,.055);
+        background: rgba(255,255,255,.008);
     }
 
-    .comparison-page__selector-title {
+    .cmp-selector-title {
         display: flex;
         align-items: center;
-        gap: 9px;
+        gap: 11px;
         min-width: 0;
     }
 
-    .comparison-page__option {
-        width: 29px;
-        height: 29px;
+    .cmp-type-icon {
+        width: 36px;
+        height: 36px;
         display: flex;
         align-items: center;
         justify-content: center;
-        flex: 0 0 29px;
-        border-radius: 8px;
-        color: #aab8ff;
-        background: rgba(109,140,255,.09);
-        border: 1px solid rgba(109,140,255,.14);
-        font-size: 9px;
-        font-weight: 800;
+        flex: 0 0 36px;
+        color: #aeb9ff;
+        background: rgba(99,102,241,.09);
+        border: 1px solid rgba(99,102,241,.14);
+        border-radius: 10px;
     }
 
-    .comparison-page__option--model {
-        color: #91e9f4;
+    .cmp-type-icon.model {
+        color: #8eeaf5;
         background: rgba(34,211,238,.07);
         border-color: rgba(34,211,238,.14);
     }
 
-    .comparison-page__selector-name {
-        color: var(--cp-text);
-        font-size: 10px;
-        font-weight: 800;
+    .cmp-type-icon svg {
+        width: 16px;
+        height: 16px;
     }
 
-    .comparison-page__selector-desc {
-        margin-top: 2px;
-        color: var(--cp-muted);
-        font-size: 7.5px;
+    .cmp-selector-name {
+        color: #e9edf4;
+        font-size: 11px;
+        font-weight: 750;
     }
 
-    .comparison-page__count {
-        padding: 5px 7px;
-        border: 1px solid var(--cp-border);
-        border-radius: 6px;
-        color: var(--cp-muted);
-        background: rgba(255,255,255,.018);
-        font-size: 7px;
+    .cmp-selector-desc {
+        margin-top: 3px;
+        color: var(--cmp-muted-2);
+        font-size: 8px;
+    }
+
+    .cmp-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 8px;
+        color: #8b97aa;
+        background: rgba(255,255,255,.025);
+        border: 1px solid rgba(255,255,255,.055);
+        border-radius: 7px;
+        font-size: 8px;
         font-weight: 700;
         white-space: nowrap;
     }
 
-    .comparison-page__list {
-        max-height: 340px;
-        overflow-y: auto;
-        padding: 8px;
-        scrollbar-width: thin;
+    .cmp-count-number {
+        color: #b8c2d4;
     }
 
-    .comparison-page__item {
+    /* =========================
+       SEARCH
+    ========================= */
+
+    .cmp-search {
+        position: relative;
+        margin: 11px 11px 4px;
+    }
+
+    .cmp-search input {
+        width: 100%;
+        height: 35px;
+        padding: 0 11px 0 33px;
+        color: #dfe5ef;
+        background: rgba(0,0,0,.13);
+        border: 1px solid rgba(255,255,255,.055);
+        border-radius: 8px;
+        outline: none;
+        font-size: 9px;
+    }
+
+    .cmp-search input:focus {
+        border-color: rgba(99,102,241,.30);
+        box-shadow: 0 0 0 3px rgba(99,102,241,.055);
+    }
+
+    .cmp-search input::placeholder {
+        color: #596578;
+    }
+
+    .cmp-search svg {
+        position: absolute;
+        top: 50%;
+        left: 11px;
+        width: 13px;
+        height: 13px;
+        color: #667287;
+        transform: translateY(-50%);
+        pointer-events: none;
+    }
+
+    /* =========================
+       LIST
+    ========================= */
+
+    .cmp-list {
+        max-height: 365px;
+        overflow-y: auto;
+        padding: 7px;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255,255,255,.10) transparent;
+    }
+
+    .cmp-list::-webkit-scrollbar {
+        width: 5px;
+    }
+
+    .cmp-list::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .cmp-list::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,.10);
+        border-radius: 20px;
+    }
+
+    .cmp-item {
         position: relative;
         display: flex;
         align-items: center;
         gap: 10px;
-        min-height: 48px;
+        min-height: 54px;
         padding: 8px 10px;
+        margin-bottom: 3px;
         border: 1px solid transparent;
-        border-radius: 9px;
+        border-radius: 10px;
         cursor: pointer;
         transition: .16s ease;
     }
 
-    .comparison-page__item:hover {
-        border-color: var(--cp-border);
+    .cmp-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .cmp-item:hover {
         background: rgba(255,255,255,.025);
+        border-color: rgba(255,255,255,.055);
     }
 
-    .comparison-page__item:has(input:checked) {
-        border-color: rgba(109,140,255,.20);
-        background: rgba(109,140,255,.065);
+    .cmp-item:has(input:checked) {
+        background:
+            linear-gradient(
+                90deg,
+                rgba(99,102,241,.10),
+                rgba(99,102,241,.035)
+            );
+        border-color: rgba(99,102,241,.20);
     }
 
-    .comparison-page__item input {
-        width: 15px;
-        height: 15px;
-        flex: 0 0 15px;
-        accent-color: var(--cp-blue);
+    .cmp-item:has(input:checked)::before {
+        content: "";
+        position: absolute;
+        left: -1px;
+        top: 9px;
+        bottom: 9px;
+        width: 2px;
+        background: #818cf8;
+        border-radius: 0 3px 3px 0;
+    }
+
+    .cmp-checkbox {
+        width: 16px;
+        height: 16px;
+        flex: 0 0 16px;
+        accent-color: #6366f1;
         cursor: pointer;
     }
 
-    .comparison-page__item-info {
+    .cmp-avatar {
+        width: 34px;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 34px;
+        color: #b9c2ff;
+        background: linear-gradient(
+            145deg,
+            rgba(99,102,241,.16),
+            rgba(99,102,241,.045)
+        );
+        border: 1px solid rgba(99,102,241,.13);
+        border-radius: 9px;
+        font-size: 9px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .cmp-avatar.model {
+        color: #9beaf3;
+        background: linear-gradient(
+            145deg,
+            rgba(34,211,238,.13),
+            rgba(34,211,238,.035)
+        );
+        border-color: rgba(34,211,238,.12);
+    }
+
+    .cmp-item-info {
         min-width: 0;
         flex: 1;
     }
 
-    .comparison-page__item-name {
+    .cmp-item-name {
         display: block;
         overflow: hidden;
-        color: var(--cp-text);
+        color: #dfe5ee;
         font-size: 9.5px;
         font-weight: 700;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
 
-    .comparison-page__item-company {
+    .cmp-item-company {
         display: block;
-        margin-top: 3px;
         overflow: hidden;
-        color: var(--cp-muted);
+        margin-top: 3px;
+        color: #687489;
         font-size: 7.5px;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
 
-    .comparison-page__selected {
+    .cmp-selected {
+        width: 19px;
+        height: 19px;
         display: none;
-        width: 18px;
-        height: 18px;
         align-items: center;
         justify-content: center;
+        flex: 0 0 19px;
+        color: white;
+        background: #6366f1;
         border-radius: 50%;
-        color: #fff;
-        background: var(--cp-blue);
+        box-shadow: 0 4px 12px rgba(99,102,241,.25);
     }
 
-    .comparison-page__item:has(input:checked) .comparison-page__selected {
-        display: inline-flex;
+    .cmp-item:has(input:checked) .cmp-selected {
+        display: flex;
     }
 
-    .comparison-page__selected svg {
+    .cmp-selected svg {
         width: 10px;
         height: 10px;
     }
 
-    .comparison-page__footer-note {
+    /* =========================
+       EMPTY
+    ========================= */
+
+    .cmp-empty {
+        padding: 45px 20px;
+        color: var(--cmp-muted-2);
+        text-align: center;
+        font-size: 9px;
+    }
+
+    .cmp-empty-icon {
+        width: 42px;
+        height: 42px;
         display: flex;
         align-items: center;
-        gap: 7px;
-        margin-top: 14px;
-        padding: 10px 12px;
-        border: 1px dashed var(--cp-border);
-        border-radius: 9px;
-        color: var(--cp-muted);
+        justify-content: center;
+        margin: 0 auto 10px;
+        color: #667286;
+        background: rgba(255,255,255,.025);
+        border: 1px solid rgba(255,255,255,.055);
+        border-radius: 11px;
+    }
+
+    .cmp-empty-icon svg {
+        width: 17px;
+        height: 17px;
+    }
+
+    .cmp-empty strong {
+        display: block;
+        margin-bottom: 4px;
+        color: #aab3c2;
+        font-size: 10px;
+    }
+
+    /* =========================
+       FOOTER NOTE
+    ========================= */
+
+    .cmp-footer-note {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 15px;
+        padding: 11px 13px;
+        color: #68758a;
         background: rgba(255,255,255,.012);
-        font-size: 8px;
+        border: 1px dashed rgba(255,255,255,.075);
+        border-radius: 9px;
+        font-size: 8.5px;
     }
 
-    .comparison-page__footer-note svg {
-        width: 13px;
-        height: 13px;
-        color: #7f91b7;
+    .cmp-footer-note svg {
+        width: 14px;
+        height: 14px;
+        flex: 0 0 14px;
+        color: #7d8daf;
     }
 
-    @media (max-width: 800px) {
-        .comparison-page__hero {
+    /* =========================
+       RESPONSIVE
+    ========================= */
+
+    @media (max-width: 850px) {
+        .cmp-hero {
             align-items: flex-start;
             flex-direction: column;
         }
 
-        .comparison-page__hero-actions {
+        .cmp-actions {
             width: 100%;
         }
 
-        .comparison-page__hero-actions .btn {
+        .cmp-actions .btn {
             flex: 1;
         }
 
-        .comparison-page__columns {
+        .cmp-selector-grid {
             grid-template-columns: 1fr;
         }
     }
 
-    @media (max-width: 500px) {
-        .comparison-page__hero {
-            padding: 17px;
+    @media (max-width: 520px) {
+        .cmp-hero {
+            padding: 18px;
         }
 
-        .comparison-page__hero-actions {
+        .cmp-actions {
             flex-direction: column;
         }
 
-        .comparison-page__hero-actions .btn {
+        .cmp-actions .btn {
             width: 100%;
+        }
+
+        .cmp-title-card {
+            padding: 15px;
+        }
+
+        .cmp-selector-head {
+            padding: 14px;
         }
     }
 </style>
 
+
 <div class="comparison-page">
 
     {{-- HERO --}}
-    <section class="comparison-page__hero">
+    <section class="cmp-hero">
 
-        <div class="comparison-page__hero-copy">
+        <div class="cmp-hero-content">
 
-            <div class="comparison-page__eyebrow">
-                <span class="comparison-page__live"></span>
-                Comparison & Benchmarks · Intelligence
+            <div class="cmp-eyebrow">
+                <span class="cmp-status-dot"></span>
+                Comparison Intelligence
             </div>
 
-            <h1 class="comparison-page__title">
+            <h1 class="cmp-title">
                 {{ $comparison ? 'Edit Comparison' : 'New Comparison' }}
             </h1>
 
-            <p class="comparison-page__subtitle">
+            <p class="cmp-subtitle">
                 Compare 2–4 AI tools or 2–4 AI models side by side
             </p>
 
         </div>
 
-        <div class="comparison-page__hero-actions">
+        <div class="cmp-actions">
 
             <button
                 type="submit"
@@ -429,7 +703,7 @@
                 value="published"
                 class="btn btn-primary btn-sm"
             >
-                <i data-lucide="check"></i>
+                <i data-lucide="rocket"></i>
                 Publish
             </button>
 
@@ -437,27 +711,34 @@
 
     </section>
 
+
+    {{-- ERRORS --}}
     @if ($errors->any())
 
-        <div class="comparison-page__notice">
+        <div class="cmp-error">
 
-            <i data-lucide="circle-alert"></i>
+            <div class="cmp-error-icon">
+                <i data-lucide="circle-alert"></i>
+            </div>
 
             <div>
-                <strong style="display:block; margin-bottom:4px;">
-                    Please check the following fields
-                </strong>
 
-                <ul style="margin:0; padding-left:16px;">
+                <div class="cmp-error-title">
+                    Please check the following fields
+                </div>
+
+                <ul>
                     @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>
                     @endforeach
                 </ul>
+
             </div>
 
         </div>
 
     @endif
+
 
     <form
         id="comparison-form"
@@ -471,29 +752,32 @@
             @method('PUT')
         @endif
 
+
         {{-- TITLE --}}
-        <div class="comparison-page__title-card">
+        <div class="cmp-title-card">
 
-            <div class="comparison-page__section-head">
+            <div class="cmp-section-heading">
 
-                <span class="comparison-page__section-icon">
+                <span class="cmp-section-icon">
                     <i data-lucide="heading"></i>
                 </span>
 
                 <div>
-                    <div class="comparison-page__section-title">
+
+                    <div class="cmp-section-title">
                         Comparison Title
                     </div>
 
-                    <div class="comparison-page__section-subtitle">
+                    <div class="cmp-section-desc">
                         Give this comparison a clear and searchable title
                     </div>
+
                 </div>
 
             </div>
 
             <input
-                class="comparison-page__title-input"
+                class="cmp-title-input"
                 name="title"
                 value="{{ old('title', $comparison->title ?? '') }}"
                 placeholder="e.g. ChatGPT vs Claude"
@@ -502,27 +786,29 @@
 
         </div>
 
+
         {{-- SELECTORS --}}
-        <div class="comparison-page__columns">
+        <div class="cmp-selector-grid">
 
-            {{-- TOOLS --}}
-            <section class="comparison-page__selector">
 
-                <div class="comparison-page__selector-head">
+            {{-- AI TOOLS --}}
+            <section class="cmp-selector">
 
-                    <div class="comparison-page__selector-title">
+                <div class="cmp-selector-head">
 
-                        <span class="comparison-page__option">
-                            A
+                    <div class="cmp-selector-title">
+
+                        <span class="cmp-type-icon">
+                            <i data-lucide="wrench"></i>
                         </span>
 
                         <div>
 
-                            <div class="comparison-page__selector-name">
+                            <div class="cmp-selector-name">
                                 Compare AI Tools
                             </div>
 
-                            <div class="comparison-page__selector-desc">
+                            <div class="cmp-selector-desc">
                                 Select 2–4 tools
                             </div>
 
@@ -530,38 +816,61 @@
 
                     </div>
 
-                    <span class="comparison-page__count">
-                        {{ count($selectedToolIds) }} selected
+                    <span class="cmp-count">
+                        <span class="cmp-count-number" id="tool-count">
+                            {{ count($selectedToolIds) }}
+                        </span>
+                        selected
                     </span>
 
                 </div>
 
-                <div class="comparison-page__list">
+
+                <div class="cmp-search">
+                    <i data-lucide="search"></i>
+
+                    <input
+                        type="text"
+                        placeholder="Search AI tools..."
+                        data-search-target="tools-list"
+                    >
+                </div>
+
+
+                <div class="cmp-list" id="tools-list">
 
                     @forelse ($tools as $tool)
 
-                        <label class="comparison-page__item">
+                        <label
+                            class="cmp-item"
+                            data-search="{{ strtolower($tool->name . ' ' . ($tool->company->name ?? '')) }}"
+                        >
 
                             <input
+                                class="cmp-checkbox tool-checkbox"
                                 type="checkbox"
                                 name="tool_ids[]"
                                 value="{{ $tool->id }}"
                                 {{ in_array($tool->id, $selectedToolIds) ? 'checked' : '' }}
                             >
 
-                            <div class="comparison-page__item-info">
+                            <div class="cmp-avatar">
+                                {{ substr($tool->name, 0, 2) }}
+                            </div>
 
-                                <span class="comparison-page__item-name">
+                            <div class="cmp-item-info">
+
+                                <span class="cmp-item-name">
                                     {{ $tool->name }}
                                 </span>
 
-                                <span class="comparison-page__item-company">
+                                <span class="cmp-item-company">
                                     {{ $tool->company->name ?? 'No company assigned' }}
                                 </span>
 
                             </div>
 
-                            <span class="comparison-page__selected">
+                            <span class="cmp-selected">
                                 <i data-lucide="check"></i>
                             </span>
 
@@ -569,8 +878,18 @@
 
                     @empty
 
-                        <div class="text-sub" style="padding:20px; text-align:center; font-size:9px;">
-                            No AI tools available.
+                        <div class="cmp-empty">
+
+                            <div class="cmp-empty-icon">
+                                <i data-lucide="wrench"></i>
+                            </div>
+
+                            <strong>
+                                No AI tools available
+                            </strong>
+
+                            Add AI tools first to create a comparison.
+
                         </div>
 
                     @endforelse
@@ -579,24 +898,25 @@
 
             </section>
 
-            {{-- MODELS --}}
-            <section class="comparison-page__selector">
 
-                <div class="comparison-page__selector-head">
+            {{-- AI MODELS --}}
+            <section class="cmp-selector">
 
-                    <div class="comparison-page__selector-title">
+                <div class="cmp-selector-head">
 
-                        <span class="comparison-page__option comparison-page__option--model">
-                            B
+                    <div class="cmp-selector-title">
+
+                        <span class="cmp-type-icon model">
+                            <i data-lucide="brain"></i>
                         </span>
 
                         <div>
 
-                            <div class="comparison-page__selector-name">
+                            <div class="cmp-selector-name">
                                 Compare AI Models
                             </div>
 
-                            <div class="comparison-page__selector-desc">
+                            <div class="cmp-selector-desc">
                                 Select 2–4 models
                             </div>
 
@@ -604,38 +924,61 @@
 
                     </div>
 
-                    <span class="comparison-page__count">
-                        {{ count($selectedModelIds) }} selected
+                    <span class="cmp-count">
+                        <span class="cmp-count-number" id="model-count">
+                            {{ count($selectedModelIds) }}
+                        </span>
+                        selected
                     </span>
 
                 </div>
 
-                <div class="comparison-page__list">
+
+                <div class="cmp-search">
+                    <i data-lucide="search"></i>
+
+                    <input
+                        type="text"
+                        placeholder="Search AI models..."
+                        data-search-target="models-list"
+                    >
+                </div>
+
+
+                <div class="cmp-list" id="models-list">
 
                     @forelse ($models as $model)
 
-                        <label class="comparison-page__item">
+                        <label
+                            class="cmp-item"
+                            data-search="{{ strtolower($model->name . ' ' . ($model->company->name ?? '')) }}"
+                        >
 
                             <input
+                                class="cmp-checkbox model-checkbox"
                                 type="checkbox"
                                 name="model_ids[]"
                                 value="{{ $model->id }}"
                                 {{ in_array($model->id, $selectedModelIds) ? 'checked' : '' }}
                             >
 
-                            <div class="comparison-page__item-info">
+                            <div class="cmp-avatar model">
+                                {{ substr($model->name, 0, 2) }}
+                            </div>
 
-                                <span class="comparison-page__item-name">
+                            <div class="cmp-item-info">
+
+                                <span class="cmp-item-name">
                                     {{ $model->name }}
                                 </span>
 
-                                <span class="comparison-page__item-company">
+                                <span class="cmp-item-company">
                                     {{ $model->company->name ?? 'No company assigned' }}
                                 </span>
 
                             </div>
 
-                            <span class="comparison-page__selected">
+                            <span class="cmp-selected">
                                 <i data-lucide="check"></i>
                             </span>
 
@@ -643,8 +986,18 @@
 
                     @empty
 
-                        <div class="text-sub" style="padding:20px; text-align:center; font-size:9px;">
-                            No AI models available.
+                        <div class="cmp-empty">
+
+                            <div class="cmp-empty-icon">
+                                <i data-lucide="brain"></i>
+                            </div>
+
+                            <strong>
+                                No AI models available
+                            </strong>
+
+                            Add AI models first to create a comparison.
+
                         </div>
 
                     @endforelse
@@ -655,15 +1008,93 @@
 
         </div>
 
-        <div class="comparison-page__footer-note">
+
+        {{-- FOOTER --}}
+        <div class="cmp-footer-note">
+
             <i data-lucide="info"></i>
+
             <span>
                 Choose either tools or models. Select between 2 and 4 items for the comparison.
             </span>
+
         </div>
 
     </form>
 
 </div>
+
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+
+    /* Search */
+    document.querySelectorAll('.cmp-search input').forEach(function (input) {
+
+        input.addEventListener('input', function () {
+
+            const targetId = this.dataset.searchTarget;
+            const target = document.getElementById(targetId);
+
+            if (!target) return;
+
+            const query = this.value.toLowerCase().trim();
+
+            target.querySelectorAll('.cmp-item').forEach(function (item) {
+
+                const text = item.dataset.search || '';
+
+                item.style.display =
+                    !query || text.includes(query)
+                        ? ''
+                        : 'none';
+
+            });
+
+        });
+
+    });
+
+
+    /* Selected counters */
+    function updateCount(selector, target) {
+
+        const count = document.querySelectorAll(
+            selector + ':checked'
+        ).length;
+
+        const element = document.getElementById(target);
+
+        if (element) {
+            element.textContent = count;
+        }
+    }
+
+
+    document.querySelectorAll('.tool-checkbox').forEach(function (checkbox) {
+
+        checkbox.addEventListener('change', function () {
+            updateCount('.tool-checkbox', 'tool-count');
+        });
+
+    });
+
+
+    document.querySelectorAll('.model-checkbox').forEach(function (checkbox) {
+
+        checkbox.addEventListener('change', function () {
+            updateCount('.model-checkbox', 'model-count');
+        });
+
+    });
+
+});
+</script>
+@endpush
 
 @endsection

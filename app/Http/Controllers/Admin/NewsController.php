@@ -96,6 +96,17 @@ class NewsController extends Controller
             ->with('status', 'News item deleted.');
     }
 
+    // Manual trigger for the same job the scheduler runs every 30 minutes —
+    // lets an admin pull fresh news on demand instead of waiting for cron.
+    public function fetchNow()
+    {
+        \Artisan::call('news:fetch');
+
+        return redirect()
+            ->route('admin.news.index')
+            ->with('status', trim(\Artisan::output()) ?: 'Fetch ran, no new items.');
+    }
+
     public function duplicates()
     {
         // Real duplicate detection needs text-similarity/NLP, which isn't built yet.

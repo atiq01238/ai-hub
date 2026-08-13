@@ -109,6 +109,7 @@ Route::middleware(['auth', 'admin'])
                 Route::get('/saved', 'saved')->name('saved');
                 Route::get('/create', 'create')->name('create');
                 Route::get('/duplicates', 'duplicates')->name('duplicates');
+                Route::post('/fetch-now', 'fetchNow')->name('fetch-now');
                 Route::get('/{id}/edit', 'edit')->whereNumber('id')->name('edit');
                 Route::post('/', 'store')->name('store');
                 Route::put('/{id}', 'update')->whereNumber('id')->name('update');

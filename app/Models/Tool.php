@@ -16,6 +16,7 @@ class Tool extends Model
         'short_description', 'description',
         'pricing_models', 'tags', 'capabilities', 'platforms',
         'status', 'rating', 'popularity', 'rating_breakdown',
+        'benchmarks', 'benchmark_score',
         'seo_title', 'meta_description', 'og_image_path',
         'published_at',
     ];
@@ -26,6 +27,7 @@ class Tool extends Model
         'capabilities'     => 'array',
         'platforms'        => 'array',
         'rating_breakdown' => 'array',
+        'benchmarks'       => 'array',
         'launch_date'      => 'date',
         'published_at'     => 'datetime',
     ];

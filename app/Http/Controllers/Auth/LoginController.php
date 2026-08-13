@@ -54,7 +54,7 @@ class LoginController extends Controller
 
             $request->session()->regenerate();
 
-            return redirect()->route('dashboard');
+            return redirect()->route('admin.dashboard');
         }
 
         return back()->withErrors([

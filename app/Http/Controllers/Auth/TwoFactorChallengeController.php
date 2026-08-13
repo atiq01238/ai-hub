@@ -54,6 +54,6 @@ class TwoFactorChallengeController extends Controller
         Auth::login($user, $request->session()->pull('2fa_remember', false));
         $request->session()->regenerate();
 
-        return redirect()->route('dashboard');
+        return redirect()->route('admin.dashboard');
     }
 }
