@@ -210,6 +210,15 @@
 </x-page-header>
 
 
+@if (session('error'))
+
+    <div class="alert alert-danger" style="margin-bottom:16px;">
+        {{ session('error') }}
+    </div>
+
+@endif
+
+
 @if (session('status'))
 
     <div
@@ -605,6 +614,14 @@
                 flex-wrap:wrap;
             "
         >
+
+            <form action="{{ route('admin.news.save', $item->id) }}" method="POST" style="margin:0;">
+                @csrf
+                <button type="submit" class="btn btn-ghost btn-sm">
+                    <i data-lucide="bookmark"></i>
+                    Save
+                </button>
+            </form>
 
             <a
                 href="{{ route('admin.news.show', $item->id) }}"

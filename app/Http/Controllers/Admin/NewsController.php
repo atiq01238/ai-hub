@@ -4,8 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Company;
+use App\Models\NewsBookmark;
 use App\Models\NewsItem;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class NewsController extends Controller
@@ -15,57 +21,73 @@ class NewsController extends Controller
         return $this->filteredIndex($request);
     }
 
-    // "Breaking" = same list, pre-filtered to the Breaking News category.
     public function breaking(Request $request)
     {
-        $request->merge(['category' => 'Breaking News']);
-
-        return $this->filteredIndex($request, 'Breaking News');
+        return $this->filteredIndex($request, null, 'breaking');
     }
 
-    // "Trending" = same list, sorted by importance instead of recency.
     public function trending(Request $request)
     {
-        return $this->filteredIndex($request, null, 'importance');
+        return $this->filteredIndex($request, null, 'trending');
     }
 
-    // "Updates" = same list, most recently published first (the default sort anyway).
     public function updates(Request $request)
     {
-        return $this->filteredIndex($request);
+        return $this->filteredIndex($request, null, 'updates');
     }
 
-    // "Saved" needs a per-user bookmarks table, which doesn't exist yet —
-    // showing an empty state instead of pretending this works.
-    public function saved()
+    public function saved(Request $request)
     {
-        return view('news.index', [
-            'items' => NewsItem::whereRaw('1 = 0')->paginate(20),
-            'companies' => Company::orderBy('name')->get(),
-            'notice' => "Saved articles aren't tracked yet — this needs a per-user bookmarks table, which isn't built yet.",
-        ]);
+        $query = NewsItem::with(['company', 'newsSource'])
+            ->whereHas('bookmarks', fn ($q) => $q->where('user_id', Auth::id()))
+            ->latest('published_at');
+
+        $this->applyCommonFilters($query, $request);
+
+        $items = $query->paginate(20)->withQueryString();
+        $companies = Company::orderBy('name')->get();
+
+        return view('news.index', compact('items', 'companies'))
+            ->with('notice', $items->total() . ' saved article(s).');
+    }
+
+    public function toggleSaved(int $id)
+    {
+        $item = NewsItem::findOrFail($id);
+
+        $bookmark = NewsBookmark::where('user_id', Auth::id())
+            ->where('news_item_id', $item->id)
+            ->first();
+
+        if ($bookmark) {
+            $bookmark->delete();
+            $message = 'Removed from Saved Intelligence.';
+        } else {
+            NewsBookmark::firstOrCreate([
+                'user_id' => Auth::id(),
+                'news_item_id' => $item->id,
+            ]);
+            $message = 'Added to Saved Intelligence.';
+        }
+
+        return back()->with('status', $message);
     }
 
     public function create()
     {
         $companies = Company::orderBy('name')->get();
-
         return view('news.form', compact('companies'));
     }
 
     public function store(Request $request)
     {
         NewsItem::create($this->fromRequest($request));
-
-        return redirect()
-            ->route('admin.news.index')
-            ->with('status', 'News item created.');
+        return redirect()->route('admin.news.index')->with('status', 'News item created.');
     }
 
     public function show(int $id)
     {
-        $item = NewsItem::with('company')->findOrFail($id);
-
+        $item = NewsItem::with(['company', 'newsSource', 'duplicateOf'])->findOrFail($id);
         return view('news.show', ['item' => $item]);
     }
 
@@ -73,7 +95,6 @@ class NewsController extends Controller
     {
         $item = NewsItem::findOrFail($id);
         $companies = Company::orderBy('name')->get();
-
         return view('news.form', ['item' => $item] + compact('companies'));
     }
 
@@ -81,49 +102,131 @@ class NewsController extends Controller
     {
         $item = NewsItem::findOrFail($id);
         $item->update($this->fromRequest($request, $item));
-
-        return redirect()
-            ->route('admin.news.show', $item->id)
-            ->with('status', 'News item updated.');
+        return redirect()->route('admin.news.show', $item->id)->with('status', 'News item updated.');
     }
 
     public function destroy(int $id)
     {
         NewsItem::findOrFail($id)->delete();
-
-        return redirect()
-            ->route('admin.news.index')
-            ->with('status', 'News item deleted.');
+        return redirect()->route('admin.news.index')->with('status', 'News item deleted.');
     }
 
-    // Manual trigger for the same job the scheduler runs every 30 minutes —
-    // lets an admin pull fresh news on demand instead of waiting for cron.
     public function fetchNow()
     {
-        \Artisan::call('news:fetch');
+        $exitCode = Artisan::call('news:pipeline', ['--limit' => 100]);
+        $output = trim(Artisan::output());
 
-        return redirect()
-            ->route('admin.news.index')
-            ->with('status', trim(\Artisan::output()) ?: 'Fetch ran, no new items.');
+        if ($exitCode !== 0) {
+            return redirect()->route('admin.news.index')
+                ->with('error', $output ?: 'News pipeline failed. Check the news pipeline log.');
+        }
+
+        return redirect()->route('admin.news.index')
+            ->with('status', $output ?: 'News pipeline completed successfully.');
     }
 
-    public function duplicates()
+    public function duplicates(Request $request)
     {
-        // Real duplicate detection needs text-similarity/NLP, which isn't built yet.
-        // This just shows the (still static/demo) page so the link doesn't 404.
-        return view('news.duplicates');
+        if (! Schema::hasColumn('news_items', 'duplicate_status')) {
+            return view('news.duplicates', [
+                'groups' => collect(),
+                'stats' => ['total' => 0, 'possible' => 0, 'confirmed' => 0, 'unique' => NewsItem::count()],
+                'notice' => 'Duplicate detection fields are not installed. Run php artisan migrate.',
+            ]);
+        }
+
+        $stats = [
+            'total' => NewsItem::whereIn('duplicate_status', ['possible', 'duplicate'])->count(),
+            'possible' => NewsItem::where('duplicate_status', 'possible')->count(),
+            'confirmed' => NewsItem::where('duplicate_status', 'duplicate')->count(),
+            'unique' => NewsItem::where('duplicate_status', 'unique')->count(),
+        ];
+
+        // The active detector stores parent/child links directly on news_items.
+        // Prefer that source of truth instead of the legacy group table.
+        $groups = NewsItem::with(['duplicateOf', 'duplicates'])
+            ->whereIn('duplicate_status', ['possible', 'duplicate'])
+            ->latest('duplicate_checked_at')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('news.duplicates', compact('groups', 'stats'));
     }
 
-    /**
-     * Shared query builder for index()/breaking()/trending()/updates() —
-     * reads search + filter fields from the URL's query string.
-     */
-    private function filteredIndex(Request $request, ?string $forceCategory = null, string $sort = 'recent')
+    private function filteredIndex(Request $request, ?string $forceCategory = null, string $mode = 'recent')
     {
-        $query = NewsItem::with('company');
+        $query = NewsItem::with(['company', 'newsSource']);
 
-        if ($search = $request->query('search')) {
-            $query->where('headline', 'like', "%{$search}%");
+        $this->applyCommonFilters($query, $request, $forceCategory);
+
+        switch ($mode) {
+            case 'breaking':
+                $query->where(function (Builder $q) {
+                    $q->where('category', 'Breaking News')
+                        ->orWhere(function (Builder $q) {
+                            $q->where('importance', '>=', 75)
+                                ->where('published_at', '>=', now()->subHours(72));
+                        });
+                })
+                ->where(function (Builder $q) {
+                    $q->whereNull('duplicate_status')
+                        ->orWhere('duplicate_status', '!=', 'duplicate');
+                })
+                ->orderByDesc('importance')
+                ->orderByDesc('published_at');
+                break;
+
+            case 'trending':
+                $query->where(function (Builder $q) {
+                    $q->where('published_at', '>=', now()->subDays(7))
+                        ->orWhere(function (Builder $q) {
+                            $q->whereNull('published_at')
+                                ->where('created_at', '>=', now()->subDays(7));
+                        });
+                })
+                ->where(function (Builder $q) {
+                    $q->whereNull('duplicate_status')
+                        ->orWhere('duplicate_status', '!=', 'duplicate');
+                })
+                ->withCount(['bookmarks', 'duplicates'])
+                ->orderByDesc('duplicates_count')
+                ->orderByDesc('bookmarks_count')
+                ->orderByDesc('importance')
+                ->orderByDesc('published_at');
+                break;
+
+            case 'updates':
+                $query->where(function (Builder $q) {
+                    $q->where('published_at', '>=', now()->subHours(72))
+                        ->orWhere('created_at', '>=', now()->subHours(72));
+                })
+                ->where(function (Builder $q) {
+                    $q->whereNull('duplicate_status')
+                        ->orWhere('duplicate_status', '!=', 'duplicate');
+                })
+                ->orderByDesc('published_at')
+                ->orderByDesc('created_at');
+                break;
+
+            default:
+                $query->latest('published_at')->latest('id');
+        }
+
+        $items = $query->paginate(20)->withQueryString();
+        $companies = Company::orderBy('name')->get();
+
+        return view('news.index', compact('items', 'companies'));
+    }
+
+    private function applyCommonFilters(Builder $query, Request $request, ?string $forceCategory = null): void
+    {
+        if ($search = trim((string) $request->query('search'))) {
+            $escaped = addcslashes($search, '%_');
+            $query->where(function (Builder $q) use ($escaped) {
+                $q->where('headline', 'like', "%{$escaped}%")
+                    ->orWhere('summary', 'like', "%{$escaped}%")
+                    ->orWhere('source', 'like', "%{$escaped}%");
+            });
         }
 
         if ($category = $forceCategory ?? $request->query('category')) {
@@ -133,45 +236,39 @@ class NewsController extends Controller
         if ($companyId = $request->query('company_id')) {
             $query->where('company_id', $companyId);
         }
-
-        $query = $sort === 'importance'
-            ? $query->orderByDesc('importance')
-            : $query->latest('published_at');
-
-        $items = $query->paginate(20)->withQueryString();
-        $companies = Company::orderBy('name')->get();
-
-        return view('news.index', compact('items', 'companies'));
     }
 
     private function fromRequest(Request $request, ?NewsItem $item = null): array
     {
         $data = $request->validate([
-            'headline'             => ['required', 'string', 'max:255'],
-            'company_id'           => ['nullable', 'exists:companies,id'],
-            'summary'              => ['nullable', 'string'],
-            'why_it_matters'       => ['nullable', 'string'],
-            'category'             => ['nullable', 'string', 'max:100'],
-            'source'               => ['nullable', 'string', 'max:150'],
-            'source_url'           => ['nullable', 'url', 'max:255'],
-            'sentiment'            => ['required', 'in:positive,neutral,negative'],
-            'importance'           => ['required', 'integer', 'min:0', 'max:100'],
-            'verification_status'  => ['required', 'in:unverified,needs_verification,verified'],
-            'tags_input'           => ['nullable', 'string'],
-            'related_tools_input'  => ['nullable', 'string'],
-            'status'               => ['required', 'in:draft,published,archived'],
+            'headline' => ['required', 'string', 'max:255'],
+            'company_id' => ['nullable', 'exists:companies,id'],
+            'summary' => ['nullable', 'string'],
+            'why_it_matters' => ['nullable', 'string'],
+            'category' => ['nullable', 'string', 'max:100'],
+            'source' => ['nullable', 'string', 'max:150'],
+            'source_url' => ['nullable', 'url', 'max:2048'],
+            'sentiment' => ['required', 'in:positive,neutral,negative'],
+            'importance' => ['required', 'integer', 'min:0', 'max:100'],
+            'verification_status' => ['required', 'in:unverified,needs_verification,verified'],
+            'tags_input' => ['nullable', 'string'],
+            'related_tools_input' => ['nullable', 'string'],
+            'status' => ['required', 'in:draft,published,archived'],
         ]);
 
         foreach (['tags' => 'tags_input', 'related_tools' => 'related_tools_input'] as $column => $input) {
             $data[$column] = collect(explode(',', $data[$input] ?? ''))
-                ->map(fn ($v) => trim($v))
-                ->filter()
-                ->values()
-                ->all();
+                ->map(fn ($v) => trim($v))->filter()->values()->all();
             unset($data[$input]);
         }
 
-        $data['slug'] = Str::slug($data['headline']) . '-' . Str::random(6);
+        if (! $item || $item->headline !== $data['headline']) {
+            $base = Str::slug($data['headline']) ?: 'news';
+            do {
+                $slug = $base . '-' . Str::lower(Str::random(6));
+            } while (NewsItem::where('slug', $slug)->when($item, fn ($q) => $q->whereKeyNot($item->id))->exists());
+            $data['slug'] = $slug;
+        }
 
         if ($data['status'] === 'published' && ! ($item?->published_at)) {
             $data['published_at'] = now();

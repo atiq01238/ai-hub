@@ -1,82 +1,35 @@
 @extends('layouts.admin')
 @section('title', 'Duplicate News Detection')
-
 @section('content')
-
-<x-page-header title="Duplicate News Detection" subtitle="AI-matched near-identical stories across sources" :breadcrumb="['AI Intelligence', 'Duplicate Detection']">
-    <x-slot:actions>
-        <a href="{{ url('/admin/news') }}" class="btn btn-secondary btn-sm"><i data-lucide="arrow-left"></i> Back to News Feed</a>
-    </x-slot:actions>
+<x-page-header title="Duplicate News Detection" subtitle="Cross-source similarity results" :breadcrumb="['AI Intelligence', 'Duplicate Detection']">
+    <x-slot:actions><a href="{{ url('/admin/news') }}" class="btn btn-secondary btn-sm"><i data-lucide="arrow-left"></i> Back to News Feed</a></x-slot:actions>
 </x-page-header>
 
+@if(!empty($notice))<div class="alert alert-info">{{ $notice }}</div>@endif
+
 <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);">
-    <x-kpi-card icon="copy" label="Total Duplicates Found" value="214" />
-    <x-kpi-card icon="clock" label="Pending Review" value="6" />
-    <x-kpi-card icon="git-merge" label="Merged" value="182" />
-    <x-kpi-card icon="eye-off" label="Ignored" value="26" />
+    <x-kpi-card icon="copy" label="Confirmed Duplicates" value="{{ $stats['confirmed'] ?? 0 }}" />
+    <x-kpi-card icon="clock" label="Possible Duplicates" value="{{ $stats['possible'] ?? 0 }}" />
+    <x-kpi-card icon="check-circle" label="Unique" value="{{ $stats['unique'] ?? 0 }}" />
+    <x-kpi-card icon="layers" label="Duplicate Results" value="{{ $stats['total'] ?? 0 }}" />
 </div>
 
-@php
-$groups = [
-    [
-        'main' => 'OpenAI announces GPT-5.2 Turbo with native agent orchestration',
-        'similar' => [
-            ['h'=>'OpenAI unveils GPT-5.2 Turbo, a leap for AI agents','sim'=>94,'src'=>'TechCrunch','time'=>'10 min ago'],
-            ['h'=>'GPT-5.2 Turbo brings agent orchestration to ChatGPT','sim'=>91,'src'=>'The Verge','time'=>'14 min ago'],
-            ['h'=>'OpenAI\'s newest model focuses on multi-agent workflows','sim'=>88,'src'=>'VentureBeat','time'=>'22 min ago'],
-        ],
-        'companies'=>'OpenAI', 'tools'=>'ChatGPT',
-    ],
-    [
-        'main' => 'Midjourney cuts Pro plan pricing by 20% amid new competition',
-        'similar' => [
-            ['h'=>'Midjourney slashes subscription prices across all tiers','sim'=>90,'src'=>'The Verge','time'=>'1 hr ago'],
-            ['h'=>'Midjourney Pro now $48/month, down from $60','sim'=>86,'src'=>'PetaPixel','time'=>'2 hr ago'],
-        ],
-        'companies'=>'Midjourney', 'tools'=>'Midjourney v7',
-    ],
-];
-@endphp
-
-<div style="display:flex; flex-direction:column; gap:16px;">
-@foreach($groups as $g)
 <div class="card card-pad">
-    <div class="flex items-center gap-8" style="margin-bottom:10px;">
-        <span class="badge badge-warn">Possible Duplicate Story</span>
-        <span class="cell-sub">{{ count($g['similar']) }} similar articles found</span>
-    </div>
-    <div style="font-size:15px; font-weight:650; margin-bottom:12px;">{{ $g['main'] }}</div>
-
-    <div style="display:flex; flex-direction:column; gap:8px;">
-        @foreach($g['similar'] as $s)
-        <div class="flex items-center justify-between" style="background:var(--surface-2); border-radius:var(--radius-sm); padding:10px 14px;">
-            <div class="flex items-center gap-12">
-                <input type="radio" name="primary-{{ $loop->parent->index }}" {{ $loop->first ? 'checked' : '' }}>
-                <div>
-                    <div style="font-size:13px; font-weight:600;">{{ $s['h'] }}</div>
-                    <div class="cell-sub">{{ $s['src'] }} · {{ $s['time'] }}</div>
-                </div>
-            </div>
-            <span class="badge {{ $s['sim'] >= 90 ? 'badge-neg' : 'badge-warn' }}">{{ $s['sim'] }}% Similar</span>
+@if($groups instanceof \Illuminate\Pagination\LengthAwarePaginator && $groups->count())
+    @foreach($groups as $group)
+        <div style="padding:14px 0; border-bottom:1px solid var(--border-soft);">
+            @if(isset($group->primary_headline))
+                <div style="font-weight:650;">{{ $group->primary_headline }}</div>
+                <div class="cell-sub">Primary: {{ $group->primary_source ?? 'Unknown' }} · {{ $group->article_count }} article(s) · {{ ucfirst($group->status) }}</div>
+            @else
+                <div style="font-weight:650;">{{ $group->headline }}</div>
+                <div class="cell-sub">{{ $group->source ?? 'Unknown' }} · {{ $group->duplicate_score ?? 0 }}% similarity · {{ ucfirst($group->duplicate_status ?? 'duplicate') }}</div>
+            @endif
         </div>
-        @endforeach
-    </div>
-
-    <div class="flex items-center gap-8" style="margin-top:12px;">
-        <span class="badge-neutral badge" style="border:none;">{{ $g['companies'] }}</span>
-        <span class="badge-neutral badge" style="border:none;">{{ $g['tools'] }}</span>
-    </div>
-
-    <div class="divider"></div>
-    <div class="flex gap-8" style="flex-wrap:wrap;">
-        <button class="btn btn-primary btn-sm"><i data-lucide="git-merge"></i> Merge</button>
-        <button class="btn btn-secondary btn-sm"><i data-lucide="split"></i> Keep Separate</button>
-        <button class="btn btn-secondary btn-sm"><i data-lucide="check-circle"></i> Choose Primary Source</button>
-        <button class="btn btn-ghost btn-sm"><i data-lucide="eye-off"></i> Ignore</button>
-        <button class="btn btn-ghost btn-sm"><i data-lucide="archive"></i> Archive</button>
-    </div>
+    @endforeach
+    <div style="margin-top:16px;">{{ $groups->links() }}</div>
+@elseif($groups instanceof \Illuminate\Pagination\LengthAwarePaginator)
+    <div class="text-sub" style="text-align:center;padding:32px;">No duplicate groups found. Run <code>php artisan news:duplicates --all</code>.</div>
+@endif
 </div>
-@endforeach
-</div>
-
 @endsection

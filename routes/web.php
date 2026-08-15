@@ -107,6 +107,7 @@ Route::middleware(['auth', 'admin'])
                 Route::get('/trending', 'trending')->name('trending');
                 Route::get('/updates', 'updates')->name('updates');
                 Route::get('/saved', 'saved')->name('saved');
+                Route::post('/{id}/save', 'toggleSaved')->whereNumber('id')->name('save');
                 Route::get('/create', 'create')->name('create');
                 Route::get('/duplicates', 'duplicates')->name('duplicates');
                 Route::post('/fetch-now', 'fetchNow')->name('fetch-now');
@@ -366,7 +367,13 @@ Route::middleware(['auth', 'admin'])
             Route::get('/api-monitoring', [ApiMonitoringController::class, 'index'])->name('api-monitoring');
 
             Route::get('/automation-monitor', [AutomationMonitorController::class, 'index'])->name('automation-monitor');
+            Route::put('/automation-monitor', [AutomationMonitorController::class, 'update'])->name('automation-monitor.update');
+            Route::post('/automation-monitor/run-now', [AutomationMonitorController::class, 'runNow'])->name('automation-monitor.run-now');
             Route::get('/data-verification', [DataVerificationController::class, 'index'])->name('data-verification');
+            Route::post('/data-verification/{id}/verify', [DataVerificationController::class, 'verify'])
+                ->whereNumber('id')->name('data-verification.verify');
+            Route::post('/data-verification/{id}/needs-verification', [DataVerificationController::class, 'needsVerification'])
+                ->whereNumber('id')->name('data-verification.needs-verification');
             Route::get('/source-reliability', [SourceReliabilityController::class, 'index'])->name('source-reliability');
             Route::get('/health', [HealthController::class, 'index'])->name('health');
 
