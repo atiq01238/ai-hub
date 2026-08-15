@@ -955,7 +955,33 @@
 
 
                 {{-- INFORMATION --}}
-                <div class="bc-helper">
+                <div class="bc-form-grid" style="margin-top:18px;">
+                <div class="bc-field">
+                    <label class="bc-label">Test Date</label>
+                    <input class="bc-input" type="date" name="tested_at" value="{{ old('tested_at', now()->format('Y-m-d')) }}">
+                </div>
+                <div class="bc-field">
+                    <label class="bc-label">Source Name</label>
+                    <input class="bc-input" type="text" name="source_name" value="{{ old('source_name') }}" placeholder="Official report, vendor, lab...">
+                </div>
+                <div class="bc-field" style="grid-column:1/-1;">
+                    <label class="bc-label">Source URL</label>
+                    <input class="bc-input" type="url" name="source_url" value="{{ old('source_url') }}" placeholder="https://...">
+                </div>
+                <div class="bc-field" style="grid-column:1/-1;">
+                    <label class="bc-label">Notes</label>
+                    <textarea class="bc-input" name="notes" rows="3" placeholder="Version, test setup, methodology or context...">{{ old('notes') }}</textarea>
+                </div>
+                <div class="bc-field" style="grid-column:1/-1;">
+                    <label style="display:flex;align-items:center;gap:9px;color:#cbd5e1;font-size:11px;">
+                        <input type="hidden" name="verified" value="0">
+                        <input type="checkbox" name="verified" value="1" @checked(old('verified'))>
+                        Mark this result as source-verified
+                    </label>
+                </div>
+            </div>
+
+            <div class="bc-helper">
 
                     <div class="bc-helper-icon">
                         <i data-lucide="info"></i>

@@ -19,4 +19,9 @@ class Company extends Model
     {
         return $this->hasMany(Tool::class);
     }
+
+    public function models()
+    {
+        return $this->hasMany(AiModel::class);
+    }
 }

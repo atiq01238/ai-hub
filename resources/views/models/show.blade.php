@@ -1,63 +1,10 @@
 @extends('layouts.admin')
-@section('title', $model->name . ' · Model Detail')
-
+@section('title',$model->name.' · AI Model')
 @section('content')
-
-<x-page-header
-    title="{{ $model->name }}"
-    subtitle="{{ $model->company->name ?? '—' }} · {{ ucfirst($model->status) }}{{ $model->release_date ? ' · Released '.$model->release_date->format('M Y') : '' }}"
-    :breadcrumb="['AI Management', 'AI Models', $model->name]">
-    <x-slot:actions>
-        <button class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#previewModal"><i data-lucide="eye"></i> Preview</button>
-        <a href="{{ route('admin.models.edit', $model->id) }}" class="btn btn-primary btn-sm"><i data-lucide="pencil"></i> Edit Model</a>
-    </x-slot:actions>
-</x-page-header>
-
-@if (session('status'))
-    <div class="alert alert-success" style="margin-bottom:16px;">{{ session('status') }}</div>
-@endif
-
-<div class="kpi-grid" style="grid-template-columns:repeat(4,1fr); margin-bottom:20px;">
-    <x-kpi-card icon="brain-circuit" label="Benchmark Score" value="{{ number_format($model->benchmark_score, 1) }}" />
-    <x-kpi-card icon="layers" label="Context Window" value="{{ $model->context_window ?? '—' }}" />
-    <x-kpi-card icon="dollar-sign" label="Input / Output" value="${{ number_format($model->input_price_per_million ?? 0, 0) }} / ${{ number_format($model->output_price_per_million ?? 0, 0) }}" />
-    <x-kpi-card icon="columns-3" label="Used in Comparisons" value="—" />
-</div>
-{{-- "Used in Comparisons" isn't tracked yet — needs a comparisons table, built later. --}}
-
-<div class="grid-12">
-    <div class="col-8 card card-pad">
-        <div class="section-title">Capabilities</div>
-        <div class="flex gap-8" style="flex-wrap:wrap; margin-bottom:20px;">
-            @forelse ($model->capabilities ?? [] as $c)
-                <span class="badge badge-violet">{{ $c }}</span>
-            @empty
-                <span class="text-sub">None listed</span>
-            @endforelse
-        </div>
-
-        @if ($model->capability_notes)
-        <div class="section-title">Notes</div>
-        <p class="text-sub" style="font-size:13.5px; line-height:1.7; margin-bottom:20px;">{{ $model->capability_notes }}</p>
-        @endif
-
-        <div class="section-title">Benchmark Breakdown</div>
-        @forelse ($model->benchmarks ?? [] as $b => $v)
-        <div style="margin-bottom:12px;">
-            <div class="flex items-center justify-between" style="margin-bottom:5px;"><span class="text-sub" style="font-size:12.5px;">{{ $b }}</span><span class="mono" style="font-size:12.5px;">{{ $v }}%</span></div>
-            <div class="progress"><span style="width:{{ $v }}%;"></span></div>
-        </div>
-        @empty
-            <p class="text-sub" style="font-size:13px;">No per-benchmark breakdown added yet.</p>
-        @endforelse
-    </div>
-    <div class="col-4 card card-pad">
-        <div class="section-title">Model Info</div>
-        <div class="flex items-center justify-between" style="padding:9px 0; border-bottom:1px solid var(--border-soft);"><span class="cell-sub">Company</span><b style="font-size:13px;">{{ $model->company->name ?? '—' }}</b></div>
-        <div class="flex items-center justify-between" style="padding:9px 0; border-bottom:1px solid var(--border-soft);"><span class="cell-sub">Tool</span><b style="font-size:13px;">{{ $model->tool->name ?? '—' }}</b></div>
-        <div class="flex items-center justify-between" style="padding:9px 0; border-bottom:1px solid var(--border-soft);"><span class="cell-sub">Version</span><b style="font-size:13px;">{{ $model->version ?? '—' }}</b></div>
-        <div class="flex items-center justify-between" style="padding:9px 0; border-bottom:1px solid var(--border-soft);"><span class="cell-sub">Release Date</span><b style="font-size:13px;">{{ $model->release_date?->format('M j, Y') ?? '—' }}</b></div>
-        <div class="flex items-center justify-between" style="padding:9px 0;"><span class="cell-sub">Status</span><x-status-badge status="{{ ucfirst($model->status) }}" type="{{ $model->status === 'active' ? 'pos' : ($model->status === 'preview' ? 'warn' : 'neutral') }}" /></div>
-    </div>
-</div>
+<x-page-header title="{{ $model->name }}" subtitle="AI model specification and benchmark profile" :breadcrumb="['AI Management','AI Models',$model->name]"><x-slot:actions><a href="{{ route('admin.models.edit',$model->id) }}" class="btn btn-primary btn-sm"><i data-lucide="pencil"></i> Edit Model</a></x-slot:actions></x-page-header>
+@if(session('status'))<div class="alert alert-success" style="margin-bottom:16px;">{{ session('status') }}</div>@endif
+<div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px;"><x-kpi-card icon="gauge" label="Benchmark" value="{{ number_format((float)$model->benchmark_score,1) }}"/><x-kpi-card icon="box" label="Context" value="{{ $model->context_window ?: '—' }}"/><x-kpi-card icon="calendar" label="Release" value="{{ $model->release_date?->format('M Y') ?? '—' }}"/><x-kpi-card icon="activity" label="Status" value="{{ ucfirst($model->status) }}"/></div>
+<div class="grid-12"><div class="col-8"><div class="card card-pad" style="margin-bottom:16px;"><h3 style="margin-top:0;">Capabilities</h3><div class="flex gap-8" style="flex-wrap:wrap;">@forelse($model->capabilities ?? [] as $c)<span class="badge badge-violet">{{ $c }}</span>@empty<span class="text-sub">No capabilities recorded.</span>@endforelse</div>@if($model->capability_notes)<p style="margin-top:16px;">{{ $model->capability_notes }}</p>@endif</div>
+<div class="card card-pad"><h3 style="margin-top:0;">Benchmark Breakdown</h3>@forelse($model->benchmarks ?? [] as $name=>$score)<div class="flex" style="justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-soft);"><span>{{ is_string($name)?$name:'Benchmark' }}</span><b>{{ is_array($score)?json_encode($score):$score }}</b></div>@empty<span class="text-sub">No per-benchmark results recorded yet.</span>@endforelse</div></div>
+<div class="col-4"><div class="card card-pad"><h3 style="margin-top:0;">Model Data</h3><p><b>Company:</b> {{ $model->company?->name ?? '—' }}</p><p><b>Tool:</b> {{ $model->tool?->name ?? '—' }}</p><p><b>Version:</b> {{ $model->version ?: '—' }}</p><p><b>Input:</b> {{ $model->input_price_per_million!==null ? '$'.number_format($model->input_price_per_million,2).'/1M' : '—' }}</p><p><b>Output:</b> {{ $model->output_price_per_million!==null ? '$'.number_format($model->output_price_per_million,2).'/1M' : '—' }}</p><p><b>Slug:</b> <span class="mono">{{ $model->slug }}</span></p></div></div></div>
 @endsection

@@ -511,6 +511,16 @@
 
     </div>
 
+    @if($winner && (float)($winner->benchmark_score ?? 0) > 0)
+        <section style="margin:0 0 16px;padding:16px 18px;border:1px solid rgba(52,211,153,.16);border-radius:14px;background:linear-gradient(135deg,rgba(52,211,153,.07),rgba(99,102,241,.035));display:flex;align-items:center;justify-content:space-between;gap:16px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span style="width:38px;height:38px;display:grid;place-items:center;border-radius:10px;background:rgba(52,211,153,.1);color:#6ee7b7;"><i data-lucide="trophy"></i></span>
+                <div><div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#6ee7b7;font-weight:800;">Best Overall · Benchmark Score</div><div style="margin-top:3px;color:#f3f5f9;font-weight:800;">{{ $winner->name }}</div></div>
+            </div>
+            <div style="font-size:22px;font-weight:850;color:#f3f5f9;">{{ number_format((float)$winner->benchmark_score,1) }}<small style="font-size:10px;color:#7d899d;"> / 100</small></div>
+        </section>
+    @endif
+
     {{-- COMPARISON TABLE --}}
     <section class="comparison-detail__table-card">
 

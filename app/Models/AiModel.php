@@ -6,7 +6,6 @@ use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-// Named AiModel (not "Model") so it doesn't clash with Eloquent's own base Model class.
 class AiModel extends Model
 {
     use HasFactory, LogsActivity;
@@ -34,4 +33,9 @@ class AiModel extends Model
     {
         return $this->belongsTo(Tool::class);
     }
+    public function benchmarkResults()
+    {
+        return $this->morphMany(BenchmarkResult::class, 'benchmarkable');
+    }
+
 }

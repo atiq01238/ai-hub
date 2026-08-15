@@ -26,11 +26,12 @@
         ],
         'Comparison & Benchmarks' => [
             ['Comparisons', '/admin/comparisons', 'columns-3'],
-            ['Comparison Builder', '/admin/comparisons/builder', 'square-stack'],
-            ['Metrics', '/admin/comparisons/metrics', 'sliders-horizontal'],
+            ['New Comparison', '/admin/comparisons/builder', 'square-stack'],
+            ['Comparison Metrics', '/admin/comparisons/metrics', 'sliders-horizontal'],
             ['AI Test Lab', '/admin/testlab', 'flask-conical'],
             ['Benchmarks', '/admin/benchmarks', 'bar-chart-3'],
-            ['Test Results', '/admin/testlab/results', 'clipboard-check'],
+            ['Benchmark Results', '/admin/benchmarks/results', 'clipboard-check'],
+            ['AI Test Results', '/admin/testlab/results', 'file-check-2'],
         ],
         'Pricing' => [
             ['Pricing Plans', '/admin/pricing', 'credit-card'],

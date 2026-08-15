@@ -11,7 +11,7 @@ class Tool extends Model
     use HasFactory, LogsActivity;
 
     protected $fillable = [
-        'company_id', 'category_id', 'subcategory',
+        'company_id', 'category_id', 'subcategory_id', 'subcategory',
         'name', 'slug', 'logo_path', 'cover_image_path', 'website', 'launch_date',
         'short_description', 'description',
         'pricing_models', 'tags', 'capabilities', 'platforms',
@@ -42,21 +42,40 @@ class Tool extends Model
         return $this->belongsTo(Category::class);
     }
 
+    public function subcategoryTerm()
+    {
+        return $this->belongsTo(Subcategory::class, 'subcategory_id');
+    }
+
+    public function featureTerms()
+    {
+        return $this->belongsToMany(Feature::class, 'feature_tool')->withTimestamps();
+    }
+
+    public function tagTerms()
+    {
+        return $this->belongsToMany(Tag::class, 'tag_tool')->withTimestamps();
+    }
+
+    public function models()
+    {
+        return $this->hasMany(AiModel::class);
+    }
+
     public function reviews()
     {
         return $this->hasMany(Review::class);
     }
 
-    /**
-     * Recompute this tool's `rating` column as the average of its published
-     * reviews. Called automatically by ReviewObserver whenever a review is
-     * saved or deleted — you should never need to call this by hand.
-     */
     public function recalculateRating(): void
     {
         $average = $this->reviews()->published()->avg('rating');
-
         $this->rating = $average ? round($average, 1) : 0;
-        $this->saveQuietly(); // "quietly" = don't re-fire Tool's own events
+        $this->saveQuietly();
     }
+    public function benchmarkResults()
+    {
+        return $this->morphMany(BenchmarkResult::class, 'benchmarkable');
+    }
+
 }

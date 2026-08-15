@@ -9,48 +9,31 @@ use App\Models\Subcategory;
 use App\Models\Tag;
 use App\Models\Tool;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class TaxonomyController extends Controller
 {
-    // One small map so every method below can stay generic instead of
-    // repeating the same logic 4 times.
     private array $models = [
-        'categories'    => Category::class,
+        'categories' => Category::class,
         'subcategories' => Subcategory::class,
-        'features'      => Feature::class,
-        'tags'          => Tag::class,
+        'features' => Feature::class,
+        'tags' => Tag::class,
     ];
 
-    public function categories()
-    {
-        return $this->renderTab('categories');
-    }
-
-    public function subcategories()
-    {
-        return $this->renderTab('subcategories');
-    }
-
-    public function features()
-    {
-        return $this->renderTab('features');
-    }
-
-    public function tags()
-    {
-        return $this->renderTab('tags');
-    }
+    public function categories() { return $this->renderTab('categories'); }
+    public function subcategories() { return $this->renderTab('subcategories'); }
+    public function features() { return $this->renderTab('features'); }
+    public function tags() { return $this->renderTab('tags'); }
 
     public function store(Request $request, string $type)
     {
         $modelClass = $this->modelFor($type);
-
-        $data = $request->validate(['name' => ['required', 'string', 'max:255']]);
-        $data['slug'] = Str::slug($data['name']);
-
+        $table = (new $modelClass)->getTable();
+        $data = $request->validate(['name' => ['required', 'string', 'max:255', Rule::unique($table, 'name')]]);
+        $data['slug'] = $this->uniqueSlug($modelClass, $data['name']);
         $modelClass::create($data);
-
         return redirect()->route("admin.taxonomy.{$type}")->with('status', 'Added.');
     }
 
@@ -58,11 +41,25 @@ class TaxonomyController extends Controller
     {
         $modelClass = $this->modelFor($type);
         $term = $modelClass::findOrFail($id);
+        $oldName = $term->name;
+        $table = $term->getTable();
+        $data = $request->validate(['name' => ['required', 'string', 'max:255', Rule::unique($table, 'name')->ignore($term->id)]]);
+        $data['slug'] = $this->uniqueSlug($modelClass, $data['name'], $term->id);
 
-        $data = $request->validate(['name' => ['required', 'string', 'max:255']]);
-        $data['slug'] = Str::slug($data['name']);
-
-        $term->update($data);
+        DB::transaction(function () use ($term, $type, $oldName, $data) {
+            $term->update($data);
+            if ($type === 'subcategories') {
+                Tool::where('subcategory_id', $term->id)->update(['subcategory' => $data['name']]);
+            } elseif ($type === 'features') {
+                $term->tools()->each(function (Tool $tool) {
+                    $tool->update(['capabilities' => $tool->featureTerms()->orderBy('name')->pluck('name')->all()]);
+                });
+            } elseif ($type === 'tags') {
+                $term->tools()->each(function (Tool $tool) {
+                    $tool->update(['tags' => $tool->tagTerms()->orderBy('name')->pluck('name')->all()]);
+                });
+            }
+        });
 
         return redirect()->route("admin.taxonomy.{$type}")->with('status', 'Updated.');
     }
@@ -70,32 +67,58 @@ class TaxonomyController extends Controller
     public function destroy(string $type, int $id)
     {
         $modelClass = $this->modelFor($type);
-        $modelClass::findOrFail($id)->delete();
+        $term = $modelClass::findOrFail($id);
 
-        return redirect()->route("admin.taxonomy.{$type}")->with('status', 'Deleted.');
+        DB::transaction(function () use ($term, $type) {
+            if ($type === 'features') {
+                $tools = $term->tools()->get();
+                $term->tools()->detach();
+                $term->delete();
+                $tools->each(fn (Tool $tool) => $tool->update(['capabilities' => $tool->featureTerms()->orderBy('name')->pluck('name')->all()]));
+                return;
+            }
+            if ($type === 'tags') {
+                $tools = $term->tools()->get();
+                $term->tools()->detach();
+                $term->delete();
+                $tools->each(fn (Tool $tool) => $tool->update(['tags' => $tool->tagTerms()->orderBy('name')->pluck('name')->all()]));
+                return;
+            }
+            $term->delete();
+        });
+
+        return redirect()->route("admin.taxonomy.{$type}")->with('status', 'Deleted safely.');
     }
 
     private function renderTab(string $type)
     {
         $modelClass = $this->modelFor($type);
         $terms = $modelClass::orderBy('name')->get();
-
-        // Attach a `usage_count` onto each term, worked out differently
-        // per type since they're stored differently on the tools table.
         $terms->each(function ($term) use ($type) {
             $term->usage_count = match ($type) {
-                'categories'    => Tool::where('category_id', $term->id)->count(),
-                'subcategories' => Tool::where('subcategory', $term->name)->count(),
-                'features'      => Tool::whereJsonContains('capabilities', $term->name)->count(),
-                'tags'          => Tool::whereJsonContains('tags', $term->name)->count(),
+                'categories' => Tool::where('category_id', $term->id)->count(),
+                'subcategories' => Tool::where('subcategory_id', $term->id)->count(),
+                'features' => $term->tools()->count(),
+                'tags' => $term->tools()->count(),
             };
         });
-
         return view('taxonomy.index', ['tab' => $type, 'terms' => $terms]);
     }
 
     private function modelFor(string $type): string
     {
-        return $this->models[$type] ?? abort(404);
+        abort_unless(isset($this->models[$type]), 404);
+        return $this->models[$type];
+    }
+
+    private function uniqueSlug(string $modelClass, string $name, ?int $ignoreId = null): string
+    {
+        $base = Str::slug($name) ?: 'term';
+        $slug = $base;
+        $i = 2;
+        while ($modelClass::where('slug', $slug)->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))->exists()) {
+            $slug = $base . '-' . $i++;
+        }
+        return $slug;
     }
 }

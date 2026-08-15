@@ -166,6 +166,7 @@ Route::middleware(['auth', 'admin'])
             ->group(function () {
                 Route::get('/', 'index')->name('index');
                 Route::get('/builder', 'builder')->name('builder');
+                Route::get('/metrics', 'metrics')->name('metrics');
                 Route::post('/', 'store')->name('store');
                 Route::get('/{id}/edit', 'edit')->whereNumber('id')->name('edit');
                 Route::put('/{id}', 'update')->whereNumber('id')->name('update');
@@ -195,7 +196,9 @@ Route::middleware(['auth', 'admin'])
             ->group(function () {
                 Route::get('/', 'index')->name('index');
                 Route::get('/create', 'create')->name('create');
+                Route::get('/results', 'results')->name('results');
                 Route::post('/', 'store')->name('store');
+                Route::delete('/results/{resultId}', 'destroyResult')->whereNumber('resultId')->name('results.destroy');
             });
 
         /*
