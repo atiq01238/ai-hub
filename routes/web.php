@@ -249,6 +249,7 @@ Route::middleware(['auth', 'admin'])
                 ->group(function () {
                     Route::get('/', 'index')->name('index');
                     Route::get('/editor', 'editor')->name('editor');
+                    Route::post('/', 'store')->name('store');
                     Route::get('/{id}', 'show')->whereNumber('id')->name('show');
                     Route::post('/{id}/approve', 'approve')->whereNumber('id')->name('approve');
                     Route::post('/{id}/flag', 'flag')->whereNumber('id')->name('flag');
@@ -267,8 +268,11 @@ Route::middleware(['auth', 'admin'])
                 });
 
 
-            Route::get('/approval-workflow', [ApprovalWorkflowController::class, 'index'])
-                ->name('approval-workflow');
+            Route::get('/approval-workflow', [ApprovalWorkflowController::class, 'index'])->name('approval-workflow');
+            Route::post('/approval-workflow/{id}/submit', [ApprovalWorkflowController::class, 'submit'])->whereNumber('id')->name('approval.submit');
+            Route::post('/approval-workflow/{id}/request-changes', [ApprovalWorkflowController::class, 'requestChanges'])->whereNumber('id')->name('approval.request-changes');
+            Route::post('/approval-workflow/{id}/approve', [ApprovalWorkflowController::class, 'approve'])->whereNumber('id')->name('approval.approve');
+            Route::post('/approval-workflow/{id}/resubmit', [ApprovalWorkflowController::class, 'resubmit'])->whereNumber('id')->name('approval.resubmit');
         });
 
         /*

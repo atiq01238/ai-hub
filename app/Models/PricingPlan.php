@@ -11,8 +11,23 @@ class PricingPlan extends Model
         'api_price_label', 'credits', 'limits',
     ];
 
+    protected $casts = [
+        'monthly_price' => 'decimal:2',
+        'yearly_price' => 'decimal:2',
+    ];
+
     public function tool()
     {
         return $this->belongsTo(Tool::class);
+    }
+
+    public function sources()
+    {
+        return $this->hasMany(PricingSource::class);
+    }
+
+    public function detectedChanges()
+    {
+        return $this->hasMany(DetectedPriceChange::class);
     }
 }

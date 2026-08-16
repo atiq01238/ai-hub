@@ -50,3 +50,9 @@ Schedule::command('news:health-check')
     ->everySixHours()
     ->withoutOverlapping(20)
     ->appendOutputTo(storage_path('logs/news-health.log'));
+
+/* Content publishing: approved scheduled articles become public when due. */
+Schedule::command('content:publish-scheduled')
+    ->everyMinute()
+    ->withoutOverlapping(5)
+    ->appendOutputTo(storage_path('logs/content-publishing.log'));

@@ -669,37 +669,37 @@
     ========================================================== --}}
     <div class="analytics-tabs">
 
-        <a href="{{ url('/analytics/website') }}"
+        <a href="{{ route('admin.analytics.website') }}"
            class="analytics-tab {{ $tab==='website'?'is-active':'' }}">
             <i data-lucide="globe-2"></i>
             Website
         </a>
 
-        <a href="{{ url('/analytics/tools') }}"
+        <a href="{{ route('admin.analytics.tools') }}"
            class="analytics-tab {{ $tab==='tools'?'is-active':'' }}">
             <i data-lucide="wrench"></i>
             Tool
         </a>
 
-        <a href="{{ url('/analytics/search') }}"
+        <a href="{{ route('admin.analytics.search') }}"
            class="analytics-tab {{ $tab==='search'?'is-active':'' }}">
             <i data-lucide="search"></i>
             Search
         </a>
 
-        <a href="{{ url('/analytics/comparisons') }}"
+        <a href="{{ route('admin.analytics.comparisons') }}"
            class="analytics-tab {{ $tab==='comparisons'?'is-active':'' }}">
             <i data-lucide="columns-3"></i>
             Comparison
         </a>
 
-        <a href="{{ url('/analytics/content') }}"
+        <a href="{{ route('admin.analytics.content') }}"
            class="analytics-tab {{ $tab==='content'?'is-active':'' }}">
             <i data-lucide="file-text"></i>
             Content
         </a>
 
-        <a href="{{ url('/analytics/trending') }}"
+        <a href="{{ route('admin.analytics.trending') }}"
            class="analytics-tab {{ $tab==='trending'?'is-active':'' }}">
             <i data-lucide="flame"></i>
             Trending Searches
@@ -862,8 +862,8 @@
                         </div>
                         <span class="analytics-kpi-delta up">↗ +5.5%</span>
                     </div>
-                    <div class="analytics-kpi-label">Article Views</div>
-                    <div class="analytics-kpi-value">3.4M</div>
+                    <div class="analytics-kpi-label">Published Articles</div>
+                    <div class="analytics-kpi-value">{{ number_format($contentMetrics['published_articles'] ?? 0) }}</div>
                 </div>
 
                 <div class="analytics-kpi">
@@ -873,8 +873,8 @@
                         </div>
                         <span class="analytics-kpi-delta up">↗ +2.9%</span>
                     </div>
-                    <div class="analytics-kpi-label">Review Views</div>
-                    <div class="analytics-kpi-value">1.1M</div>
+                    <div class="analytics-kpi-label">Published Reviews</div>
+                    <div class="analytics-kpi-value">{{ number_format($contentMetrics['published_reviews'] ?? 0) }}</div>
                 </div>
 
                 <div class="analytics-kpi">
@@ -884,8 +884,8 @@
                         </div>
                         <span class="analytics-kpi-delta up">↗ +18%</span>
                     </div>
-                    <div class="analytics-kpi-label">Social Shares</div>
-                    <div class="analytics-kpi-value">41K</div>
+                    <div class="analytics-kpi-label">Social Posts</div>
+                    <div class="analytics-kpi-value">{{ number_format($contentMetrics['social_posts'] ?? 0) }}</div>
                 </div>
 
                 <div class="analytics-kpi">
@@ -895,8 +895,8 @@
                         </div>
                         <span class="analytics-kpi-delta up">↗ +2%</span>
                     </div>
-                    <div class="analytics-kpi-label">Avg. Read Time</div>
-                    <div class="analytics-kpi-value">4m 05s</div>
+                    <div class="analytics-kpi-label">Approval Queue</div>
+                    <div class="analytics-kpi-value">{{ number_format($contentMetrics['approval_queue'] ?? 0) }}</div>
                 </div>
 
             @endif
@@ -1221,30 +1221,12 @@ document.addEventListener('DOMContentLoaded', function () {
             type: 'bar',
 
             data: {
-                labels: [
-                    'Jul 08',
-                    'Jul 12',
-                    'Jul 16',
-                    'Jul 20',
-                    'Jul 24',
-                    'Jul 28',
-                    'Aug 01',
-                    'Aug 05'
-                ],
+                labels: @json($tab === 'content' && isset($contentTrend) ? $contentTrend->pluck('label')->all() : ['Jul 08','Jul 12','Jul 16','Jul 20','Jul 24','Jul 28','Aug 01','Aug 05']),
 
                 datasets: [{
                     label: 'Value',
 
-                    data: [
-                        38,
-                        45,
-                        42,
-                        51,
-                        60,
-                        55,
-                        68,
-                        74
-                    ],
+                    data: @json($tab === 'content' && isset($contentTrend) ? $contentTrend->pluck('value')->all() : [38,45,42,51,60,55,68,74]),
 
                     backgroundColor: 'rgba(99,102,241,.55)',
                     hoverBackgroundColor: 'rgba(129,140,248,.85)',

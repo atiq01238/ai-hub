@@ -8,7 +8,6 @@
             ['AI News Feed', '/admin/news', 'newspaper', '24', 'info'],
             ['Breaking News', '/admin/news/breaking', 'zap', '3', 'neg'],
             ['Trending AI', '/admin/news/trending', 'trending-up'],
-            ['AI Reviews', '/admin/content/reviews', 'star'],
             ['AI Updates', '/admin/news/updates', 'refresh-cw'],
             ['Price Changes', '/admin/pricing/changes', 'tag'],
             ['Saved Intelligence', '/admin/news/saved', 'bookmark'],

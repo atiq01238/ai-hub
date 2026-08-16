@@ -5,7 +5,7 @@
 
 <x-page-header
     title="Review — {{ $review->tool->name ?? '—' }}"
-    subtitle="By {{ $review->user->name ?? 'Anonymous' }} · {{ ucfirst($review->status) }} {{ $review->created_at->format('M j') }}"
+    subtitle="By {{ $review->user->name ?? ($review->review_type === 'editorial' ? 'Editorial Team' : 'Anonymous') }} · {{ ucfirst($review->review_type ?? 'user') }} · {{ ucfirst($review->status) }} {{ $review->created_at->format('M j') }}"
     :breadcrumb="['Content', 'Reviews', 'Detail']">
     <x-slot:actions>
         @if ($review->status !== 'published')
@@ -34,7 +34,7 @@
                 <div class="thumb lg">{{ substr($review->tool->name ?? '—', 0, 2) }}</div>
                 <div>
                     <b style="font-size:15px;">{{ $review->tool->name ?? '—' }}</b>
-                    <div class="cell-sub">Reviewed by {{ $review->user->name ?? 'Anonymous' }}</div>
+                    <div class="cell-sub">Reviewed by {{ $review->user->name ?? ($review->review_type === 'editorial' ? 'Editorial Team' : 'Anonymous') }}</div>
                 </div>
                 <div style="margin-left:auto; text-align:right;">
                     <div class="font-display" style="font-size:22px; font-weight:700;">{{ number_format($review->rating, 1) }}</div>
@@ -78,7 +78,7 @@
         @foreach ($review->rating_breakdown as $label => $val)
         <div style="margin-bottom:12px;">
             <div class="flex items-center justify-between" style="margin-bottom:5px;"><span class="text-sub" style="font-size:12.5px;">{{ $label }}</span><span class="mono" style="font-size:12.5px;">{{ $val }}</span></div>
-            <div class="progress"><span style="width:{{ $val }}%;"></span></div>
+            <div class="progress"><span style="width:{{ min(100, max(0, ((float)$val / 5) * 100)) }}%;"></span></div>
         </div>
         @endforeach
         <div class="divider"></div>
