@@ -41,18 +41,17 @@
         'Content' => [
             ['News Articles', '/admin/content/articles', 'file-text'],
             ['Article Drafts', '/admin/content/articles/drafts', 'file-edit'],
-            ['Reviews', '/admin/content/reviews', 'message-square-heart'],
+            ['Reviews', '/admin/content/reviews', 'message-square-heart', null, null, ['admin.content.reviews.*'], 'Reviews', 'View'],
             ['Guides', '/admin/content/guides', 'book-open'],
             ['Social Posts', '/admin/content/social', 'share-2'],
             ['Approval Workflow', '/admin/content/approval-workflow', 'workflow'],
             ['Media Library', '/admin/media', 'images'],
         ],
         'Users & Community' => [
-            ['Users', '/admin/users', 'users'],
-            ['User Reviews', '/admin/users/reviews', 'message-circle'],
-            ['Tool Suggestions', '/admin/submissions', 'lightbulb', '7', 'warn'],
-            ['Reports', '/admin/users/reports', 'flag'],
-            ['Submissions', '/admin/submissions/all', 'inbox'],
+            ['Users', '/admin/users', 'users', null, null, ['admin.users.index', 'admin.users.show'], 'Users', 'View'],
+            ['Review Moderation', '/admin/community/reviews', 'message-circle', $communityNavCounts['reviews'] ?? null, 'warn', ['admin.community.reviews.*'], 'Reviews', 'View'],
+            ['Community Submissions', '/admin/submissions', 'inbox', $communityNavCounts['submissions'] ?? null, 'warn', ['admin.submissions.*'], 'Submissions', 'View'],
+            ['Reports & Abuse', '/admin/community/reports', 'shield-alert', $communityNavCounts['reports'] ?? null, 'neg', ['admin.community.reports.*'], 'Reports', 'View'],
         ],
         'Analytics' => [
             ['Website Analytics', '/admin/analytics/website', 'activity'],
@@ -63,23 +62,40 @@
             ['Trending Searches', '/admin/analytics/trending', 'flame'],
         ],
         'System' => [
-            ['Notifications', '/admin/system/notifications', 'bell', '12', 'neg'],
-            ['Notification Rules', '/admin/system/notification-rules', 'bell-ring'],
-            ['Activity Logs', '/admin/system/activity-logs', 'scroll-text'],
-            ['Roles & Permissions', '/admin/system/roles', 'shield-check'],
-            ['Security Center', '/admin/system/security', 'lock'],
+            ['System Overview', '/admin/system', 'command', null, null, ['admin.system.overview'], 'Security', 'View'],
+            ['System Health', '/admin/system/health', 'heart-pulse', null, null, ['admin.system.health'], 'System Health', 'View'],
+            ['Error Monitoring', '/admin/system/errors', 'octagon-alert', null, null, ['admin.system.errors.*'], 'Error Monitoring', 'View'],
+            ['API Monitoring', '/admin/system/api-monitoring', 'plug-zap', null, null, ['admin.system.api-monitoring*'], 'API Monitoring', 'View'],
+            ['Security Center', '/admin/system/security', 'lock', null, null, ['admin.system.security*'], 'Security', 'View'],
             ['Two-Factor Auth', '/admin/system/2fa', 'shield-check'],
-            ['Backups', '/admin/system/backups', 'database-backup'],
+            ['Roles & Permissions', '/admin/system/roles', 'shield-check', null, null, ['admin.system.roles*'], 'Roles & Permissions', 'View'],
+            ['Activity Logs', '/admin/system/activity-logs', 'scroll-text', null, null, ['admin.system.activity-logs'], 'Security', 'View'],
+            ['Backups', '/admin/system/backups', 'database-backup', null, null, ['admin.system.backups*'], 'Backups', 'View'],
+            ['Notifications', '/admin/system/notifications', 'bell'],
+            ['Notification Rules', '/admin/system/notification-rules', 'bell-ring'],
             ['Data Verification', '/admin/system/data-verification', 'file-check-2'],
             ['Source Reliability', '/admin/system/source-reliability', 'gauge-circle'],
-            ['System Health', '/admin/system/health', 'heart-pulse'],
-            ['Error Monitoring', '/admin/system/errors', 'octagon-alert', '5', 'neg'],
-            ['API Monitoring', '/admin/system/api-monitoring', 'plug-zap'],
             ['Feature Flags', '/admin/system/feature-flags', 'flag-triangle-right'],
-            ['SEO', '/admin/system/seo', 'search-check'],
             ['Integrations', '/admin/system/integrations', 'blocks'],
+            ['SEO', '/admin/system/seo', 'search-check'],
             ['Settings', '/admin/system/settings', 'settings'],
         ],
+    ];
+
+    // Central route-to-permission map. Existing tuple-level permissions still win.
+    $permissionByPath = [
+        '/admin' => ['Dashboard','View'],
+        '/admin/news' => ['AI News','View'], '/admin/news/breaking' => ['AI News','View'], '/admin/news/trending' => ['AI News','View'], '/admin/news/updates' => ['AI News','View'], '/admin/news/saved' => ['AI News','View'],
+        '/admin/tools' => ['AI Tools','View'], '/admin/models' => ['AI Models','View'], '/admin/companies' => ['AI Companies','View'],
+        '/admin/taxonomy/categories' => ['Taxonomy','View'], '/admin/taxonomy/subcategories' => ['Taxonomy','View'], '/admin/taxonomy/features' => ['Taxonomy','View'], '/admin/taxonomy/tags' => ['Taxonomy','View'],
+        '/admin/comparisons' => ['Comparisons','View'], '/admin/comparisons/builder' => ['Comparisons','Add'], '/admin/comparisons/metrics' => ['Comparisons','View'],
+        '/admin/testlab' => ['AI Test Lab','View'], '/admin/testlab/results' => ['AI Test Lab','View'], '/admin/benchmarks' => ['Benchmarks','View'], '/admin/benchmarks/results' => ['Benchmarks','View'],
+        '/admin/pricing' => ['Pricing','View'], '/admin/pricing/api' => ['Pricing','View'], '/admin/pricing/history' => ['Pricing','View'], '/admin/pricing/changes' => ['Pricing','View'],
+        '/admin/content/articles' => ['Content','View'], '/admin/content/articles/drafts' => ['Content','View'], '/admin/content/reviews' => ['Reviews','View'], '/admin/content/guides' => ['Content','View'], '/admin/content/social' => ['Content','View'], '/admin/content/approval-workflow' => ['Content','View'], '/admin/media' => ['Content','View'],
+        '/admin/users' => ['Users','View'], '/admin/community/reviews' => ['Reviews','View'], '/admin/submissions' => ['Submissions','View'], '/admin/community/reports' => ['Reports','View'],
+        '/admin/analytics/website' => ['Analytics','View'], '/admin/analytics/tools' => ['Analytics','View'], '/admin/analytics/search' => ['Analytics','View'], '/admin/analytics/comparisons' => ['Analytics','View'], '/admin/analytics/content' => ['Analytics','View'], '/admin/analytics/trending' => ['Analytics','View'],
+        '/admin/system' => ['Security','View'], '/admin/system/health' => ['System Health','View'], '/admin/system/errors' => ['Error Monitoring','View'], '/admin/system/api-monitoring' => ['API Monitoring','View'], '/admin/system/security' => ['Security','View'], '/admin/system/roles' => ['Roles & Permissions','View'], '/admin/system/activity-logs' => ['Security','View'], '/admin/system/backups' => ['Backups','View'],
+        '/admin/system/notifications' => ['Notifications','View'], '/admin/system/notification-rules' => ['Notifications','View'], '/admin/system/data-verification' => ['Data Verification','View'], '/admin/system/source-reliability' => ['Source Reliability','View'], '/admin/system/news-sources' => ['News Sources','View'], '/admin/system/automation-monitor' => ['Automation','View'], '/admin/system/feature-flags' => ['Feature Flags','View'], '/admin/system/integrations' => ['Integrations','View'], '/admin/system/seo' => ['SEO','View'], '/admin/system/settings' => ['Settings','View'],
     ];
     $current = request()->path();
 @endphp
@@ -97,20 +113,37 @@
 
     <nav class="sidebar-scroll">
         @foreach ($navGroups as $group => $items)
+            @php
+                $visibleItems = collect($items)->filter(function ($item) use ($permissionByPath) {
+                    $url = $item[1];
+                    $permissionModule = $item[6] ?? ($permissionByPath[$url][0] ?? null);
+                    $permissionAction = $item[7] ?? ($permissionByPath[$url][1] ?? null);
+                    return ! $permissionModule || auth()->user()?->canAccessModule($permissionModule, $permissionAction);
+                });
+            @endphp
+            @continue($visibleItems->isEmpty())
             <div class="nav-group">
                 <div class="nav-group__label">{{ $group }}</div>
-                @foreach ($items as $item)
+                @foreach ($visibleItems as $item)
                     @php
                         [$label, $url, $icon] = $item;
                         $badge = $item[3] ?? null;
                         $badgeType = $item[4] ?? 'info';
-                        $isActive = $current === ltrim($url, '/') || str_starts_with($current, ltrim($url, '/').'/');
+                        $activeRoutes = $item[5] ?? [];
+                        $isActive = $activeRoutes
+                            ? request()->routeIs(...$activeRoutes)
+                            : ($current === ltrim($url, '/') || str_starts_with($current, ltrim($url, '/').'/'));
+                        $badgeClass = match ($badgeType) {
+                            'warn' => 'is-warn',
+                            'info' => 'is-info',
+                            default => '',
+                        };
                     @endphp
                     <a href="{{ url($url) }}" class="nav-item {{ $isActive ? 'is-active' : '' }}">
                         <i data-lucide="{{ $icon }}"></i>
                         <span class="nav-item__label">{{ $label }}</span>
                         @if($badge)
-                            <span class="nav-badge {{ $badgeType === 'neg' ? '' : 'is-info' }}">{{ $badge }}</span>
+                            <span class="nav-badge {{ $badgeClass }}">{{ $badge }}</span>
                         @endif
                     </a>
                 @endforeach

@@ -1,91 +1,10 @@
 @extends('layouts.admin')
 @section('title', 'Security Center')
-
 @section('content')
-
-<x-page-header title="Security Center" subtitle="Real login activity and active sessions for your account" :breadcrumb="['System', 'Security']" />
-
-@if (session('status'))
-    <div class="alert alert-success" style="margin-bottom:16px;">{{ session('status') }}</div>
-@endif
-
-<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:20px;">
-    <x-kpi-card icon="shield-check" label="2FA Status" value="{{ $user->two_factor_enabled ? 'Enabled' : 'Disabled' }}" />
-    <x-kpi-card icon="alert-triangle" label="Failed Logins (24h)" value="{{ $failed24h }}" />
-    <x-kpi-card icon="monitor" label="Active Sessions" value="{{ $activeSessions->count() }}" />
-</div>
-
-@unless ($user->two_factor_enabled)
-<div class="card card-pad" style="margin-bottom:20px; border-color:var(--warn);">
-    <div class="flex items-center gap-12">
-        <div class="kpi-icon" style="color:var(--warn);"><i data-lucide="shield-alert"></i></div>
-        <div style="flex:1;">
-            <b>Two-factor authentication is off</b>
-            <div class="text-sub" style="font-size:12.5px;">Turn it on for a real extra layer of protection.</div>
-        </div>
-        <a href="{{ route('admin.system.2fa') }}" class="btn btn-primary btn-sm">Enable 2FA</a>
-    </div>
-</div>
-@endunless
-
-<div class="card" style="margin-bottom:20px;">
-    <div class="card-head"><h3>Active Sessions</h3></div>
-    @if (! $usingDatabaseSessions)
-        <div class="card-pad text-sub" style="font-size:12.5px;">
-            Your app's session driver is set to "<b>{{ config('session.driver') }}</b>" — active
-            sessions can only be listed when using the "database" driver. Set
-            <code>SESSION_DRIVER=database</code> in your <code>.env</code> and run
-            <code>php artisan session:table && php artisan migrate</code> to enable this.
-        </div>
-    @else
-        <div class="table-wrap">
-        <table class="data-table">
-            <thead><tr><th>Device / Browser</th><th>IP Address</th><th>Last Active</th><th></th></tr></thead>
-            <tbody>
-            @forelse ($activeSessions as $session)
-            <tr>
-                <td class="text-sub" style="font-size:12px; max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                    {{ $session->user_agent ?? 'Unknown device' }}
-                    @if ($session->id === session()->getId())<span class="badge badge-pos" style="margin-left:6px;">This device</span>@endif
-                </td>
-                <td class="mono">{{ $session->ip_address }}</td>
-                <td class="cell-sub">{{ \Illuminate\Support\Carbon::createFromTimestamp($session->last_activity)->diffForHumans() }}</td>
-                <td>
-                    @if ($session->id !== session()->getId())
-                    <form action="{{ route('admin.system.security.revoke-session', $session->id) }}" method="POST">
-                        @csrf
-                        <button type="submit" class="btn btn-ghost btn-sm">Revoke</button>
-                    </form>
-                    @endif
-                </td>
-            </tr>
-            @empty
-            <tr><td colspan="4" class="text-sub" style="text-align:center; padding:24px;">No active sessions found.</td></tr>
-            @endforelse
-            </tbody>
-        </table>
-        </div>
-    @endif
-</div>
-
-<div class="card">
-    <div class="card-head"><h3>Recent Login Attempts</h3></div>
-    <div class="table-wrap">
-    <table class="data-table">
-        <thead><tr><th>Email</th><th>IP Address</th><th>Result</th><th>When</th></tr></thead>
-        <tbody>
-        @forelse ($recentAttempts as $attempt)
-        <tr>
-            <td class="text-sub">{{ $attempt->email }}</td>
-            <td class="mono">{{ $attempt->ip_address }}</td>
-            <td><span class="badge {{ $attempt->successful ? 'badge-pos' : 'badge-neg' }}">{{ $attempt->successful ? 'Success' : 'Failed' }}</span></td>
-            <td class="cell-sub">{{ $attempt->created_at->diffForHumans() }}</td>
-        </tr>
-        @empty
-        <tr><td colspan="4" class="text-sub" style="text-align:center; padding:24px;">No login attempts logged yet.</td></tr>
-        @endforelse
-        </tbody>
-    </table>
-    </div>
-</div>
+<x-page-header title="Security Center" subtitle="Authentication risk, 2FA compliance and session control" :breadcrumb="['System', 'Security']" />
+@if(session('status'))<div class="alert alert-success" style="margin-bottom:16px;">{{ session('status') }}</div>@endif
+<div class="grid-12" style="margin-bottom:20px;"><div class="col-4 card card-pad" style="text-align:center;"><div class="cell-sub">Security Score</div><div style="font-size:52px;font-weight:700;color:{{ $securityScore >= 85 ? 'var(--pos)' : ($securityScore >= 65 ? 'var(--warn)' : 'var(--neg)') }};">{{ $securityScore }}</div><div class="cell-sub">Calculated from login failures, suspicious IPs and 2FA posture</div></div><div class="col-8"><div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);"><x-kpi-card icon="alert-triangle" label="Failed · 24h" value="{{ $failed24h }}" /><x-kpi-card icon="shield-alert" label="Suspicious IPs" value="{{ $suspiciousIps->count() }}" /><x-kpi-card icon="shield-check" label="2FA Compliance" value="{{ $twoFactorCompliance }}%" /><x-kpi-card icon="monitor" label="Admin Sessions" value="{{ $allAdminSessions }}" /></div></div></div>
+@if($adminsWithout2fa > 0)<div class="card card-pad" style="margin-bottom:20px;border-color:var(--warn);"><div class="flex items-center gap-12"><div class="kpi-icon" style="color:var(--warn);"><i data-lucide="shield-alert"></i></div><div style="flex:1;"><b>{{ $adminsWithout2fa }} admin account(s) do not have 2FA enabled</b><div class="cell-sub">2FA policy is currently {{ $require2fa ? 'required in Settings' : 'not enforced in Settings' }}. Compliance should reach 100% before production launch.</div></div><a href="{{ route('admin.system.2fa') }}" class="btn btn-primary btn-sm">Manage My 2FA</a></div></div>@endif
+<div class="grid-12" style="margin-bottom:20px;"><div class="col-7 card"><div class="card-head"><h3>Active Sessions · Your Account</h3></div>@if(!$usingDatabaseSessions)<div class="card-pad text-sub">Session inventory requires <code>SESSION_DRIVER=database</code>. The sessions table already exists in this project.</div>@else<div class="table-wrap"><table class="data-table"><thead><tr><th>Device / Browser</th><th>IP</th><th>Last Active</th><th></th></tr></thead><tbody>@forelse($activeSessions as $session)<tr><td class="text-sub" style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ $session->user_agent ?: 'Unknown device' }} @if($session->id===session()->getId())<span class="badge badge-pos">This device</span>@endif</td><td class="mono">{{ $session->ip_address }}</td><td class="cell-sub">{{ \Illuminate\Support\Carbon::createFromTimestamp($session->last_activity)->diffForHumans() }}</td><td>@if($session->id!==session()->getId())<form method="POST" action="{{ route('admin.system.security.revoke-session',$session->id) }}">@csrf<button class="btn btn-ghost btn-sm">Revoke</button></form>@endif</td></tr>@empty<tr><td colspan="4" class="text-sub" style="padding:24px;text-align:center;">No sessions found.</td></tr>@endforelse</tbody></table></div>@endif</div><div class="col-5 card"><div class="card-head"><h3>Suspicious IP Activity</h3></div><div class="table-wrap"><table class="data-table"><thead><tr><th>IP</th><th>Failed Attempts · 24h</th></tr></thead><tbody>@forelse($suspiciousIps as $ip)<tr><td class="mono">{{ $ip->ip_address }}</td><td><span class="badge badge-neg">{{ $ip->attempts }}</span></td></tr>@empty<tr><td colspan="2" class="text-sub" style="padding:24px;text-align:center;">No IP crossed the 5-failure risk threshold.</td></tr>@endforelse</tbody></table></div></div></div>
+<div class="card"><div class="card-head"><h3>Recent Login Attempts</h3><span class="cell-sub">{{ $failed7d }} failed in last 7 days</span></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Email</th><th>IP Address</th><th>Result</th><th>When</th></tr></thead><tbody>@forelse($recentAttempts as $attempt)<tr><td>{{ $attempt->email }}</td><td class="mono">{{ $attempt->ip_address }}</td><td><span class="badge {{ $attempt->successful?'badge-pos':'badge-neg' }}">{{ $attempt->successful?'Success':'Failed' }}</span></td><td class="cell-sub">{{ $attempt->created_at->diffForHumans() }}</td></tr>@empty<tr><td colspan="4" class="text-sub" style="padding:28px;text-align:center;">No login attempts logged yet.</td></tr>@endforelse</tbody></table></div></div>
 @endsection

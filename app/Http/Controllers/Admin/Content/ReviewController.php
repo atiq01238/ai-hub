@@ -12,28 +12,12 @@ class ReviewController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Review::with(['tool', 'user']);
+        return $this->listing($request, null, 'content');
+    }
 
-        if ($search = $request->query('search')) {
-            $query->where(fn ($q) => $q->where('verdict', 'like', "%{$search}%")
-                ->orWhere('body', 'like', "%{$search}%")
-                ->orWhereHas('tool', fn ($t) => $t->where('name', 'like', "%{$search}%")));
-        }
-        if ($status = $request->query('status')) $query->where('status', $status);
-        if ($type = $request->query('type')) $query->where('review_type', $type);
-        if ($toolId = $request->query('tool_id')) $query->where('tool_id', $toolId);
-        if ($rating = $request->query('rating')) $query->where('rating', '>=', (float) $rating);
-
-        return view('content.reviews.index', [
-            'reviews' => $query->latest()->paginate(20)->withQueryString(),
-            'tools' => Tool::orderBy('name')->get(),
-            'counts' => [
-                'all' => Review::count(),
-                'pending' => Review::where('status', 'pending')->count(),
-                'published' => Review::where('status', 'published')->count(),
-                'flagged' => Review::where('status', 'flagged')->count(),
-            ],
-        ]);
+    public function communityIndex(Request $request)
+    {
+        return $this->listing($request, 'user', 'community');
     }
 
     public function editor()
@@ -70,6 +54,11 @@ class ReviewController extends Controller
             ->filter(fn ($value) => $value !== null)->all();
         unset($data['pros_input'], $data['cons_input'], $data['quality'], $data['speed'], $data['features'], $data['ease_of_use'], $data['value']);
 
+        if ($data['status'] === 'published') {
+            $data['moderated_by'] = $request->user()->id;
+            $data['moderated_at'] = now();
+        }
+
         $review = Review::create($data);
 
         return redirect()->route('admin.content.reviews.show', $review->id)->with('status', 'Editorial review saved.');
@@ -77,31 +66,124 @@ class ReviewController extends Controller
 
     public function show(int $id)
     {
-        $review = Review::with(['tool', 'user'])->findOrFail($id);
-        return view('content.reviews.show', compact('review'));
+        return $this->detail($id, 'content');
     }
 
-    public function approve(int $id)
+    public function communityShow(int $id)
     {
-        $review = Review::findOrFail($id);
-        $review->update(['status' => 'published']);
+        return $this->detail($id, 'community', 'user');
+    }
+
+    public function approve(Request $request, int $id)
+    {
+        $data = $request->validate([
+            'moderation_note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        Review::findOrFail($id)->update([
+            'status' => 'published',
+            'moderation_note' => $data['moderation_note'] ?? null,
+            'moderated_by' => $request->user()->id,
+            'moderated_at' => now(),
+        ]);
+
         return back()->with('status', 'Review approved.');
     }
 
-    public function flag(int $id)
+    public function flag(Request $request, int $id)
     {
-        Review::findOrFail($id)->update(['status' => 'flagged']);
-        return back()->with('status', 'Review flagged.');
+        $data = $request->validate([
+            'moderation_note' => ['required', 'string', 'max:1000'],
+        ]);
+
+        Review::findOrFail($id)->update([
+            'status' => 'flagged',
+            'moderation_note' => $data['moderation_note'],
+            'moderated_by' => $request->user()->id,
+            'moderated_at' => now(),
+        ]);
+
+        return back()->with('status', 'Review flagged with a moderation reason.');
     }
 
-    public function destroy(int $id)
+    public function destroy(Request $request, int $id)
     {
         Review::findOrFail($id)->delete();
-        return redirect()->route('admin.content.reviews.index')->with('status', 'Review deleted.');
+
+        $route = $request->input('context') === 'community'
+            ? 'admin.community.reviews.index'
+            : 'admin.content.reviews.index';
+
+        return redirect()->route($route)->with('status', 'Review moved to the recovery bin.');
     }
 
     private function lines(string $value): array
     {
         return collect(preg_split('/\r\n|\r|\n/', $value))->map(fn ($v) => trim($v))->filter()->values()->all();
+    }
+
+    private function listing(Request $request, ?string $forcedType, string $context)
+    {
+        $query = Review::query()->with(['tool', 'user', 'moderator']);
+
+        if ($forcedType) {
+            $query->where('review_type', $forcedType);
+        }
+
+        if ($search = trim((string) $request->query('search'))) {
+            $query->where(fn ($q) => $q->where('verdict', 'like', "%{$search}%")
+                ->orWhere('body', 'like', "%{$search}%")
+                ->orWhereHas('user', fn ($user) => $user
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%"))
+                ->orWhereHas('tool', fn ($tool) => $tool->where('name', 'like', "%{$search}%")));
+        }
+
+        if ($status = $request->query('status')) {
+            if (in_array($status, ['pending', 'published', 'flagged'], true)) {
+                $query->where('status', $status);
+            }
+        }
+
+        if (! $forcedType && ($type = $request->query('type'))) {
+            if (in_array($type, ['user', 'editorial'], true)) {
+                $query->where('review_type', $type);
+            }
+        }
+
+        if ($toolId = $request->integer('tool_id')) {
+            $query->where('tool_id', $toolId);
+        }
+
+        if ($rating = $request->query('rating')) {
+            if (in_array((string) $rating, ['3', '4', '5'], true)) {
+                $query->where('rating', '>=', (float) $rating);
+            }
+        }
+
+        $countQuery = Review::query()->when($forcedType, fn ($q) => $q->where('review_type', $forcedType));
+
+        return view('content.reviews.index', [
+            'reviews' => $query->latest()->paginate(20)->withQueryString(),
+            'tools' => Tool::orderBy('name')->get(),
+            'counts' => [
+                'all' => (clone $countQuery)->count(),
+                'pending' => (clone $countQuery)->where('status', 'pending')->count(),
+                'published' => (clone $countQuery)->where('status', 'published')->count(),
+                'flagged' => (clone $countQuery)->where('status', 'flagged')->count(),
+            ],
+            'context' => $context,
+        ]);
+    }
+
+    private function detail(int $id, string $context, ?string $forcedType = null)
+    {
+        $review = Review::query()
+            ->with(['tool', 'user', 'moderator'])
+            ->withCount('reports')
+            ->when($forcedType, fn ($q) => $q->where('review_type', $forcedType))
+            ->findOrFail($id);
+
+        return view('content.reviews.show', compact('review', 'context'));
     }
 }

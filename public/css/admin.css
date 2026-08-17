@@ -147,6 +147,7 @@ a{ color:inherit; text-decoration:none; }
   background:var(--neg-bg); color:var(--neg);
 }
 .nav-badge.is-info{ background:var(--info-bg); color:var(--info); }
+.nav-badge.is-warn{ background:var(--warn-bg); color:var(--warn); }
 .is-collapsed .nav-badge{ display:none; }
 
 /* ==================== HEADER ==================== */
@@ -390,3 +391,9 @@ table.data-table{ width:100%; border-collapse:collapse; font-size:13px; min-widt
   .global-search{ display:none; }
   .page-header{ align-items:flex-start; flex-direction:column; }
 }
+
+/* System Operations upgrade — additive grid helpers */
+.grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;}
+.col-7{grid-column:span 7;}.col-5{grid-column:span 5;}
+@media(max-width:1100px){.grid-4{grid-template-columns:repeat(2,minmax(0,1fr));}.grid-12 .col-7,.grid-12 .col-5{grid-column:span 12;}}
+@media(max-width:700px){.grid-4{grid-template-columns:1fr;}.kpi-grid{grid-template-columns:1fr!important;}}

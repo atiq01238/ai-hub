@@ -26,6 +26,14 @@ class TwoFactorChallengeController extends Controller
 
         $user = User::findOrFail($userId);
 
+        if ($user->status !== 'active') {
+            $request->session()->forget(['2fa_user_id', '2fa_remember']);
+
+            return redirect()->route('login')->withErrors([
+                'email' => 'This account is suspended. Contact support if you believe this is a mistake.',
+            ]);
+        }
+
         $data = $request->validate([
             'code'          => ['nullable', 'digits:6'],
             'recovery_code' => ['nullable', 'string'],
@@ -54,6 +62,15 @@ class TwoFactorChallengeController extends Controller
         Auth::login($user, $request->session()->pull('2fa_remember', false));
         $request->session()->regenerate();
 
-        return redirect()->route('admin.dashboard');
+        $user->forceFill([
+            'last_login_at' => now(),
+            'last_login_ip' => $request->ip(),
+        ])->save();
+
+        $destination = $user->role === 'admin'
+            ? route('admin.dashboard')
+            : route('home');
+
+        return redirect()->intended($destination);
     }
 }

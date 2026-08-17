@@ -15,10 +15,10 @@ class EnsureUserIsAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->user()?->role !== 'admin') {
-        abort(403); // "not allowed"
-    }
+        if ($request->user()?->role !== 'admin' || $request->user()?->status !== 'active') {
+            abort(403);
+        }
 
-    return $next($request); // let them continue to the page
+        return $next($request);
     }
 }

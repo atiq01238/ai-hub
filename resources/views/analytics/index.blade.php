@@ -625,784 +625,173 @@
     }
 </style>
 
-<div class="analytics-page">
+<style>
+    .analytics-page .analytics-readiness { margin-bottom: 20px; padding: 14px 16px; display:flex; gap:12px; align-items:flex-start; border:1px solid rgba(255,255,255,.07); border-radius:13px; background:rgba(255,255,255,.022); }
+    .analytics-page .analytics-readiness.good { border-color:rgba(34,197,94,.16); background:rgba(34,197,94,.035); }
+    .analytics-page .analytics-readiness.partial { border-color:rgba(245,158,11,.16); background:rgba(245,158,11,.03); }
+    .analytics-page .analytics-readiness.missing { border-color:rgba(239,68,68,.16); background:rgba(239,68,68,.03); }
+    .analytics-page .analytics-readiness-icon { width:34px; height:34px; flex:0 0 34px; display:flex; align-items:center; justify-content:center; border-radius:9px; background:rgba(255,255,255,.04); color:#aab4c7; }
+    .analytics-page .analytics-readiness-icon svg { width:16px; height:16px; }
+    .analytics-page .analytics-readiness h4 { margin:0 0 4px; color:#e8edf6; font-size:12px; font-weight:700; }
+    .analytics-page .analytics-readiness p { margin:0; color:#8591a6; font-size:11px; line-height:1.55; }
+    .analytics-page .analytics-empty { padding:34px 20px; text-align:center; color:#778398; font-size:12px; }
+    .analytics-page .analytics-empty strong { display:block; margin-bottom:5px; color:#cbd3e1; font-size:13px; }
+    .analytics-page .analytics-kpi-delta.neutral { color:#94a3b8; background:rgba(148,163,184,.08); }
+    .analytics-page .analytics-period-note { color:#68748b; font-size:10px; }
+    .analytics-page .analytics-table tbody td:first-child { color:#edf1f7; font-weight:650; }
+</style>
 
-    {{-- =========================================================
-         PAGE HEADER
-    ========================================================== --}}
+
+<div class="analytics-page">
+@php
+    $tab = $tab ?? (request()->is('*tools*') ? 'tools' : (request()->is('*search*') ? 'search' : (request()->is('*comparisons*') ? 'comparisons' : (request()->is('*content*') ? 'content' : (request()->is('*trending*') ? 'trending' : 'website')))));
+    $titles = ['website'=>'Website Analytics','tools'=>'Tool Analytics','search'=>'Search Analytics','comparisons'=>'Comparison Analytics','content'=>'Content Analytics','trending'=>'Trending Searches'];
+    $days = $days ?? 30;
+@endphp
+
     <div class="analytics-header">
         <div class="analytics-header-inner">
-
             <div class="analytics-heading">
-                <div class="analytics-heading-icon">
-                    <i data-lucide="chart-no-axes-combined"></i>
-                </div>
-
+                <div class="analytics-heading-icon"><i data-lucide="chart-no-axes-combined"></i></div>
                 <div>
                     <div class="analytics-kicker">Performance Center</div>
                     <h1 class="analytics-title">{{ $titles[$tab] }}</h1>
-                    <p class="analytics-subtitle">
-                        Last 30 days · compared to prior period
-                    </p>
+                    <p class="analytics-subtitle">{{ $period['label'] ?? 'Last 30 days' }} · compared with the previous equivalent period</p>
                 </div>
             </div>
 
             <div class="analytics-actions">
-                <select class="analytics-period select">
-                    <option>30 Days</option>
-                    <option>7 Days</option>
-                    <option>3 Months</option>
-                    <option>1 Year</option>
-                </select>
+                <form method="GET" action="{{ url()->current() }}" id="analyticsPeriodForm">
+                    <select class="analytics-period select" name="days" onchange="this.form.submit()">
+                        <option value="7" {{ $days === 7 ? 'selected' : '' }}>7 Days</option>
+                        <option value="30" {{ $days === 30 ? 'selected' : '' }}>30 Days</option>
+                        <option value="90" {{ $days === 90 ? 'selected' : '' }}>3 Months</option>
+                        <option value="365" {{ $days === 365 ? 'selected' : '' }}>1 Year</option>
+                    </select>
+                </form>
 
-                <button class="btn btn-secondary btn-sm analytics-export">
-                    <i data-lucide="download"></i>
-                    Export Report
-                </button>
+                <a href="{{ route('admin.analytics.export', ['tab' => $tab, 'days' => $days]) }}" class="btn btn-secondary btn-sm analytics-export">
+                    <i data-lucide="download"></i> Export CSV
+                </a>
             </div>
-
         </div>
     </div>
 
-    {{-- =========================================================
-         ANALYTICS TABS
-    ========================================================== --}}
     <div class="analytics-tabs">
-
-        <a href="{{ route('admin.analytics.website') }}"
-           class="analytics-tab {{ $tab==='website'?'is-active':'' }}">
-            <i data-lucide="globe-2"></i>
-            Website
-        </a>
-
-        <a href="{{ route('admin.analytics.tools') }}"
-           class="analytics-tab {{ $tab==='tools'?'is-active':'' }}">
-            <i data-lucide="wrench"></i>
-            Tool
-        </a>
-
-        <a href="{{ route('admin.analytics.search') }}"
-           class="analytics-tab {{ $tab==='search'?'is-active':'' }}">
-            <i data-lucide="search"></i>
-            Search
-        </a>
-
-        <a href="{{ route('admin.analytics.comparisons') }}"
-           class="analytics-tab {{ $tab==='comparisons'?'is-active':'' }}">
-            <i data-lucide="columns-3"></i>
-            Comparison
-        </a>
-
-        <a href="{{ route('admin.analytics.content') }}"
-           class="analytics-tab {{ $tab==='content'?'is-active':'' }}">
-            <i data-lucide="file-text"></i>
-            Content
-        </a>
-
-        <a href="{{ route('admin.analytics.trending') }}"
-           class="analytics-tab {{ $tab==='trending'?'is-active':'' }}">
-            <i data-lucide="flame"></i>
-            Trending Searches
-        </a>
-
+        <a href="{{ route('admin.analytics.website', ['days'=>$days]) }}" class="analytics-tab {{ $tab==='website'?'is-active':'' }}"><i data-lucide="globe-2"></i>Website</a>
+        <a href="{{ route('admin.analytics.tools', ['days'=>$days]) }}" class="analytics-tab {{ $tab==='tools'?'is-active':'' }}"><i data-lucide="wrench"></i>Tool</a>
+        <a href="{{ route('admin.analytics.search', ['days'=>$days]) }}" class="analytics-tab {{ $tab==='search'?'is-active':'' }}"><i data-lucide="search"></i>Search</a>
+        <a href="{{ route('admin.analytics.comparisons', ['days'=>$days]) }}" class="analytics-tab {{ $tab==='comparisons'?'is-active':'' }}"><i data-lucide="columns-3"></i>Comparison</a>
+        <a href="{{ route('admin.analytics.content', ['days'=>$days]) }}" class="analytics-tab {{ $tab==='content'?'is-active':'' }}"><i data-lucide="file-text"></i>Content</a>
+        <a href="{{ route('admin.analytics.trending', ['days'=>$days]) }}" class="analytics-tab {{ $tab==='trending'?'is-active':'' }}"><i data-lucide="flame"></i>Trending Searches</a>
     </div>
 
-
-    {{-- =========================================================
-         WEBSITE / TOOLS / COMPARISONS / CONTENT
-    ========================================================== --}}
-    @if($tab !== 'search' && $tab !== 'trending')
-
-        <div class="analytics-kpis">
-
-            @if($tab==='website')
-
-                <div class="analytics-kpi">
-                    <div class="analytics-kpi-top">
-                        <div class="analytics-kpi-icon">
-                            <i data-lucide="users"></i>
-                        </div>
-                        <span class="analytics-kpi-delta up">↗ +9.2%</span>
-                    </div>
-                    <div class="analytics-kpi-label">Visitors</div>
-                    <div class="analytics-kpi-value">482K</div>
-                </div>
-
-                <div class="analytics-kpi">
-                    <div class="analytics-kpi-top">
-                        <div class="analytics-kpi-icon">
-                            <i data-lucide="eye"></i>
-                        </div>
-                        <span class="analytics-kpi-delta up">↗ +11.4%</span>
-                    </div>
-                    <div class="analytics-kpi-label">Page Views</div>
-                    <div class="analytics-kpi-value">1.9M</div>
-                </div>
-
-                <div class="analytics-kpi">
-                    <div class="analytics-kpi-top">
-                        <div class="analytics-kpi-icon">
-                            <i data-lucide="mouse-pointer-click"></i>
-                        </div>
-                        <span class="analytics-kpi-delta up">↗ +0.4%</span>
-                    </div>
-                    <div class="analytics-kpi-label">CTR</div>
-                    <div class="analytics-kpi-value">4.8%</div>
-                </div>
-
-                <div class="analytics-kpi">
-                    <div class="analytics-kpi-top">
-                        <div class="analytics-kpi-icon">
-                            <i data-lucide="timer"></i>
-                        </div>
-                        <span class="analytics-kpi-delta down">↘ -6%</span>
-                    </div>
-                    <div class="analytics-kpi-label">Avg. Session</div>
-                    <div class="analytics-kpi-value">3m 42s</div>
-                </div>
-
-            @elseif($tab==='tools')
-
-                <div class="analytics-kpi">
-                    <div class="analytics-kpi-top">
-                        <div class="analytics-kpi-icon">
-                            <i data-lucide="wrench"></i>
-                        </div>
-                        <span class="analytics-kpi-delta up">↗ +7.8%</span>
-                    </div>
-                    <div class="analytics-kpi-label">Tool Views</div>
-                    <div class="analytics-kpi-value">6.1M</div>
-                </div>
-
-                <div class="analytics-kpi">
-                    <div class="analytics-kpi-top">
-                        <div class="analytics-kpi-icon">
-                            <i data-lucide="star"></i>
-                        </div>
-                        <span class="analytics-kpi-delta up">↗ +0.1</span>
-                    </div>
-                    <div class="analytics-kpi-label">Avg Rating</div>
-                    <div class="analytics-kpi-value">4.4</div>
-                </div>
-
-                <div class="analytics-kpi">
-                    <div class="analytics-kpi-top">
-                        <div class="analytics-kpi-icon">
-                            <i data-lucide="columns-3"></i>
-                        </div>
-                        <span class="analytics-kpi-delta up">↗ +15.2%</span>
-                    </div>
-                    <div class="analytics-kpi-label">Compare Clicks</div>
-                    <div class="analytics-kpi-value">212K</div>
-                </div>
-
-                <div class="analytics-kpi">
-                    <div class="analytics-kpi-top">
-                        <div class="analytics-kpi-icon">
-                            <i data-lucide="external-link"></i>
-                        </div>
-                        <span class="analytics-kpi-delta up">↗ +4.1%</span>
-                    </div>
-                    <div class="analytics-kpi-label">Outbound Clicks</div>
-                    <div class="analytics-kpi-value">88K</div>
-                </div>
-
-            @elseif($tab==='comparisons')
-
-                <div class="analytics-kpi">
-                    <div class="analytics-kpi-top">
-                        <div class="analytics-kpi-icon">
-                            <i data-lucide="columns-3"></i>
-                        </div>
-                        <span class="analytics-kpi-delta up">↗ +6.7%</span>
-                    </div>
-                    <div class="analytics-kpi-label">Comparison Views</div>
-                    <div class="analytics-kpi-value">904K</div>
-                </div>
-
-                <div class="analytics-kpi">
-                    <div class="analytics-kpi-top">
-                        <div class="analytics-kpi-icon">
-                            <i data-lucide="square-stack"></i>
-                        </div>
-                        <span class="analytics-kpi-delta up">↗ +3.2%</span>
-                    </div>
-                    <div class="analytics-kpi-label">Comparisons Built</div>
-                    <div class="analytics-kpi-value">905</div>
-                </div>
-
-                <div class="analytics-kpi">
-                    <div class="analytics-kpi-top">
-                        <div class="analytics-kpi-icon">
-                            <i data-lucide="share-2"></i>
-                        </div>
-                        <span class="analytics-kpi-delta up">↗ +21%</span>
-                    </div>
-                    <div class="analytics-kpi-label">Shares</div>
-                    <div class="analytics-kpi-value">12.4K</div>
-                </div>
-
-                <div class="analytics-kpi">
-                    <div class="analytics-kpi-top">
-                        <div class="analytics-kpi-icon">
-                            <i data-lucide="clock"></i>
-                        </div>
-                        <span class="analytics-kpi-delta up">↗ +9%</span>
-                    </div>
-                    <div class="analytics-kpi-label">Avg Time on Page</div>
-                    <div class="analytics-kpi-value">2m 18s</div>
-                </div>
-
-            @else
-
-                <div class="analytics-kpi">
-                    <div class="analytics-kpi-top">
-                        <div class="analytics-kpi-icon">
-                            <i data-lucide="file-text"></i>
-                        </div>
-                        <span class="analytics-kpi-delta up">↗ +5.5%</span>
-                    </div>
-                    <div class="analytics-kpi-label">Published Articles</div>
-                    <div class="analytics-kpi-value">{{ number_format($contentMetrics['published_articles'] ?? 0) }}</div>
-                </div>
-
-                <div class="analytics-kpi">
-                    <div class="analytics-kpi-top">
-                        <div class="analytics-kpi-icon">
-                            <i data-lucide="message-square-heart"></i>
-                        </div>
-                        <span class="analytics-kpi-delta up">↗ +2.9%</span>
-                    </div>
-                    <div class="analytics-kpi-label">Published Reviews</div>
-                    <div class="analytics-kpi-value">{{ number_format($contentMetrics['published_reviews'] ?? 0) }}</div>
-                </div>
-
-                <div class="analytics-kpi">
-                    <div class="analytics-kpi-top">
-                        <div class="analytics-kpi-icon">
-                            <i data-lucide="share-2"></i>
-                        </div>
-                        <span class="analytics-kpi-delta up">↗ +18%</span>
-                    </div>
-                    <div class="analytics-kpi-label">Social Posts</div>
-                    <div class="analytics-kpi-value">{{ number_format($contentMetrics['social_posts'] ?? 0) }}</div>
-                </div>
-
-                <div class="analytics-kpi">
-                    <div class="analytics-kpi-top">
-                        <div class="analytics-kpi-icon">
-                            <i data-lucide="bar-chart-3"></i>
-                        </div>
-                        <span class="analytics-kpi-delta up">↗ +2%</span>
-                    </div>
-                    <div class="analytics-kpi-label">Approval Queue</div>
-                    <div class="analytics-kpi-value">{{ number_format($contentMetrics['approval_queue'] ?? 0) }}</div>
-                </div>
-
-            @endif
-
-        </div>
-
-
-        {{-- Trend Chart --}}
-        <div class="analytics-chart-card">
-
-            <div class="analytics-chart-head">
-                <div>
-                    <h3 class="analytics-chart-title">
-                        {{ $titles[$tab] }} Trend
-                    </h3>
-                    <div class="analytics-chart-meta">
-                        <span class="analytics-chart-dot"></span>
-                        Performance over selected period
-                    </div>
-                </div>
-
-                <span class="live-status">
-                    <span class="live-status-dot"></span>
-                    Updated
-                </span>
+    @if(!empty($readiness))
+        <div class="analytics-readiness {{ $readiness['level'] ?? 'partial' }}">
+            <div class="analytics-readiness-icon">
+                <i data-lucide="{{ ($readiness['level'] ?? '') === 'good' ? 'database-zap' : (($readiness['level'] ?? '') === 'missing' ? 'triangle-alert' : 'info') }}"></i>
             </div>
-
-            <div class="analytics-chart-body">
-                <canvas id="analyticsChart" height="90"></canvas>
+            <div>
+                <h4>{{ $readiness['title'] ?? 'Analytics data status' }}</h4>
+                <p>{{ $readiness['message'] ?? '' }}</p>
             </div>
-
         </div>
-
     @endif
 
-
-    {{-- =========================================================
-         SEARCH / TRENDING
-    ========================================================== --}}
-    @if($tab==='search' || $tab==='trending')
-
-        <div class="analytics-kpis search-kpis">
-
+    <div class="analytics-kpis">
+        @foreach($kpis ?? [] as $kpi)
             <div class="analytics-kpi">
                 <div class="analytics-kpi-top">
-                    <div class="analytics-kpi-icon">
-                        <i data-lucide="search"></i>
-                    </div>
-                    <span class="analytics-kpi-delta up">↗ +24.1%</span>
+                    <div class="analytics-kpi-icon"><i data-lucide="{{ $kpi['icon'] ?? 'activity' }}"></i></div>
+                    @if(!empty($kpi['delta']))
+                        <span class="analytics-kpi-delta {{ $kpi['delta']['direction'] === 'down' ? 'down' : 'up' }}">
+                            {{ $kpi['delta']['direction'] === 'down' ? '↘' : '↗' }} {{ $kpi['delta']['label'] }}
+                        </span>
+                    @else
+                        <span class="analytics-kpi-delta neutral">Live</span>
+                    @endif
                 </div>
-                <div class="analytics-kpi-label">Total Searches</div>
-                <div class="analytics-kpi-value">1.2M</div>
+                <div class="analytics-kpi-label">{{ $kpi['label'] }}</div>
+                <div class="analytics-kpi-value">{{ $kpi['value'] }}</div>
             </div>
+        @endforeach
+    </div>
 
-            <div class="analytics-kpi">
-                <div class="analytics-kpi-top">
-                    <div class="analytics-kpi-icon">
-                        <i data-lucide="flame"></i>
-                    </div>
-                    <span class="analytics-kpi-delta up">↗ +12</span>
-                </div>
-                <div class="analytics-kpi-label">Trending Queries</div>
-                <div class="analytics-kpi-value">86</div>
+    <div class="analytics-chart-card">
+        <div class="analytics-chart-head">
+            <div>
+                <h3 class="analytics-chart-title">{{ $chart['title'] ?? 'Performance Trend' }}</h3>
+                <div class="analytics-period-note">{{ $chart['series_label'] ?? 'Value' }} · {{ $period['label'] ?? '' }}</div>
             </div>
-
-            <div class="analytics-kpi">
-                <div class="analytics-kpi-top">
-                    <div class="analytics-kpi-icon">
-                        <i data-lucide="circle-slash"></i>
-                    </div>
-                    <span class="analytics-kpi-delta down">↘ +3.8%</span>
-                </div>
-                <div class="analytics-kpi-label">Zero-Result Searches</div>
-                <div class="analytics-kpi-value">4,102</div>
-            </div>
-
-            <div class="analytics-kpi">
-                <div class="analytics-kpi-top">
-                    <div class="analytics-kpi-icon">
-                        <i data-lucide="target"></i>
-                    </div>
-                    <span class="analytics-kpi-delta up">↗ +2.1%</span>
-                </div>
-                <div class="analytics-kpi-label">Search → Tool Conversion</div>
-                <div class="analytics-kpi-value">38.4%</div>
-            </div>
-
+            <div class="analytics-chart-meta"><span class="analytics-chart-dot"></span> Database-backed</div>
         </div>
+        <div class="analytics-chart-body"><canvas id="analyticsChart" height="88"></canvas></div>
+    </div>
 
-
-        <div class="analytics-card search-table-card">
-
-            <div class="analytics-card-head">
-                <div>
-                    <h3>Top &amp; Trending Searches</h3>
-                </div>
-
-                <span>Last 30 days</span>
-            </div>
-
+    <div class="analytics-card">
+        <div class="analytics-card-head">
+            <h3>{{ $table['title'] ?? 'Analytics Details' }}</h3>
+            <span>{{ count($table['rows'] ?? []) }} records shown</span>
+        </div>
+        @if(!empty($table['rows']))
             <div class="analytics-table-wrap">
                 <table class="analytics-table">
-
-                    <thead>
-                        <tr>
-                            <th>Search Query</th>
-                            <th>Volume</th>
-                            <th>Growth</th>
-                            <th>Related Tool</th>
-                        </tr>
-                    </thead>
-
+                    <thead><tr>@foreach($table['headers'] ?? [] as $header)<th>{{ $header }}</th>@endforeach</tr></thead>
                     <tbody>
-
-                        <tr>
-                            <td>
-                                <div class="query-cell">
-                                    <div class="query-icon">
-                                        <i data-lucide="search"></i>
-                                    </div>
-                                    <span class="query-text">best AI video generator</span>
-                                </div>
-                            </td>
-                            <td class="number">12,450</td>
-                            <td>
-                                <span class="analytics-growth positive">↗ +38%</span>
-                            </td>
-                            <td class="analytics-related">Runway Gen-4</td>
-                        </tr>
-
-                        <tr>
-                            <td>
-                                <div class="query-cell">
-                                    <div class="query-icon">
-                                        <i data-lucide="search"></i>
-                                    </div>
-                                    <span class="query-text">claude vs chatgpt</span>
-                                </div>
-                            </td>
-                            <td class="number">9,820</td>
-                            <td>
-                                <span class="analytics-growth positive">↗ +21%</span>
-                            </td>
-                            <td class="analytics-related">Claude</td>
-                        </tr>
-
-                        <tr>
-                            <td>
-                                <div class="query-cell">
-                                    <div class="query-icon">
-                                        <i data-lucide="search"></i>
-                                    </div>
-                                    <span class="query-text">free ai image generator</span>
-                                </div>
-                            </td>
-                            <td class="number">8,110</td>
-                            <td>
-                                <span class="analytics-growth positive">↗ +14%</span>
-                            </td>
-                            <td class="analytics-related">Ideogram v3</td>
-                        </tr>
-
-                        <tr>
-                            <td>
-                                <div class="query-cell">
-                                    <div class="query-icon">
-                                        <i data-lucide="search"></i>
-                                    </div>
-                                    <span class="query-text">ai coding assistant</span>
-                                </div>
-                            </td>
-                            <td class="number">6,730</td>
-                            <td>
-                                <span class="analytics-growth positive">↗ +9%</span>
-                            </td>
-                            <td class="analytics-related">CodePilot X</td>
-                        </tr>
-
-                        <tr>
-                            <td>
-                                <div class="query-cell">
-                                    <div class="query-icon">
-                                        <i data-lucide="search"></i>
-                                    </div>
-                                    <span class="query-text">ai agents for business</span>
-                                </div>
-                            </td>
-                            <td class="number">5,290</td>
-                            <td>
-                                <span class="analytics-growth positive">↗ +52%</span>
-                            </td>
-                            <td class="analytics-related">—</td>
-                        </tr>
-
+                    @foreach($table['rows'] as $row)
+                        <tr>@foreach($row as $value)<td>{{ $value }}</td>@endforeach</tr>
+                    @endforeach
                     </tbody>
-
                 </table>
             </div>
-
-        </div>
-
-    @else
-
-        {{-- =====================================================
-             TOP ITEMS + TRAFFIC SOURCES
-        ====================================================== --}}
-        <div class="analytics-lower-grid">
-
-            <div class="analytics-card">
-
-                <div class="analytics-card-head">
-
-                    <h3>
-                        Top
-                        {{ $tab==='website'
-                            ? 'Pages'
-                            : ($tab==='tools'
-                                ? 'Tools'
-                                : ($tab==='comparisons'
-                                    ? 'Comparisons'
-                                    : 'Articles')) }}
-                    </h3>
-
-                    <span>Highest performing content</span>
-
-                </div>
-
-                <div class="analytics-table-wrap">
-
-                    <table class="analytics-table">
-
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>{{ $tab==='website' ? 'Page' : 'Item' }}</th>
-                                <th>Views</th>
-                                <th>Growth</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-
-                            <tr>
-                                <td class="rank">01</td>
-                                <td class="item-name">ChatGPT vs Claude</td>
-                                <td class="number">128,402</td>
-                                <td>
-                                    <span class="analytics-growth positive">↗ +18%</span>
-                                </td>
-                            </tr>
-
-                            <tr>
-                                <td class="rank">02</td>
-                                <td class="item-name">Best AI Video Generators 2026</td>
-                                <td class="number">94,220</td>
-                                <td>
-                                    <span class="analytics-growth positive">↗ +31%</span>
-                                </td>
-                            </tr>
-
-                            <tr>
-                                <td class="rank">03</td>
-                                <td class="item-name">Midjourney Review</td>
-                                <td class="number">61,880</td>
-                                <td>
-                                    <span class="analytics-growth negative">↘ -4%</span>
-                                </td>
-                            </tr>
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
+        @else
+            <div class="analytics-empty">
+                <strong>No tracked records yet</strong>
+                The current database has no event rows for this analytics source. Values will appear here once tracking data is stored.
             </div>
-
-
-            {{-- Traffic Sources --}}
-            <div class="analytics-card sources-card">
-
-                <div class="analytics-card-head">
-                    <h3>Traffic Sources</h3>
-
-                    <span>Acquisition</span>
-                </div>
-
-                <div class="sources-body">
-
-                    <div class="sources-chart-wrap">
-                        <canvas id="sourcesChart"></canvas>
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    @endif
-
+        @endif
+    </div>
 </div>
 @endsection
 
-
 @push('scripts')
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-
-    /* =========================================================
-       MAIN ANALYTICS CHART
-    ========================================================== */
-
     const el = document.getElementById('analyticsChart');
-
-    if (el) {
-
+    if (el && typeof Chart !== 'undefined') {
         new Chart(el, {
             type: 'bar',
-
             data: {
-                labels: @json($tab === 'content' && isset($contentTrend) ? $contentTrend->pluck('label')->all() : ['Jul 08','Jul 12','Jul 16','Jul 20','Jul 24','Jul 28','Aug 01','Aug 05']),
-
+                labels: @json(collect($chart['points'] ?? [])->pluck('label')->all()),
                 datasets: [{
-                    label: 'Value',
-
-                    data: @json($tab === 'content' && isset($contentTrend) ? $contentTrend->pluck('value')->all() : [38,45,42,51,60,55,68,74]),
-
+                    label: @json($chart['series_label'] ?? 'Value'),
+                    data: @json(collect($chart['points'] ?? [])->pluck('value')->all()),
                     backgroundColor: 'rgba(99,102,241,.55)',
                     hoverBackgroundColor: 'rgba(129,140,248,.85)',
-
                     borderRadius: 7,
                     borderSkipped: false,
                     maxBarThickness: 30
                 }]
             },
-
             options: {
-
                 responsive: true,
-
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
-                },
-
+                interaction: { intersect: false, mode: 'index' },
                 plugins: {
-
-                    legend: {
-                        display: false
-                    },
-
+                    legend: { display: false },
                     tooltip: {
-                        backgroundColor: '#171b27',
-                        titleColor: '#f4f7fb',
-                        bodyColor: '#aab3c4',
-                        borderColor: 'rgba(255,255,255,.08)',
-                        borderWidth: 1,
-                        padding: 11,
-                        displayColors: false,
-                        titleFont: {
-                            size: 11,
-                            weight: '600'
-                        },
-                        bodyFont: {
-                            size: 11
-                        }
+                        backgroundColor: '#171b27', titleColor: '#f4f7fb', bodyColor: '#aab3c4',
+                        borderColor: 'rgba(255,255,255,.08)', borderWidth: 1, padding: 11, displayColors: false
                     }
                 },
-
                 scales: {
-
-                    x: {
-                        border: {
-                            display: false
-                        },
-
-                        grid: {
-                            display: false
-                        },
-
-                        ticks: {
-                            color: '#69758b',
-                            font: {
-                                size: 10
-                            }
-                        }
-                    },
-
-                    y: {
-
-                        beginAtZero: true,
-
-                        border: {
-                            display: false
-                        },
-
-                        grid: {
-                            color: 'rgba(255,255,255,.045)'
-                        },
-
-                        ticks: {
-                            color: '#69758b',
-                            font: {
-                                size: 10
-                            }
-                        }
-                    }
+                    x: { border:{display:false}, grid:{display:false}, ticks:{color:'#69758b', font:{size:10}, maxRotation:0, autoSkip:true, maxTicksLimit:12} },
+                    y: { beginAtZero:true, border:{display:false}, grid:{color:'rgba(255,255,255,.045)'}, ticks:{color:'#69758b', font:{size:10}, precision:0} }
                 }
             }
         });
     }
-
-
-    /* =========================================================
-       TRAFFIC SOURCES CHART
-    ========================================================== */
-
-    const el2 = document.getElementById('sourcesChart');
-
-    if (el2) {
-
-        new Chart(el2, {
-
-            type: 'doughnut',
-
-            data: {
-
-                labels: [
-                    'Organic Search',
-                    'Direct',
-                    'Social',
-                    'Referral'
-                ],
-
-                datasets: [{
-                    data: [
-                        52,
-                        24,
-                        15,
-                        9
-                    ],
-
-                    backgroundColor: [
-                        '#6366f1',
-                        '#8b5cf6',
-                        '#22d3ee',
-                        '#5c6580'
-                    ],
-
-                    borderWidth: 0,
-
-                    hoverOffset: 5
-                }]
-            },
-
-            options: {
-
-                responsive: true,
-
-                maintainAspectRatio: false,
-
-                cutout: '72%',
-
-                plugins: {
-
-                    legend: {
-                        position: 'bottom',
-
-                        labels: {
-                            color: '#8d98ad',
-                            boxWidth: 8,
-                            boxHeight: 8,
-                            padding: 14,
-                            font: {
-                                size: 10
-                            }
-                        }
-                    },
-
-                    tooltip: {
-                        backgroundColor: '#171b27',
-                        titleColor: '#f4f7fb',
-                        bodyColor: '#aab3c4',
-                        borderColor: 'rgba(255,255,255,.08)',
-                        borderWidth: 1,
-                        padding: 10
-                    }
-                }
-            }
-        });
-    }
-
-
-    /* =========================================================
-       REFRESH LUCIDE ICONS
-    ========================================================== */
-
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-    }
-
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 });
 </script>
-
 @endpush

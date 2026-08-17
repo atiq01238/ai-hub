@@ -2,18 +2,24 @@
 @section('title', 'Settings')
 
 @section('content')
+@php($canEditSettings = auth()->user()->canAccessModule('Settings', 'Edit'))
 
 <form action="{{ route('admin.system.settings.update') }}" method="POST">
 @csrf
 @method('PUT')
 
 <x-page-header title="Settings" :breadcrumb="['System', 'Settings']">
-    <x-slot:actions><button type="submit" class="btn btn-primary btn-sm"><i data-lucide="check"></i> Save Changes</button></x-slot:actions>
+    <x-slot:actions>@if($canEditSettings)<button type="submit" class="btn btn-primary btn-sm"><i data-lucide="check"></i> Save Changes</button>@else<span class="badge badge-neutral"><i data-lucide="eye" style="width:13px;"></i> Read only</span>@endif</x-slot:actions>
 </x-page-header>
 
 @if (session('status'))
     <div class="alert alert-success" style="margin-bottom:16px;">{{ session('status') }}</div>
 @endif
+@unless($canEditSettings)
+    <div class="alert alert-info" style="margin-bottom:16px;">Your role has Settings → View access but not Settings → Edit. Configuration is read-only.</div>
+@endunless
+
+<fieldset {{ $canEditSettings ? '' : 'disabled' }} style="border:0;padding:0;margin:0;min-width:0;">
 
 <div class="tabs">
     <div class="tab is-active">General</div>
@@ -102,5 +108,6 @@
         @endif
     </div>
 </div>
+</fieldset>
 </form>
 @endsection

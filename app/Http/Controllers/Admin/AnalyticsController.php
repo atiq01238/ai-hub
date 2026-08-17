@@ -3,38 +3,49 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Article;
-use App\Models\Review;
-use App\Models\SocialPost;
+use App\Services\Analytics\AnalyticsService;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AnalyticsController extends Controller
 {
-    public function website(Request $request) { return view('analytics.index'); }
-    public function tools(Request $request) { return view('analytics.index'); }
-    public function search(Request $request) { return view('analytics.index'); }
-    public function comparisons(Request $request) { return view('analytics.index'); }
-
-    public function content(Request $request)
+    public function __construct(private readonly AnalyticsService $analytics)
     {
-        $from = now()->subDays(29)->startOfDay();
-        $contentMetrics = [
-            'published_articles' => Article::where('status', 'published')->count(),
-            'scheduled_articles' => Article::where('status', 'scheduled')->count(),
-            'pending_reviews' => Review::where('status', 'pending')->count(),
-            'published_reviews' => Review::where('status', 'published')->count(),
-            'social_posts' => SocialPost::count(),
-            'approval_queue' => Article::whereIn('approval_status', ['in_review', 'needs_changes'])->count(),
-        ];
-        $contentTrend = collect(range(0, 29))->map(function ($offset) use ($from) {
-            $date = $from->copy()->addDays($offset);
-            return [
-                'label' => $date->format('M j'),
-                'value' => Article::whereDate('published_at', $date)->where('status', 'published')->count(),
-            ];
-        });
-        return view('analytics.index', compact('contentMetrics', 'contentTrend'));
     }
 
-    public function trending(Request $request) { return view('analytics.index'); }
+    public function website(Request $request) { return $this->show('website', $request); }
+    public function tools(Request $request) { return $this->show('tools', $request); }
+    public function search(Request $request) { return $this->show('search', $request); }
+    public function comparisons(Request $request) { return $this->show('comparisons', $request); }
+    public function content(Request $request) { return $this->show('content', $request); }
+    public function trending(Request $request) { return $this->show('trending', $request); }
+
+    public function export(Request $request, string $tab): StreamedResponse
+    {
+        abort_unless(in_array($tab, ['website', 'tools', 'search', 'comparisons', 'content', 'trending'], true), 404);
+
+        $days = $this->days($request);
+        $rows = $this->analytics->exportRows($tab, $days);
+        $filename = "analytics-{$tab}-" . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($rows) {
+            $handle = fopen('php://output', 'w');
+            fwrite($handle, "\xEF\xBB\xBF");
+            foreach ($rows as $row) {
+                fputcsv($handle, $row);
+            }
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    private function show(string $tab, Request $request)
+    {
+        return view('analytics.index', $this->analytics->dashboard($tab, $this->days($request)));
+    }
+
+    private function days(Request $request): int
+    {
+        $days = (int) $request->integer('days', 30);
+        return in_array($days, [7, 30, 90, 365], true) ? $days : 30;
+    }
 }

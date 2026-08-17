@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\LoginAttempt;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -23,13 +24,16 @@ class LoginController extends Controller
             'password' => ['required'],
         ]);
 
-        $success = Auth::attempt($credentials, $request->has('remember'));
+        $candidate = User::where('email', $credentials['email'])->first();
+        $candidate?->restoreIfSuspensionExpired();
+        $isSuspended = $candidate && $candidate->status !== 'active';
+        $success = ! $isSuspended && Auth::attempt($credentials, $request->boolean('remember'));
 
         // Log every attempt — successful or not — so the Security Center
         // has something real to show.
         LoginAttempt::create([
             'email'       => $credentials['email'],
-            'user_id'     => $success ? Auth::id() : null,
+            'user_id'     => $success ? Auth::id() : $candidate?->id,
             'ip_address'  => $request->ip(),
             'user_agent'  => substr((string) $request->userAgent(), 0, 255),
             'successful'  => $success,
@@ -54,11 +58,22 @@ class LoginController extends Controller
 
             $request->session()->regenerate();
 
-            return redirect()->route('admin.dashboard');
+            $user->forceFill([
+                'last_login_at' => now(),
+                'last_login_ip' => $request->ip(),
+            ])->save();
+
+            $destination = $user->role === 'admin'
+                ? route('admin.dashboard')
+                : route('home');
+
+            return redirect()->intended($destination);
         }
 
         return back()->withErrors([
-            'email' => 'Invalid email or password.',
+            'email' => $isSuspended
+                ? 'This account is suspended. Contact support if you believe this is a mistake.'
+                : 'Invalid email or password.',
         ])->onlyInput('email');
     }
 
