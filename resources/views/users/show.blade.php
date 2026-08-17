@@ -1,199 +1,132 @@
 @extends('layouts.admin')
 @section('title', $user->name . ' · User Detail')
 
+@push('styles')
+<link rel="stylesheet" href="{{ asset('css/pages/users-community.css') }}">
+@endpush
+
 @section('content')
+@php
+    $initials = collect(preg_split('/\s+/',trim($user->name)))->filter()->take(2)->map(fn($p)=>mb_strtoupper(mb_substr($p,0,1)))->implode('');
+@endphp
+<div class="uc-page uc-profile">
 <x-page-header
-    title="{{ $user->name }}"
-    subtitle="{{ $user->email }} · Joined {{ $user->created_at->format('M j, Y') }}"
-    :breadcrumb="['Users & Community', 'Users', $user->name]">
-    <x-slot:actions>
-        <a href="{{ route('admin.users.index') }}" class="btn btn-ghost btn-sm"><i data-lucide="arrow-left"></i> Users</a>
-        @if ($user->status === 'active' && auth()->id() !== $user->id && auth()->user()->canAccessModule('Users', 'Edit'))
-            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#suspendUserModal">
-                <i data-lucide="user-x"></i> Suspend account
-            </button>
-        @elseif ($user->status === 'suspended' && auth()->user()->canAccessModule('Users', 'Edit'))
-            <form action="{{ route('admin.users.activate', $user->id) }}" method="POST">
-                @csrf
-                <button type="submit" class="btn btn-primary btn-sm"><i data-lucide="user-check"></i> Activate account</button>
-            </form>
-        @endif
-    </x-slot:actions>
+    :title="$user->name"
+    :subtitle="$user->email.' · Joined '.$user->created_at->format('M j, Y')"
+    :breadcrumb="['Users & Community','Users',$user->name]"
+>
+<x-slot:actions>
+    <a href="{{ route('admin.users.index') }}" class="btn btn-secondary"><i data-lucide="arrow-left"></i>Users</a>
+    @if($user->status==='suspended' && auth()->user()->canAccessModule('Users','Edit'))
+        <form action="{{ route('admin.users.activate',$user->id) }}" method="POST">@csrf<button class="btn btn-primary"><i data-lucide="user-check"></i>Activate Account</button></form>
+    @endif
+</x-slot:actions>
 </x-page-header>
 
-@if (session('status'))
-    <div class="alert alert-success" style="margin-bottom:16px;">{{ session('status') }}</div>
-@endif
-@if ($errors->any())
-    <div class="alert alert-danger" style="margin-bottom:16px;">{{ $errors->first() }}</div>
+@if(session('status'))<div class="alert alert-success uc-flash"><i data-lucide="check-circle-2"></i><span>{{ session('status') }}</span></div>@endif
+@if($errors->any())<div class="alert alert-danger uc-flash"><i data-lucide="circle-alert"></i><span>{{ $errors->first() }}</span></div>@endif
+
+@if($user->status==='suspended')
+<section class="uc-suspension-alert">
+    <i data-lucide="shield-alert"></i>
+    <div><strong>Account suspended</strong><p>{{ $user->suspension_reason ?: 'No reason recorded.' }}</p><small>{{ $user->suspended_at?->format('M j, Y g:i A') }}@if($user->suspendedBy) · by {{ $user->suspendedBy->name }}@endif @if($user->suspended_until) · until {{ $user->suspended_until->format('M j, Y g:i A') }}@endif</small></div>
+</section>
 @endif
 
-@if ($user->status === 'suspended')
-    <div class="card card-pad" style="margin-bottom:20px; border-color:rgba(248,113,113,.35); background:var(--neg-bg);">
-        <div class="flex gap-12" style="align-items:flex-start;">
-            <i data-lucide="shield-alert" style="color:var(--neg); flex-shrink:0;"></i>
-            <div>
-                <b style="color:var(--neg);">Account suspended</b>
-                <div class="text-sub" style="margin-top:5px;">{{ $user->suspension_reason ?: 'No reason recorded.' }}</div>
-                <div class="cell-sub" style="margin-top:7px;">
-                    {{ $user->suspended_at?->format('M j, Y g:i A') }}
-                    @if ($user->suspendedBy) · by {{ $user->suspendedBy->name }} @endif
-                    @if ($user->suspended_until) · until {{ $user->suspended_until->format('M j, Y') }} @endif
-                </div>
+<section class="card uc-profile__hero">
+    <div class="uc-profile__identity">
+        <div class="uc-profile__avatar">{{ $initials ?: 'U' }}</div>
+        <div>
+            <div class="uc-profile__badges">
+                <span class="uc-access {{ $user->role==='admin'?'is-admin':'' }}"><i data-lucide="{{ $user->role==='admin'?'shield':'user-round' }}"></i>{{ $user->role==='admin'?'Administrator':'Member' }}</span>
+                <x-status-badge status="{{ ucfirst($user->status) }}" type="{{ $user->status==='active'?'pos':'neg' }}" />
             </div>
+            <h1>{{ $user->name }}</h1>
+            <p>{{ $user->email }}</p>
         </div>
     </div>
-@endif
+    <div class="uc-profile__signal"><span class="uc-eyebrow">Community footprint</span><strong>{{ number_format($user->reviews_count + $user->submissions_count) }}</strong><small>reviews + submissions</small></div>
+</section>
 
-<div class="kpi-grid">
-    <x-kpi-card icon="star" label="Reviews" value="{{ $user->reviews_count }}" />
-    <x-kpi-card icon="inbox" label="Submissions" value="{{ $user->submissions_count }}" />
-    <x-kpi-card icon="flag" label="Reports Received" value="{{ $user->reports_received_count }}" />
-    <x-kpi-card icon="clock-3" label="Last Login" value="{{ $user->last_login_at?->format('M j') ?? 'Never' }}" />
+<section class="uc-profile__metrics">
+    @foreach([
+        ['Reviews',$user->reviews_count,'star'],
+        ['Submissions',$user->submissions_count,'inbox'],
+        ['Reports received',$user->reports_received_count,'flag'],
+        ['Reports filed',$user->reports_filed_count,'shield-alert'],
+    ] as [$label,$value,$icon])
+    <article class="card"><span><i data-lucide="{{ $icon }}"></i></span><div><strong>{{ number_format($value) }}</strong><small>{{ $label }}</small></div></article>
+    @endforeach
+</section>
+
+<div class="uc-profile__layout">
+<main class="uc-profile__main">
+    <section class="card uc-panel">
+        <div class="uc-section-head"><div><span class="uc-eyebrow">Activity</span><h2>Recent reviews</h2><p>Latest reviews created by this user.</p></div><i data-lucide="star"></i></div>
+        <div class="uc-list">
+        @forelse($recentReviews as $review)
+            <a href="{{ route($review->review_type==='user'?'admin.community.reviews.show':'admin.content.reviews.show',$review->id) }}"><span class="uc-list__icon"><i data-lucide="message-square-text"></i></span><div><strong>{{ $review->tool->name ?? 'Deleted tool' }}</strong><small>{{ number_format((float)$review->rating,1) }}/5 · {{ ucfirst($review->status) }} · {{ $review->created_at->diffForHumans() }}</small></div><i data-lucide="arrow-up-right"></i></a>
+        @empty<div class="uc-empty uc-empty--small"><p>No reviews yet.</p></div>@endforelse
+        </div>
+    </section>
+
+    <section class="card uc-panel">
+        <div class="uc-section-head"><div><span class="uc-eyebrow">Contributions</span><h2>Recent submissions</h2><p>Latest product or correction suggestions.</p></div><i data-lucide="inbox"></i></div>
+        <div class="uc-list">
+        @forelse($recentSubmissions as $submission)
+            <a href="{{ route('admin.submissions.show',$submission->id) }}"><span class="uc-list__icon"><i data-lucide="send"></i></span><div><strong>{{ $submission->tool_name }}</strong><small>{{ ucfirst($submission->submission_type) }} · {{ ucwords(str_replace('_',' ',$submission->status)) }} · {{ $submission->created_at->diffForHumans() }}</small></div><i data-lucide="arrow-up-right"></i></a>
+        @empty<div class="uc-empty uc-empty--small"><p>No submissions yet.</p></div>@endforelse
+        </div>
+    </section>
+
+    <section class="card uc-panel">
+        <div class="uc-section-head"><div><span class="uc-eyebrow">Trust & Safety</span><h2>Reports against this user</h2><p>Latest abuse or policy reports received by this account.</p></div><i data-lucide="flag"></i></div>
+        <div class="uc-list">
+        @forelse($recentReports as $report)
+            <a href="{{ route('admin.community.reports.show',$report->id) }}"><span class="uc-list__icon is-risk"><i data-lucide="flag"></i></span><div><strong>{{ ucfirst($report->reason) }}</strong><small>{{ ucfirst($report->priority) }} priority · {{ ucfirst($report->status) }} · reported by {{ $report->reporter?->name ?? 'Deleted user' }}</small></div><i data-lucide="arrow-up-right"></i></a>
+        @empty<div class="uc-empty uc-empty--small"><p>No reports against this user.</p></div>@endforelse
+        </div>
+    </section>
+</main>
+
+<aside class="uc-profile__aside">
+    <section class="card uc-facts">
+        <span class="uc-eyebrow">Account Facts</span>
+        <dl>
+            <div><dt>Access</dt><dd>{{ $user->role==='admin'?'Administrator':'Member' }}</dd></div>
+            <div><dt>Permission role</dt><dd>{{ $user->role==='admin' ? ($user->roleModel?->name ?? 'Legacy admin') : 'Not applicable' }}</dd></div>
+            <div><dt>Status</dt><dd>{{ ucfirst($user->status) }}</dd></div>
+            <div><dt>Joined</dt><dd>{{ $user->created_at->format('M j, Y') }}</dd></div>
+        </dl>
+    </section>
+
+    @if(auth()->id() !== $user->id && auth()->user()->canAccessModule('Users','Edit') && auth()->user()->canAccessModule('Roles & Permissions','Edit'))
+    <section class="card uc-action-card">
+        <span class="uc-eyebrow">Access Control</span>
+        <h3>Update account access</h3>
+        <form action="{{ route('admin.users.access',$user->id) }}" method="POST" onsubmit="return confirm('Update access and revoke active sessions?')">
+            @csrf @method('PATCH')
+            <label><span>Access level</span><select class="select" name="access_level"><option value="user" @selected($user->role==='user')>Member</option><option value="admin" @selected($user->role==='admin')>Administrator</option></select></label>
+            <label><span>Permission role</span><select class="select" name="role_id"><option value="" disabled {{ $user->role!=='admin'?'selected':'' }}>Choose role</option>@foreach($roles as $role)@continue($role->isSystemRole() && !auth()->user()->isSuperAdmin())<option value="{{ $role->id }}" @selected($user->role_id==$role->id)>{{ $role->name }}</option>@endforeach</select></label>
+            <button class="btn btn-secondary" type="submit"><i data-lucide="shield-cog"></i>Update Access</button>
+        </form>
+    </section>
+    @endif
+
+    @if($user->status==='active' && auth()->id() !== $user->id && auth()->user()->canAccessModule('Users','Edit'))
+    <section class="card uc-action-card uc-action-card--danger">
+        <span class="uc-eyebrow">Account Safety</span>
+        <h3>Suspend account</h3>
+        <p>Suspension revokes database-backed active sessions immediately.</p>
+        <form action="{{ route('admin.users.suspend',$user->id) }}" method="POST" onsubmit="return confirm('Suspend {{ addslashes($user->name) }}?')">
+            @csrf
+            <label><span>Reason <b>*</b></span><textarea class="textarea" name="suspension_reason" rows="4" required placeholder="Policy or safety reason..."></textarea></label>
+            <label><span>Suspended until</span><input class="input" type="datetime-local" name="suspended_until"></label>
+            <button class="btn btn-danger" type="submit"><i data-lucide="user-x"></i>Suspend Account</button>
+        </form>
+    </section>
+    @endif
+</aside>
 </div>
-
-<div class="grid-12">
-    <div class="col-8">
-        <div class="card" style="margin-bottom:16px;">
-            <div class="card-head"><h3>Recent Reviews</h3><span class="card-head__sub">Latest 5</span></div>
-            @forelse ($recentReviews as $review)
-                <div class="flex items-center gap-12" style="padding:13px 20px; border-bottom:1px solid var(--border-soft);">
-                    <div class="kpi-icon"><i data-lucide="star"></i></div>
-                    <div style="flex:1; font-size:13px;">
-                        Rated <b>{{ $review->tool->name ?? 'Deleted tool' }}</b> {{ number_format((float) $review->rating, 1) }}/5
-                        <div class="cell-sub">{{ \Illuminate\Support\Str::limit($review->body ?: 'Star rating only', 90) }}</div>
-                    </div>
-                    <x-status-badge status="{{ ucfirst($review->status) }}" type="{{ $review->status === 'published' ? 'pos' : ($review->status === 'flagged' ? 'neg' : 'warn') }}" />
-                </div>
-            @empty
-                <div class="text-sub" style="padding:28px; text-align:center;">No reviews submitted yet.</div>
-            @endforelse
-        </div>
-
-        <div class="grid-2">
-            <div class="card">
-                <div class="card-head"><h3>Recent Submissions</h3></div>
-                @forelse ($recentSubmissions as $submission)
-                    <a href="{{ route('admin.submissions.show', $submission->id) }}" class="flex items-center justify-between" style="padding:13px 20px; border-bottom:1px solid var(--border-soft); color:inherit; text-decoration:none;">
-                        <div><b style="font-size:13px;">{{ $submission->tool_name }}</b><div class="cell-sub">{{ ucfirst($submission->submission_type) }}</div></div>
-                        <x-status-badge status="{{ ucfirst(str_replace('_', ' ', $submission->status)) }}" type="{{ $submission->status === 'approved' ? 'pos' : ($submission->status === 'rejected' ? 'neg' : 'warn') }}" />
-                    </a>
-                @empty
-                    <div class="text-sub" style="padding:24px; text-align:center;">No submissions.</div>
-                @endforelse
-            </div>
-
-            <div class="card">
-                <div class="card-head"><h3>Reports Received</h3></div>
-                @forelse ($recentReports as $report)
-                    <a href="{{ route('admin.community.reports.show', $report->id) }}" class="flex items-center justify-between" style="padding:13px 20px; border-bottom:1px solid var(--border-soft); color:inherit; text-decoration:none;">
-                        <div><b style="font-size:13px;">{{ ucfirst($report->reason) }}</b><div class="cell-sub">By {{ $report->reporter?->name ?? 'Deleted user' }}</div></div>
-                        <x-status-badge status="{{ ucfirst($report->status) }}" type="{{ in_array($report->status, ['resolved', 'dismissed']) ? 'pos' : 'warn' }}" />
-                    </a>
-                @empty
-                    <div class="text-sub" style="padding:24px; text-align:center;">No reports received.</div>
-                @endforelse
-            </div>
-        </div>
-    </div>
-
-    <div class="col-4">
-        <div class="card card-pad" style="margin-bottom:16px;">
-            <div class="section-title">Account Profile</div>
-            @php
-                $profileRows = [
-                    ['Access level', $user->role === 'admin' ? 'Administrator' : 'Member'],
-                    ['Status', ucfirst($user->status)],
-                    ['Email verified', $user->email_verified_at ? $user->email_verified_at->format('M j, Y') : 'Not verified'],
-                    ['Two-factor auth', $user->two_factor_enabled ? 'Enabled' : 'Disabled'],
-                    ['Last login', $user->last_login_at?->format('M j, Y g:i A') ?? 'Never'],
-                    ['Last login IP', $user->last_login_ip ?? '—'],
-                ];
-            @endphp
-            @foreach ($profileRows as [$label, $value])
-                <div class="flex items-center justify-between" style="padding:9px 0; border-bottom:1px solid var(--border-soft); gap:16px;">
-                    <span class="cell-sub">{{ $label }}</span><span style="font-size:12.5px; text-align:right;">{{ $value }}</span>
-                </div>
-            @endforeach
-        </div>
-
-        @if (auth()->id() !== $user->id && auth()->user()->canAccessModule('Users', 'Edit') && auth()->user()->canAccessModule('Roles & Permissions', 'Edit'))
-            <div class="card card-pad" style="margin-bottom:16px;">
-                <div class="section-title">Account Access</div>
-                <p class="cell-sub" style="margin-bottom:12px;">Promotion and demotion revoke the user's sessions immediately.</p>
-                <form action="{{ route('admin.users.access', $user->id) }}" method="POST">
-                    @csrf
-                    @method('PATCH')
-                    <div class="form-field" style="margin-bottom:10px;">
-                        <label>Access level</label>
-                        <select class="select" name="access_level" id="accessLevel" style="width:100%;">
-                            <option value="user" @selected($user->role === 'user')>Member</option>
-                            <option value="admin" @selected($user->role === 'admin')>Administrator</option>
-                        </select>
-                    </div>
-                    <div class="form-field" style="margin-bottom:10px;">
-                        <label>Permission role for administrator</label>
-                        <select class="select" name="role_id" style="width:100%;">
-                            <option value="" disabled {{ $user->role !== 'admin' ? 'selected' : '' }}>Select permission role</option>
-                            @foreach ($roles as $role)
-                                @continue($role->isSystemRole() && !auth()->user()->isSuperAdmin())
-                                <option value="{{ $role->id }}" @selected($user->role_id == $role->id)>{{ $role->name }}{{ $role->isSystemRole() ? ' · Full access' : '' }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-secondary btn-sm" style="width:100%; justify-content:center;" onclick="return confirm('Change this account access and revoke its sessions?');"><i data-lucide="key-round"></i> Update account access</button>
-                </form>
-            </div>
-        @endif
-
-        @if ($user->role === 'admin' && auth()->id() !== $user->id && auth()->user()->canAccessModule('Roles & Permissions', 'Edit'))
-        <div class="card card-pad">
-            <div class="section-title">Permission Role</div>
-            <p class="cell-sub" style="margin-bottom:12px;">Permission roles apply only to Administrator accounts. Super Admin is protected and always has full access.</p>
-            <form action="{{ route('admin.users.assign-role', $user->id) }}" method="POST">
-                @csrf
-                <select class="select" name="role_id" style="width:100%; margin-bottom:10px;">
-                    <option value="" disabled>Select permission role</option>
-                    @foreach ($roles as $role)
-                        @continue($role->isSystemRole() && !auth()->user()->isSuperAdmin())
-                        <option value="{{ $role->id }}" @selected($user->role_id == $role->id)>{{ $role->name }}{{ $role->isSystemRole() ? ' · Full access' : '' }}</option>
-                    @endforeach
-                </select>
-                <button type="submit" class="btn btn-secondary btn-sm" style="width:100%; justify-content:center;"><i data-lucide="shield-check"></i> Save permission role</button>
-            </form>
-        </div>
-        @endif
-    </div>
 </div>
-
-@if ($user->status === 'active' && auth()->id() !== $user->id && auth()->user()->canAccessModule('Users', 'Edit'))
-<div class="modal fade" id="suspendUserModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="background:var(--surface); border:1px solid var(--border); color:var(--text-hi);">
-            <form action="{{ route('admin.users.suspend', $user->id) }}" method="POST">
-                @csrf
-                <div class="modal-header" style="border-color:var(--border-soft);">
-                    <h5 class="modal-title">Suspend {{ $user->name }}</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-field" style="margin-bottom:14px;">
-                        <label>Reason <span style="color:var(--neg);">*</span></label>
-                        <textarea class="input" name="suspension_reason" rows="4" required placeholder="Record a clear moderation reason..."></textarea>
-                    </div>
-                    <div class="form-field">
-                        <label>Suspended until <span class="cell-sub">(optional)</span></label>
-                        <input class="input" type="datetime-local" name="suspended_until" min="{{ now()->addMinute()->format('Y-m-d\TH:i') }}">
-                    </div>
-                    <p class="cell-sub" style="margin:12px 0 0;">Active database sessions will be revoked immediately.</p>
-                </div>
-                <div class="modal-footer" style="border-color:var(--border-soft);">
-                    <button type="button" class="btn btn-ghost btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger btn-sm"><i data-lucide="user-x"></i> Confirm suspension</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-@endif
 @endsection

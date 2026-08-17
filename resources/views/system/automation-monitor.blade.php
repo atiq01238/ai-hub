@@ -1,204 +1,86 @@
 @extends('layouts.admin')
+@section('title','Automation Monitor')
 
-@section('title', 'Automation Monitor')
+@push('styles')
+<link rel="stylesheet" href="{{ asset('css/pages/data-reliability.css') }}">
+@endpush
 
 @section('content')
-<x-page-header
-    title="Automation Monitor"
-    subtitle="Automatic RSS collection, duplicate detection and local AI processing"
-    :breadcrumb="['AI Intelligence', 'Automation Monitor']"
-/>
+<div class="dr-page">
+<x-page-header title="Automation Monitor" subtitle="Operate the RSS → duplicate detection → local AI processing pipeline." :breadcrumb="['AI Intelligence','Automation Monitor']">
+<x-slot:actions>
+<form method="POST" action="{{ route('admin.system.automation-monitor.run-now') }}">@csrf<button class="btn btn-primary"><i data-lucide="refresh-cw"></i>Run Pipeline Now</button></form>
+</x-slot:actions>
+</x-page-header>
 
-@if(session('status'))
-    <div class="alert alert-success" style="margin-bottom:16px;">{{ session('status') }}</div>
+@if(session('status'))<div class="alert alert-success dr-flash"><i data-lucide="check-circle-2"></i><span>{{ session('status') }}</span></div>@endif
+@if(session('error'))<div class="alert alert-danger dr-flash"><i data-lucide="circle-alert"></i><span>{{ session('error') }}</span></div>@endif
+@if($errors->any())<div class="alert alert-danger dr-flash"><i data-lucide="circle-alert"></i><span>{{ $errors->first() }}</span></div>@endif
+
+<section class="dr-kpis dr-kpis--five">
+@foreach([
+['Active Sources',$activeSources,'radio-tower','green'],
+['News Today',$newsToday,'newspaper',''],
+['Published Today',$publishedToday,'send','cyan'],
+['Source Errors',$failedSources,'triangle-alert','red'],
+['Last Fetch',$lastFetch ? \Carbon\Carbon::parse($lastFetch)->diffForHumans() : 'Never','clock-3','violet'],
+] as [$label,$value,$icon,$tone])
+<article class="dr-kpi dr-kpi--{{ $tone }}"><span><i data-lucide="{{ $icon }}"></i></span><div><small>{{ $label }}</small><strong>{{ $value }}</strong></div></article>
+@endforeach
+</section>
+
+<section class="card dr-pipeline">
+<div class="dr-pipeline__head">
+<div><span class="dr-eyebrow">Automatic News Pipeline</span><h2>Collection & AI processing</h2><p>Govern how often the application pulls active sources and runs local news processing.</p></div>
+<span class="dr-status {{ $automationEnabled?'is-good':'' }}"><i data-lucide="{{ $automationEnabled?'circle-check':'pause-circle' }}"></i>{{ $automationEnabled?'Automation On':'Automation Paused' }}</span>
+</div>
+<div class="dr-pipeline__steps">
+<div><span><i data-lucide="radio"></i></span><strong>RSS Fetch</strong><small>{{ $activeSources }} active sources</small></div><i data-lucide="arrow-right"></i>
+<div><span><i data-lucide="copy-check"></i></span><strong>Duplicate Detection</strong><small>Local comparison stage</small></div><i data-lucide="arrow-right"></i>
+<div><span><i data-lucide="sparkles"></i></span><strong>AI Processing</strong><small>{{ $processing['available'] ? ($processing['pending'].' pending') : 'Telemetry unavailable' }}</small></div>
+</div>
+</section>
+
+<div class="dr-grid dr-grid--automation">
+<section class="card dr-panel">
+<header class="dr-card-head"><div><span class="dr-eyebrow">Scheduler</span><h2>Automation configuration</h2><p>Changes affect future scheduled runs; manual execution remains available.</p></div><i data-lucide="calendar-clock"></i></header>
+<form method="POST" action="{{ route('admin.system.automation-monitor.update') }}" class="dr-form">@csrf @method('PUT')
+<div class="dr-form-grid">
+<label class="dr-field"><span>Automation Status</span><select class="select" name="automation_enabled"><option value="1" @selected($automationEnabled)>Enabled — fetch automatically</option><option value="0" @selected(!$automationEnabled)>Paused — manual only</option></select></label>
+<label class="dr-field"><span>Fetch Frequency</span><select class="select" name="frequency_minutes">@foreach($frequencyOptions as $minutes=>$label)<option value="{{ $minutes }}" @selected($frequencyMinutes===$minutes)>{{ $label }}</option>@endforeach</select></label>
+</div>
+<div class="dr-schedule-summary"><span><i data-lucide="clock-3"></i></span><div><strong>{{ $automationEnabled && $nextRunAt ? 'Next run '.$nextRunAt->format('M d, Y · h:i A') : 'Automatic runs are paused' }}</strong><small>Current interval: {{ $frequencyOptions[$frequencyMinutes] ?? $frequencyMinutes.' minutes' }}</small></div></div>
+<button class="btn btn-secondary" type="submit"><i data-lucide="settings-2"></i>Save Automation Settings</button>
+</form>
+</section>
+
+<aside class="card dr-run-card">
+<span class="dr-eyebrow">Last Pipeline Run</span>
+<div class="dr-run-card__icon"><i data-lucide="{{ $lastRunStatus==='success'?'badge-check':($lastRunStatus==='failed'?'circle-x':'activity') }}"></i></div>
+<h3>{{ ucwords(str_replace('_',' ',$lastRunStatus ?: 'Never')) }}</h3>
+<p>{{ $lastRunMessage ?: 'No pipeline run message recorded yet.' }}</p>
+<dl><div><dt>Started</dt><dd>{{ $lastRunStartedAt ? \Carbon\Carbon::parse($lastRunStartedAt)->format('M j, H:i') : '—' }}</dd></div><div><dt>Finished</dt><dd>{{ $lastRunFinishedAt ? \Carbon\Carbon::parse($lastRunFinishedAt)->format('M j, H:i') : '—' }}</dd></div><div><dt>Duration</dt><dd>{{ $lastRunDuration ? $lastRunDuration.' sec' : '—' }}</dd></div></dl>
+<form method="POST" action="{{ route('admin.system.automation-monitor.run-now') }}">@csrf<button class="btn btn-primary"><i data-lucide="play"></i>Run Now</button></form>
+</aside>
+</div>
+
+@if($processing['available'])
+<section class="dr-kpis dr-processing">
+@foreach([['Pending',$processing['pending'],'clock'],['Processing',$processing['processing'],'loader-circle'],['Processed',$processing['processed'],'check-check'],['Failed',$processing['failed'],'circle-x']] as [$label,$value,$icon])
+<article class="dr-mini-stat"><span><i data-lucide="{{ $icon }}"></i></span><div><strong>{{ number_format($value) }}</strong><small>{{ $label }}</small></div></article>
+@endforeach
+</section>
 @endif
 
-@if(session('error'))
-    <div class="alert alert-danger" style="margin-bottom:16px;">{{ session('error') }}</div>
-@endif
-
-@if($errors->any())
-    <div class="alert alert-danger" style="margin-bottom:16px;">
-        {{ $errors->first() }}
-    </div>
-@endif
-
-<div class="kpi-grid" style="grid-template-columns:repeat(5,minmax(0,1fr));margin-bottom:16px;">
-    <x-kpi-card icon="radio" label="Active Sources" value="{{ $activeSources }}" />
-    <x-kpi-card icon="newspaper" label="News Today" value="{{ $newsToday }}" />
-    <x-kpi-card icon="send" label="Published Today" value="{{ $publishedToday }}" />
-    <x-kpi-card icon="alert-triangle" label="Source Errors" value="{{ $failedSources }}" />
-    <x-kpi-card icon="clock" label="Last Fetch" value="{{ $lastFetch ? \Carbon\Carbon::parse($lastFetch)->diffForHumans() : 'Never' }}" />
-</div>
-
-<div style="display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,.65fr);gap:16px;margin-bottom:16px;">
-    <div class="card card-pad">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px;">
-            <div>
-                <div style="font-size:16px;font-weight:700;margin-bottom:4px;">Automatic News Pipeline</div>
-                <div class="text-sub">RSS Fetch → Duplicate Detection → AI Processing</div>
-            </div>
-
-            <span class="badge {{ $automationEnabled ? 'badge-pos' : 'badge-neutral' }}">
-                {{ $automationEnabled ? '● AUTOMATION ON' : '○ AUTOMATION OFF' }}
-            </span>
-        </div>
-
-        <form method="POST" action="{{ route('admin.system.automation-monitor.update') }}">
-            @csrf
-            @method('PUT')
-
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:end;">
-                <div>
-                    <label style="display:block;font-size:12px;font-weight:650;margin-bottom:7px;">Automation Status</label>
-                    <select name="automation_enabled" class="select" style="width:100%;">
-                        <option value="1" @selected($automationEnabled)>Enabled — Fetch automatically</option>
-                        <option value="0" @selected(!$automationEnabled)>Paused — Manual only</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label style="display:block;font-size:12px;font-weight:650;margin-bottom:7px;">Fetch Frequency</label>
-                    <select name="frequency_minutes" class="select" style="width:100%;">
-                        @foreach($frequencyOptions as $minutes => $label)
-                            <option value="{{ $minutes }}" @selected($frequencyMinutes === $minutes)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-
-            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px;">
-                <button type="submit" class="btn btn-secondary btn-sm">
-                    <i data-lucide="settings-2"></i> Save Automation Settings
-                </button>
-
-                <span class="text-sub" style="font-size:12px;">
-                    @if($automationEnabled && $nextRunAt)
-                        Next scheduled run: <b>{{ $nextRunAt->format('M d, Y · h:i A') }}</b>
-                    @else
-                        Automatic runs are paused.
-                    @endif
-                </span>
-            </div>
-        </form>
-    </div>
-
-    <div class="card card-pad">
-        <div style="font-size:16px;font-weight:700;margin-bottom:4px;">Manual Control</div>
-        <div class="text-sub" style="margin-bottom:16px;">Use this when you want the newest AI news immediately.</div>
-
-        <form method="POST" action="{{ route('admin.system.automation-monitor.run-now') }}">
-            @csrf
-            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">
-                <i data-lucide="refresh-cw"></i> Fetch Latest News Now
-            </button>
-        </form>
-
-        <div class="text-sub" style="font-size:12px;margin-top:10px;text-align:center;">
-            Runs the same protected production pipeline.
-        </div>
-    </div>
-</div>
-
-<div class="card card-pad" style="margin-bottom:16px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;">
-        <div style="font-weight:700;">Pipeline Health</div>
-        @php
-            $statusType = match($lastRunStatus) {
-                'success' => 'badge-pos',
-                'failed' => 'badge-neg',
-                'running' => 'badge-warn',
-                default => 'badge-neutral',
-            };
-        @endphp
-        <span class="badge {{ $statusType }}">{{ strtoupper($lastRunStatus ?: 'never') }}</span>
-    </div>
-
-    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;">
-        <div>
-            <div class="text-sub" style="font-size:11px;">LAST STARTED</div>
-            <div style="font-weight:650;margin-top:4px;">{{ $lastRunStartedAt ? \Carbon\Carbon::parse($lastRunStartedAt)->diffForHumans() : 'Never' }}</div>
-        </div>
-        <div>
-            <div class="text-sub" style="font-size:11px;">LAST FINISHED</div>
-            <div style="font-weight:650;margin-top:4px;">{{ $lastRunFinishedAt ? \Carbon\Carbon::parse($lastRunFinishedAt)->diffForHumans() : 'Never' }}</div>
-        </div>
-        <div>
-            <div class="text-sub" style="font-size:11px;">DURATION</div>
-            <div style="font-weight:650;margin-top:4px;">{{ $lastRunDuration !== null ? $lastRunDuration . 's' : '—' }}</div>
-        </div>
-        <div>
-            <div class="text-sub" style="font-size:11px;">FREQUENCY</div>
-            <div style="font-weight:650;margin-top:4px;">{{ $frequencyOptions[$frequencyMinutes] ?? 'Every 1 Hour' }}</div>
-        </div>
-    </div>
-
-    @if($lastRunMessage)
-        <div class="text-sub" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border, #e5e7eb);">
-            {{ \Illuminate\Support\Str::limit($lastRunMessage, 300) }}
-        </div>
-    @endif
-</div>
-
-<div class="card card-pad" style="margin-bottom:16px;">
-    <div style="font-weight:700;margin-bottom:12px;">AI Processing</div>
-
-    @if($processing['available'] ?? false)
-        <div class="flex gap-12" style="flex-wrap:wrap;">
-            <span class="badge badge-neutral">Pending: {{ $processing['pending'] ?? 0 }}</span>
-            <span class="badge badge-warn">Processing: {{ $processing['processing'] ?? 0 }}</span>
-            <span class="badge badge-pos">Processed: {{ $processing['processed'] ?? 0 }}</span>
-            <span class="badge badge-neg">Failed: {{ $processing['failed'] ?? 0 }}</span>
-        </div>
-    @else
-        <div class="text-sub">Local AI processing fields are not installed yet. RSS collection is still available.</div>
-    @endif
-</div>
-
-<div class="card">
-    <div class="table-wrap">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Source</th>
-                    <th>Status</th>
-                    <th>Last Fetched</th>
-                    <th>Collected</th>
-                    <th>Last Error</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($sources as $source)
-                    <tr>
-                        <td>
-                            <b>{{ $source->name }}</b>
-                            <div class="cell-sub">{{ strtoupper($source->type ?? 'rss') }}</div>
-                        </td>
-                        <td>
-                            <x-status-badge
-                                status="{{ ucfirst($source->status ?? 'inactive') }}"
-                                type="{{ ($source->status ?? 'inactive') === 'active' ? 'pos' : 'neutral' }}"
-                            />
-                        </td>
-                        <td>
-                            @if($source->last_fetched_at)
-                                {{ $source->last_fetched_at->diffForHumans() }}
-                            @elseif($source->last_success_at)
-                                {{ $source->last_success_at->diffForHumans() }}
-                            @else
-                                Never
-                            @endif
-                        </td>
-                        <td class="mono">{{ number_format($source->articles_collected ?? 0) }}</td>
-                        <td class="text-sub" style="max-width:360px;">
-                            {{ $source->last_error ? \Illuminate\Support\Str::limit($source->last_error, 90) : '—' }}
-                        </td>
-                    </tr>
-                @empty
-                    <tr><td colspan="5" style="text-align:center;padding:30px;">No sources configured.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
+<section class="card dr-table-card">
+<header class="dr-card-head"><div><span class="dr-eyebrow">Source Operations</span><h2>Collection sources</h2><p>Current source state and fetch health.</p></div><span class="dr-count">{{ $sources->count() }} sources</span></header>
+@if($sources->count())
+<div class="table-wrap"><table class="data-table dr-table"><thead><tr><th>Source</th><th>Status</th><th>Last Fetch</th><th>Failure Signal</th></tr></thead><tbody>
+@foreach($sources as $source)
+<tr><td><div class="dr-record"><span><i data-lucide="rss"></i></span><div><strong>{{ $source->name }}</strong><small>{{ \Illuminate\Support\Str::limit($source->url,60) }}</small></div></div></td><td><span class="dr-status {{ $source->status==='active'?'is-good':'' }}">{{ ucfirst($source->status) }}</span></td><td><span class="dr-muted">{{ $source->last_fetched_at?->diffForHumans() ?? $source->last_success_at?->diffForHumans() ?? 'Never' }}</span></td><td>@if($source->last_error)<span class="dr-status is-bad" title="{{ $source->last_error }}"><i data-lucide="triangle-alert"></i>Error recorded</span>@else<span class="dr-muted">Clear</span>@endif</td></tr>
+@endforeach
+</tbody></table></div>
+@else<div class="dr-empty"><span><i data-lucide="rss"></i></span><h3>No collection sources</h3><p>Add News Sources before enabling automated collection.</p></div>@endif
+</section>
 </div>
 @endsection

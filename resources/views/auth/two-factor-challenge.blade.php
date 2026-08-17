@@ -1,36 +1,28 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>Verify Your Identity</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Two-Factor Verification · {{ config('app.name','AI Hub') }}</title>
+<link rel="stylesheet" href="{{ asset('css/pages/administration.css') }}">
 </head>
-<body style="font-family: sans-serif; max-width: 380px; margin: 60px auto;">
-
-    <h1>Two-Factor Verification</h1>
-    <p>Enter the 6-digit code from your authenticator app.</p>
-
-    @if ($errors->any())
-        <p style="color: red;">{{ $errors->first() }}</p>
-    @endif
-
-    <form action="{{ route('login.2fa.verify') }}" method="POST">
-        @csrf
-        <label for="code">Authenticator code</label><br>
-        <input type="text" id="code" name="code" maxlength="6" inputmode="numeric" autofocus style="font-size:20px; letter-spacing:4px; width:100%; padding:8px;"><br><br>
-        <button type="submit">Verify</button>
-    </form>
-
-    <hr style="margin:24px 0;">
-
-    <details>
-        <summary style="cursor:pointer;">Use a recovery code instead</summary>
-        <form action="{{ route('login.2fa.verify') }}" method="POST" style="margin-top:12px;">
-            @csrf
-            <label for="recovery_code">Recovery code</label><br>
-            <input type="text" id="recovery_code" name="recovery_code" style="width:100%; padding:8px;"><br><br>
-            <button type="submit">Use Recovery Code</button>
-        </form>
-    </details>
-
+<body class="ad-auth-body">
+<main class="ad-auth-shell">
+<section class="ad-auth-brand"><span class="ad-auth-brand__mark">AI</span><span>{{ config('app.name','AI Hub') }}</span></section>
+<section class="ad-auth-card">
+<div class="ad-auth-icon">⌁</div>
+<span class="ad-eyebrow">Secure Login</span>
+<h1>Verify your identity</h1>
+<p>Enter the current 6-digit code from your authenticator app to finish signing in.</p>
+@if($errors->any())<div class="ad-auth-error">{{ $errors->first() }}</div>@endif
+<form action="{{ route('login.2fa.verify') }}" method="POST" class="ad-auth-form">@csrf
+<label><span>Authenticator code</span><input class="ad-auth-input ad-auth-code" type="text" name="code" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" autocomplete="one-time-code" autofocus placeholder="000000"></label>
+<button class="ad-auth-button" type="submit">Verify & Continue</button>
+</form>
+<div class="ad-auth-divider"><span>or</span></div>
+<details class="ad-auth-recovery"><summary>Use a recovery code instead</summary><form action="{{ route('login.2fa.verify') }}" method="POST" class="ad-auth-form">@csrf<label><span>One-time recovery code</span><input class="ad-auth-input" type="text" name="recovery_code" autocomplete="off" placeholder="XXXX-XXXX"></label><button class="ad-auth-button is-secondary" type="submit">Use Recovery Code</button></form></details>
+</section>
+<p class="ad-auth-foot">Second-factor verification protects administrator access even when a password is compromised.</p>
+</main>
 </body>
 </html>

@@ -1,114 +1,56 @@
 @extends('layouts.admin')
-@section('title', 'Community Submissions')
+@section('title','Community Submissions')
+
+@push('styles')
+<link rel="stylesheet" href="{{ asset('css/pages/users-community.css') }}">
+@endpush
 
 @section('content')
-<x-page-header
-    title="Community Submissions"
-    subtitle="Review suggestions, corrections and new AI directory entries"
-    :breadcrumb="['Users & Community', 'Community Submissions']">
-    <x-slot:actions>
-        <a href="{{ route('submissions.create') }}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">
-            <i data-lucide="external-link"></i> Open public form
-        </a>
-    </x-slot:actions>
-</x-page-header>
+<div class="uc-page">
+<x-page-header title="Community Submissions" subtitle="Review product suggestions, corrections and community-contributed AI data." :breadcrumb="['Users & Community','Submissions']" />
 
-@if (session('status'))
-    <div class="alert alert-success" style="margin-bottom:16px;">{{ session('status') }}</div>
-@endif
-@if ($errors->any())
-    <div class="alert alert-danger" style="margin-bottom:16px;">{{ $errors->first() }}</div>
-@endif
+@if(session('status'))<div class="alert alert-success uc-flash"><i data-lucide="check-circle-2"></i><span>{{ session('status') }}</span></div>@endif
 
-<div class="kpi-grid">
-    <x-kpi-card icon="inbox" label="All Submissions" value="{{ number_format($counts['all']) }}" />
-    <x-kpi-card icon="clock-3" label="Pending" value="{{ number_format($counts['pending']) }}" />
-    <x-kpi-card icon="message-circle-question" label="Needs Information" value="{{ number_format($counts['needs_info']) }}" />
-    <x-kpi-card icon="badge-check" label="Approved" value="{{ number_format($counts['approved']) }}" />
-</div>
+<section class="uc-kpi-grid uc-kpi-grid--five">
+@foreach([
+['All',$counts['all'],'inbox',''],['Pending',$counts['pending'],'clock-3','amber'],['Needs Info',$counts['needs_info'],'message-circle-question','cyan'],['Approved',$counts['approved'],'badge-check','green'],['Rejected',$counts['rejected'],'circle-x','red']
+] as [$label,$value,$icon,$tone])
+<article class="uc-kpi uc-kpi--{{ $tone }}"><span><i data-lucide="{{ $icon }}"></i></span><div><small>{{ $label }}</small><strong>{{ number_format($value) }}</strong></div></article>
+@endforeach
+</section>
 
-<div class="tabs">
-    @php $base = ['type' => request('type'), 'search' => request('search')]; @endphp
-    <a href="{{ route('admin.submissions.index', array_filter($base)) }}" class="tab {{ !request('status') ? 'is-active' : '' }}">All {{ $counts['all'] }}</a>
-    <a href="{{ route('admin.submissions.index', array_filter($base + ['status' => 'pending'])) }}" class="tab {{ request('status') === 'pending' ? 'is-active' : '' }}">Pending {{ $counts['pending'] }}</a>
-    <a href="{{ route('admin.submissions.index', array_filter($base + ['status' => 'needs_info'])) }}" class="tab {{ request('status') === 'needs_info' ? 'is-active' : '' }}">Needs Info {{ $counts['needs_info'] }}</a>
-    <a href="{{ route('admin.submissions.index', array_filter($base + ['status' => 'approved'])) }}" class="tab {{ request('status') === 'approved' ? 'is-active' : '' }}">Approved {{ $counts['approved'] }}</a>
-    <a href="{{ route('admin.submissions.index', array_filter($base + ['status' => 'rejected'])) }}" class="tab {{ request('status') === 'rejected' ? 'is-active' : '' }}">Rejected {{ $counts['rejected'] }}</a>
-</div>
+<nav class="uc-tabs">
+<a href="{{ route('admin.submissions.index') }}" class="{{ !request('status')?'is-active':'' }}">All</a>
+@foreach(['pending'=>'Pending','needs_info'=>'Needs Info','approved'=>'Approved','rejected'=>'Rejected'] as $key=>$label)
+<a href="{{ route('admin.submissions.index',['status'=>$key]) }}" class="{{ request('status')===$key?'is-active':'' }}">{{ $label }}</a>
+@endforeach
+</nav>
 
-<form method="GET" class="filter-bar">
-    <input type="hidden" name="status" value="{{ request('status') }}">
-    <div class="input-search" style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:8px 12px; flex:1; max-width:380px;">
-        <i data-lucide="search"></i>
-        <input name="search" value="{{ request('search') }}" placeholder="Search subject, email or website...">
-    </div>
-    <select class="select" name="type">
-        <option value="">All submission types</option>
-        <option value="tool" @selected(request('type') === 'tool')>AI Tool</option>
-        <option value="model" @selected(request('type') === 'model')>AI Model</option>
-        <option value="company" @selected(request('type') === 'company')>AI Company</option>
-        <option value="correction" @selected(request('type') === 'correction')>Data Correction</option>
-    </select>
-    <button class="btn btn-secondary btn-sm"><i data-lucide="list-filter"></i> Apply</button>
-    @if (request('search') || request('type'))
-        <a href="{{ route('admin.submissions.index', array_filter(['status' => request('status')])) }}" class="btn btn-ghost btn-sm">Reset filters</a>
-    @endif
+<form method="GET" class="card uc-filterbar uc-filterbar--submissions">
+<input type="hidden" name="status" value="{{ request('status') }}">
+<div class="uc-search"><i data-lucide="search"></i><input class="input" name="search" value="{{ request('search') }}" placeholder="Search tool, email or website..."></div>
+<select class="select" name="type"><option value="">All submission types</option>@foreach(['tool'=>'Tool','model'=>'Model','company'=>'Company','correction'=>'Correction'] as $key=>$label)<option value="{{ $key }}" @selected(request('type')===$key)>{{ $label }}</option>@endforeach</select>
+<button class="btn btn-secondary"><i data-lucide="filter"></i>Apply</button>
 </form>
 
-<div class="card">
-    <div class="table-wrap">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Submission</th>
-                    <th>Type</th>
-                    <th>Submitted By</th>
-                    <th>Website / Category</th>
-                    <th>Submitted</th>
-                    <th>Status</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-            @forelse ($submissions as $submission)
-                <tr>
-                    <td>
-                        <a href="{{ route('admin.submissions.show', $submission->id) }}"><b>{{ $submission->tool_name }}</b></a>
-                        <div class="cell-sub">#{{ $submission->id }} · {{ \Illuminate\Support\Str::limit($submission->description, 55) ?: 'No description' }}</div>
-                    </td>
-                    <td><span class="badge badge-neutral">{{ ucfirst($submission->submission_type) }}</span></td>
-                    <td>
-                        <div>{{ $submission->user?->name ?? 'Guest contributor' }}</div>
-                        <div class="cell-sub">{{ $submission->submitted_by_email }}</div>
-                    </td>
-                    <td>
-                        @if ($submission->website)
-                            <a href="{{ $submission->website }}" target="_blank" rel="noopener noreferrer" class="text-sub">{{ parse_url($submission->website, PHP_URL_HOST) ?: $submission->website }}</a>
-                        @else
-                            <span class="text-sub">No website</span>
-                        @endif
-                        <div class="cell-sub">{{ $submission->category ?: 'Uncategorized' }}</div>
-                    </td>
-                    <td><div>{{ $submission->created_at->format('M j, Y') }}</div><div class="cell-sub">{{ $submission->created_at->diffForHumans() }}</div></td>
-                    <td>
-                        <x-status-badge
-                            status="{{ ucfirst(str_replace('_', ' ', $submission->status)) }}"
-                            type="{{ $submission->status === 'approved' ? 'pos' : ($submission->status === 'rejected' ? 'neg' : 'warn') }}" />
-                        @if ($submission->reviewer)
-                            <div class="cell-sub">by {{ $submission->reviewer->name }}</div>
-                        @endif
-                    </td>
-                    <td><a href="{{ route('admin.submissions.show', $submission->id) }}" class="btn btn-secondary btn-sm"><i data-lucide="eye"></i> Review</a></td>
-                </tr>
-            @empty
-                <tr><td colspan="7" class="text-sub" style="text-align:center; padding:40px;">No submissions match these filters.</td></tr>
-            @endforelse
-            </tbody>
-        </table>
-    </div>
-    <div class="pager">
-        <span>Showing {{ $submissions->firstItem() ?? 0 }}–{{ $submissions->lastItem() ?? 0 }} of {{ $submissions->total() }}</span>
-        <div class="pager-btns">{{ $submissions->onEachSide(1)->links() }}</div>
-    </div>
+<section class="card uc-table-card">
+<div class="uc-section-head"><div><span class="uc-eyebrow">Contribution Queue</span><h2>Submission review</h2><p>Community-provided records awaiting verification and moderation.</p></div><span class="uc-count">{{ number_format($submissions->total()) }} records</span></div>
+@if($submissions->count())
+<div class="table-wrap"><table class="data-table uc-table"><thead><tr><th>Submission</th><th>Type</th><th>Contributor</th><th>Status</th><th>Reviewer</th><th>Submitted</th><th></th></tr></thead><tbody>
+@foreach($submissions as $submission)
+<tr>
+<td><div class="uc-record"><span><i data-lucide="send"></i></span><div><a href="{{ route('admin.submissions.show',$submission->id) }}"><strong>{{ $submission->tool_name }}</strong></a><small>{{ $submission->website ?: \Illuminate\Support\Str::limit($submission->description,60) }}</small></div></div></td>
+<td><span class="uc-type-pill">{{ ucfirst($submission->submission_type) }}</span></td>
+<td><div class="uc-contributor"><strong>{{ $submission->user?->name ?? 'Guest contributor' }}</strong><small>{{ $submission->submitted_by_email }}</small></div></td>
+<td><x-status-badge status="{{ ucwords(str_replace('_',' ',$submission->status)) }}" type="{{ $submission->status==='approved'?'pos':($submission->status==='rejected'?'neg':($submission->status==='needs_info'?'info':'warn')) }}" /></td>
+<td><span class="uc-muted">{{ $submission->reviewer?->name ?? 'Unassigned' }}</span></td>
+<td><span class="uc-muted">{{ $submission->created_at->format('M j, Y') }}<small>{{ $submission->created_at->diffForHumans() }}</small></span></td>
+<td><a href="{{ route('admin.submissions.show',$submission->id) }}" class="btn btn-secondary btn-sm"><i data-lucide="scan-search"></i>Review</a></td>
+</tr>
+@endforeach
+</tbody></table></div>
+<div class="uc-pagination"><span>Showing {{ $submissions->firstItem() ?? 0 }}–{{ $submissions->lastItem() ?? 0 }} of {{ $submissions->total() }}</span><div>{{ $submissions->onEachSide(1)->links() }}</div></div>
+@else<div class="uc-empty"><span><i data-lucide="inbox"></i></span><h3>No submissions found</h3><p>The selected moderation queue is clear.</p></div>@endif
+</section>
 </div>
 @endsection

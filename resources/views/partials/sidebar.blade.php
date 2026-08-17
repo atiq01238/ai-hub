@@ -2,11 +2,11 @@
     // Each item: [label, url path, icon, badge(optional), badgeType(optional)]
     $navGroups = [
         'Dashboard' => [
-            ['Dashboard', '/admin', 'layout-dashboard'],
+            ['Dashboard', '/admin', 'layout-dashboard', null, null, ['admin.dashboard']],
         ],
         'AI Intelligence' => [
-            ['AI News Feed', '/admin/news', 'newspaper', '24', 'info'],
-            ['Breaking News', '/admin/news/breaking', 'zap', '3', 'neg'],
+            ['AI News Feed', '/admin/news', 'newspaper', null, null, ['admin.news.index']],
+            ['Breaking News', '/admin/news/breaking', 'zap'],
             ['Trending AI', '/admin/news/trending', 'trending-up'],
             ['AI Updates', '/admin/news/updates', 'refresh-cw'],
             ['Price Changes', '/admin/pricing/changes', 'tag'],
@@ -15,9 +15,9 @@
             ['Automation Monitor', '/admin/system/automation-monitor', 'activity-square'],
         ],
         'AI Management' => [
-            ['AI Tools', '/admin/tools', 'wrench'],
-            ['AI Models', '/admin/models', 'brain-circuit'],
-            ['AI Companies', '/admin/companies', 'building-2'],
+            ['AI Tools', '/admin/tools', 'wrench', null, null, ['admin.tools.index','admin.tools.show','admin.tools.edit']],
+            ['AI Models', '/admin/models', 'brain-circuit', null, null, ['admin.models.index','admin.models.show','admin.models.edit']],
+            ['AI Companies', '/admin/companies', 'building-2', null, null, ['admin.companies.index','admin.companies.show','admin.companies.edit']],
             ['Categories', '/admin/taxonomy/categories', 'shapes'],
             ['Sub Categories', '/admin/taxonomy/subcategories', 'list-tree'],
             ['Features', '/admin/taxonomy/features', 'sparkles'],
@@ -139,7 +139,7 @@
                             default => '',
                         };
                     @endphp
-                    <a href="{{ url($url) }}" class="nav-item {{ $isActive ? 'is-active' : '' }}">
+                    <a href="{{ url($url) }}" class="nav-item {{ $isActive ? 'is-active' : '' }}" title="{{ $label }}" @if($isActive) aria-current="page" @endif>
                         <i data-lucide="{{ $icon }}"></i>
                         <span class="nav-item__label">{{ $label }}</span>
                         @if($badge)

@@ -1,129 +1,74 @@
 @extends('layouts.admin')
 @section('title', $context === 'community' ? 'Review Moderation' : 'AI Reviews')
 
+@push('styles')
+<link rel="stylesheet" href="{{ asset('css/pages/content.css') }}">
+@endpush
+
 @section('content')
 @php
-    $communityMode = $context === 'community';
-    $indexRoute = $communityMode ? 'admin.community.reviews.index' : 'admin.content.reviews.index';
-    $showRoute = $communityMode ? 'admin.community.reviews.show' : 'admin.content.reviews.show';
-    $baseFilters = array_filter([
-        'search' => request('search'),
-        'tool_id' => request('tool_id'),
-        'rating' => request('rating'),
-        'type' => $communityMode ? null : request('type'),
-    ]);
+$communityMode = $context === 'community';
+$indexRoute = $communityMode ? 'admin.community.reviews.index' : 'admin.content.reviews.index';
+$showRoute = $communityMode ? 'admin.community.reviews.show' : 'admin.content.reviews.show';
 @endphp
-
+<div class="content-page">
 <x-page-header
-    title="{{ $communityMode ? 'User Review Moderation' : 'AI Review Management' }}"
-    subtitle="{{ $communityMode ? 'Moderate community ratings before they affect public tool scores' : 'Manage editorial and user-submitted reviews' }}"
-    :breadcrumb="$communityMode ? ['Users & Community', 'Review Moderation'] : ['Content', 'Reviews']">
-    @unless ($communityMode)
-        <x-slot:actions>
-            <a href="{{ route('admin.content.reviews.editor') }}" class="btn btn-primary btn-sm"><i data-lucide="plus"></i> Add Editorial Review</a>
-        </x-slot:actions>
-    @endunless
+    :title="$communityMode ? 'User Review Moderation' : 'AI Reviews'"
+    :subtitle="$communityMode ? 'Moderate community ratings before they influence public trust.' : 'Manage editorial and user-submitted review intelligence.'"
+    :breadcrumb="$communityMode ? ['Users & Community','Review Moderation'] : ['Content','Reviews']"
+>
+@unless($communityMode)
+<x-slot:actions>
+@if(auth()->user()->canAccessModule('Reviews','Add'))<a href="{{ route('admin.content.reviews.editor') }}" class="btn btn-primary"><i data-lucide="plus"></i>Add Editorial Review</a>@endif
+</x-slot:actions>
+@endunless
 </x-page-header>
 
-@if (session('status'))
-    <div class="alert alert-success" style="margin-bottom:16px;">{{ session('status') }}</div>
-@endif
-@if ($errors->any())
-    <div class="alert alert-danger" style="margin-bottom:16px;">{{ $errors->first() }}</div>
-@endif
+@if(session('status'))<div class="alert alert-success content-flash"><i data-lucide="check-circle-2"></i><span>{{ session('status') }}</span></div>@endif
+@if($errors->any())<div class="alert alert-danger content-flash"><i data-lucide="circle-alert"></i><span>{{ $errors->first() }}</span></div>@endif
 
-<div class="kpi-grid">
-    <x-kpi-card icon="messages-square" label="All Reviews" value="{{ number_format($counts['all']) }}" />
-    <x-kpi-card icon="clock-3" label="Pending" value="{{ number_format($counts['pending']) }}" />
-    <x-kpi-card icon="badge-check" label="Published" value="{{ number_format($counts['published']) }}" />
-    <x-kpi-card icon="flag" label="Flagged" value="{{ number_format($counts['flagged']) }}" />
-</div>
+<section class="content-kpi-grid">
+@foreach([['All',$counts['all'],'messages-square'],['Pending',$counts['pending'],'clock-3'],['Published',$counts['published'],'badge-check'],['Flagged',$counts['flagged'],'flag']] as [$label,$value,$icon])
+<article class="content-kpi"><span><i data-lucide="{{ $icon }}"></i></span><div><small>{{ $label }}</small><strong>{{ number_format($value) }}</strong></div></article>
+@endforeach
+</section>
 
-<div class="tabs">
-    <a class="tab {{ !request('status') ? 'is-active' : '' }}" href="{{ route($indexRoute, $baseFilters) }}">All {{ $counts['all'] }}</a>
-    <a class="tab {{ request('status') === 'pending' ? 'is-active' : '' }}" href="{{ route($indexRoute, $baseFilters + ['status' => 'pending']) }}">Pending {{ $counts['pending'] }}</a>
-    <a class="tab {{ request('status') === 'published' ? 'is-active' : '' }}" href="{{ route($indexRoute, $baseFilters + ['status' => 'published']) }}">Published {{ $counts['published'] }}</a>
-    <a class="tab {{ request('status') === 'flagged' ? 'is-active' : '' }}" href="{{ route($indexRoute, $baseFilters + ['status' => 'flagged']) }}">Flagged {{ $counts['flagged'] }}</a>
-</div>
+<nav class="content-tabs">
+<a href="{{ route($indexRoute) }}" class="{{ !request('status') ? 'is-active' : '' }}">All</a>
+<a href="{{ route($indexRoute,['status'=>'pending']) }}" class="{{ request('status')==='pending'?'is-active':'' }}">Pending</a>
+<a href="{{ route($indexRoute,['status'=>'published']) }}" class="{{ request('status')==='published'?'is-active':'' }}">Published</a>
+<a href="{{ route($indexRoute,['status'=>'flagged']) }}" class="{{ request('status')==='flagged'?'is-active':'' }}">Flagged</a>
+</nav>
 
-<form method="GET" class="filter-bar">
-    <input type="hidden" name="status" value="{{ request('status') }}">
-    <div class="input-search" style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:8px 12px; flex:1; max-width:360px;">
-        <i data-lucide="search"></i>
-        <input name="search" value="{{ request('search') }}" placeholder="Search review, reviewer or tool...">
-    </div>
-    <select class="select" name="tool_id">
-        <option value="">All tools</option>
-        @foreach ($tools as $tool)
-            <option value="{{ $tool->id }}" @selected((string) request('tool_id') === (string) $tool->id)>{{ $tool->name }}</option>
-        @endforeach
-    </select>
-    @unless ($communityMode)
-        <select class="select" name="type">
-            <option value="">All review types</option>
-            <option value="user" @selected(request('type') === 'user')>User</option>
-            <option value="editorial" @selected(request('type') === 'editorial')>Editorial</option>
-        </select>
-    @endunless
-    <select class="select" name="rating">
-        <option value="">Any rating</option>
-        <option value="5" @selected(request('rating') === '5')>5.0 only</option>
-        <option value="4" @selected(request('rating') === '4')>4.0+</option>
-        <option value="3" @selected(request('rating') === '3')>3.0+</option>
-    </select>
-    <button class="btn btn-secondary btn-sm"><i data-lucide="list-filter"></i> Apply</button>
-    @if (request('search') || request('tool_id') || request('rating') || request('type'))
-        <a href="{{ route($indexRoute, array_filter(['status' => request('status')])) }}" class="btn btn-ghost btn-sm">Reset</a>
-    @endif
+<form method="GET" class="card content-filter content-filter--reviews">
+<input type="hidden" name="status" value="{{ request('status') }}">
+<div class="content-search"><i data-lucide="search"></i><input class="input" name="search" value="{{ request('search') }}" placeholder="Search review, user or tool..."></div>
+<select class="select" name="tool_id"><option value="">All tools</option>@foreach($tools as $tool)<option value="{{ $tool->id }}" @selected((string)request('tool_id')===(string)$tool->id)>{{ $tool->name }}</option>@endforeach</select>
+@if(!$communityMode)<select class="select" name="type"><option value="">All types</option><option value="user" @selected(request('type')==='user')>User</option><option value="editorial" @selected(request('type')==='editorial')>Editorial</option></select>@endif
+<select class="select" name="rating"><option value="">Any rating</option><option value="5" @selected(request('rating')==='5')>5+</option><option value="4" @selected(request('rating')==='4')>4+</option><option value="3" @selected(request('rating')==='3')>3+</option></select>
+<button class="btn btn-secondary"><i data-lucide="filter"></i>Filter</button>
 </form>
 
-<div class="card">
-    <div class="table-wrap">
-        <table class="data-table">
-            <thead><tr><th>Tool & Review</th><th>Reviewer</th><th>Type</th><th>Rating</th><th>Status</th><th>Submitted</th><th></th></tr></thead>
-            <tbody>
-            @forelse ($reviews as $review)
-                <tr>
-                    <td>
-                        <a href="{{ route($showRoute, $review->id) }}"><b>{{ $review->tool->name ?? 'Deleted tool' }}</b></a>
-                        <div class="cell-sub">{{ \Illuminate\Support\Str::limit($review->verdict ?: $review->body, 70) ?: 'Star rating only' }}</div>
-                    </td>
-                    <td>
-                        @if ($review->user)
-                            <a href="{{ route('admin.users.show', $review->user->id) }}">{{ $review->user->name }}</a>
-                            <div class="cell-sub">{{ $review->user->email }}</div>
-                        @else
-                            <span class="text-sub">Editorial Team / Deleted user</span>
-                        @endif
-                    </td>
-                    <td><span class="badge {{ $review->review_type === 'editorial' ? 'badge-violet' : 'badge-neutral' }}">{{ ucfirst($review->review_type ?? 'user') }}</span></td>
-                    <td><b style="font-size:15px;">{{ number_format((float) $review->rating, 1) }}</b><span class="cell-sub"> / 5</span></td>
-                    <td>
-                        <x-status-badge status="{{ ucfirst($review->status) }}" type="{{ $review->status === 'published' ? 'pos' : ($review->status === 'flagged' ? 'neg' : 'warn') }}" />
-                        @if ($review->moderator)<div class="cell-sub">by {{ $review->moderator->name }}</div>@endif
-                    </td>
-                    <td><div>{{ $review->created_at->format('M j, Y') }}</div><div class="cell-sub">{{ $review->created_at->diffForHumans() }}</div></td>
-                    <td>
-                        <div class="flex gap-8">
-                            <a href="{{ route($showRoute, $review->id) }}" class="icon-btn" title="Open moderation detail"><i data-lucide="eye"></i></a>
-                            @if ($review->status !== 'published' && auth()->user()->canAccessModule('Reviews', 'Publish'))
-                                <form method="POST" action="{{ route('admin.content.reviews.approve', $review->id) }}" onsubmit="return confirm('Approve and publish this review?');">
-                                    @csrf
-                                    <button class="icon-btn" title="Approve"><i data-lucide="check"></i></button>
-                                </form>
-                            @endif
-                        </div>
-                    </td>
-                </tr>
-            @empty
-                <tr><td colspan="7" class="text-sub" style="text-align:center; padding:40px;">No reviews match these filters.</td></tr>
-            @endforelse
-            </tbody>
-        </table>
-    </div>
-    <div class="pager">
-        <span>Showing {{ $reviews->firstItem() ?? 0 }}–{{ $reviews->lastItem() ?? 0 }} of {{ $reviews->total() }}</span>
-        <div class="pager-btns">{{ $reviews->onEachSide(1)->links() }}</div>
-    </div>
+<section class="card content-table-card">
+<div class="content-section-head"><div><span class="content-eyebrow">Review Ledger</span><h2>{{ $communityMode ? 'Community reviews' : 'Review management' }}</h2><p>Moderation state, product context and rating quality at a glance.</p></div><span class="content-count">{{ number_format($reviews->total()) }} records</span></div>
+@if($reviews->count())
+<div class="table-wrap"><table class="data-table content-table"><thead><tr><th>Review</th><th>Tool</th><th>Type</th><th>Rating</th><th>Status</th><th>Moderator</th><th></th></tr></thead><tbody>
+@foreach($reviews as $review)
+<tr>
+<td><div class="content-record"><span class="content-record__icon"><i data-lucide="message-square-text"></i></span><div><a href="{{ route($showRoute,$review->id) }}">{{ $review->verdict ?: \Illuminate\Support\Str::limit($review->body ?: 'Star rating only',55) }}</a><small>{{ $review->user->name ?? ($review->review_type==='editorial'?'Editorial Team':'Deleted user') }}</small></div></div></td>
+<td><span class="content-muted">{{ $review->tool->name ?? 'Deleted tool' }}</span></td>
+<td><span class="content-type-pill">{{ ucfirst($review->review_type) }}</span></td>
+<td><span class="content-rating"><i data-lucide="star"></i>{{ number_format((float)$review->rating,1) }}</span></td>
+<td><x-status-badge status="{{ ucfirst($review->status) }}" type="{{ $review->status==='published'?'pos':($review->status==='flagged'?'neg':'warn') }}" /></td>
+<td><span class="content-muted">{{ $review->moderator?->name ?? '—' }}</span></td>
+<td><a href="{{ route($showRoute,$review->id) }}" class="icon-btn"><i data-lucide="eye"></i></a></td>
+</tr>
+@endforeach
+</tbody></table></div>
+<div class="content-pagination"><span>Showing {{ $reviews->firstItem() ?? 0 }}–{{ $reviews->lastItem() ?? 0 }} of {{ $reviews->total() }}</span><div>{{ $reviews->links() }}</div></div>
+@else
+<div class="content-empty"><span><i data-lucide="messages-square"></i></span><h3>No reviews found</h3><p>Adjust the filters or add an editorial review.</p></div>
+@endif
+</section>
 </div>
 @endsection

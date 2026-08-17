@@ -1,24 +1,82 @@
 @extends('layouts.admin')
 @section('title', $article->title)
-@php use Illuminate\Support\Facades\Storage; @endphp
-@section('content')
-<x-page-header title="{{ $article->title }}" subtitle="By {{ $article->author->name ?? '—' }} · {{ ucfirst($article->status) }} · Approval: {{ ucwords(str_replace('_',' ',$article->approval_status ?? 'draft')) }}" :breadcrumb="['Content','News Articles',$article->title]">
-<x-slot:actions><a href="{{ route('admin.content.articles.editor.edit',$article->id) }}" class="btn btn-primary btn-sm"><i data-lucide="pencil"></i> Edit</a></x-slot:actions>
-</x-page-header>
-@if(session('status'))<div class="alert alert-success" style="margin-bottom:16px;">{{ session('status') }}</div>@endif
 
-<div class="grid-12">
-<div class="col-8">
-<div class="card card-pad" style="margin-bottom:16px;">@if($article->featured_image_path)<img src="{{ Storage::url($article->featured_image_path) }}" alt="" style="width:100%;border-radius:10px;margin-bottom:16px;">@endif @if($article->summary)<p class="text-sub" style="font-size:13.5px;font-style:italic;margin-bottom:14px;">{{ $article->summary }}</p>@endif <div style="font-size:14px;line-height:1.8;white-space:pre-line;">{{ $article->content ?: 'No content added yet.' }}</div></div>
-<div class="card card-pad"><div class="section-title">Workflow History</div>@forelse($article->workflowEvents as $event)<div class="flex items-start gap-12" style="padding:10px 0;border-bottom:1px solid var(--border-soft);"><span class="dot-indicator" style="background:var(--brand-1);margin-top:5px;"></span><div style="flex:1;"><div style="font-size:13px;font-weight:650;">{{ ucwords(str_replace('_',' ',$event->action)) }} <span class="cell-sub">→ {{ ucwords(str_replace('_',' ',$event->to_status)) }}</span></div>@if($event->comment)<div class="cell-sub" style="margin-top:3px;">{{ $event->comment }}</div>@endif<div class="cell-sub" style="margin-top:3px;">{{ $event->user->name ?? 'System' }} · {{ $event->created_at->format('M j, Y g:i A') }}</div></div></div>@empty<div class="text-sub">No workflow events yet.</div>@endforelse</div>
+@push('styles')
+<link rel="stylesheet" href="{{ asset('css/pages/content.css') }}">
+@endpush
+
+@section('content')
+<div class="content-page content-article">
+<x-page-header
+    :title="$article->title"
+    :subtitle="'By '.($article->author->name ?? 'Unknown').' · '.ucfirst($article->status).' · '.ucwords(str_replace('_',' ',$article->approval_status ?? 'draft'))"
+    :breadcrumb="['Content','Articles',$article->title]"
+>
+<x-slot:actions>
+    <a href="{{ route('admin.content.approval-workflow') }}" class="btn btn-secondary"><i data-lucide="workflow"></i>Workflow</a>
+    @if(auth()->user()->canAccessModule('Content','Edit'))
+    <a href="{{ route('admin.content.articles.editor.edit',$article->id) }}" class="btn btn-primary"><i data-lucide="pencil"></i>Edit</a>
+    @endif
+</x-slot:actions>
+</x-page-header>
+
+@if(session('status'))<div class="alert alert-success content-flash"><i data-lucide="check-circle-2"></i><span>{{ session('status') }}</span></div>@endif
+
+<section class="card content-article__hero">
+    <div>
+        <div class="content-article__badges">
+            <span class="content-state content-state--{{ $article->approval_status }}">{{ ucwords(str_replace('_',' ',$article->approval_status ?? 'draft')) }}</span>
+            <x-status-badge status="{{ ucfirst($article->status) }}" type="{{ $article->status==='published'?'pos':($article->status==='scheduled'?'info':'neutral') }}" />
+        </div>
+        <h1>{{ $article->title }}</h1>
+        <p>{{ $article->summary ?: 'No summary has been added yet.' }}</p>
+    </div>
+    <div class="content-article__signal"><span class="content-eyebrow">Workflow</span><strong>{{ $article->workflowEvents->count() }}</strong><small>Recorded events</small></div>
+</section>
+
+<div class="content-article__layout">
+<main class="content-article__main">
+    <section class="card content-article__body">
+        @if($article->featured_image_path)<img src="{{ \Illuminate\Support\Facades\Storage::url($article->featured_image_path) }}" alt="{{ $article->title }}">@endif
+        <div>{{ $article->content ?: 'No article body added yet.' }}</div>
+    </section>
+
+    <section class="card content-workflow-history">
+        <div class="content-section-head"><div><span class="content-eyebrow">Audit Trail</span><h2>Workflow history</h2><p>Editorial decisions recorded against this article.</p></div><i data-lucide="history"></i></div>
+        <div class="content-workflow-history__body">
+        @forelse($article->workflowEvents as $event)
+            <article class="content-event">
+                <span><i data-lucide="git-commit-horizontal"></i></span>
+                <div><strong>{{ ucwords(str_replace('_',' ',$event->action)) }}</strong><small>{{ ucwords(str_replace('_',' ',$event->from_status ?? 'created')) }} → {{ ucwords(str_replace('_',' ',$event->to_status)) }}</small>@if($event->comment)<p>{{ $event->comment }}</p>@endif<div>{{ $event->user->name ?? 'System' }} · {{ $event->created_at->format('M j, Y g:i A') }}</div></div>
+            </article>
+        @empty
+            <div class="content-empty content-empty--small"><p>No workflow events yet.</p></div>
+        @endforelse
+        </div>
+    </section>
+</main>
+
+<aside class="content-article__aside">
+    <section class="card content-facts">
+        <span class="content-eyebrow">Article Facts</span>
+        <dl>
+            <div><dt>Category</dt><dd>{{ $article->categoryTerm->name ?? $article->category ?? '—' }}</dd></div>
+            <div><dt>Author</dt><dd>{{ $article->author->name ?? '—' }}</dd></div>
+            <div><dt>Reviewer</dt><dd>{{ $article->reviewer->name ?? 'Unassigned' }}</dd></div>
+            <div><dt>Approval</dt><dd>{{ ucwords(str_replace('_',' ',$article->approval_status ?? 'draft')) }}</dd></div>
+            <div><dt>Publication</dt><dd>{{ ucfirst($article->status) }}</dd></div>
+            <div><dt>Publish time</dt><dd>{{ $article->published_at?->format('M j, Y g:i A') ?? '—' }}</dd></div>
+        </dl>
+    </section>
+
+    @if($article->tagTerms->isNotEmpty())
+    <section class="card content-tags"><span class="content-eyebrow">Tags</span><div>@foreach($article->tagTerms as $tag)<span>{{ $tag->name }}</span>@endforeach</div></section>
+    @endif
+
+    @if($article->relatedToolTerms->isNotEmpty() || $article->relatedModelTerms->isNotEmpty())
+    <section class="card content-tags"><span class="content-eyebrow">Related AI</span><div>@foreach($article->relatedToolTerms as $tool)<a href="{{ route('admin.tools.show',$tool->id) }}">{{ $tool->name }}</a>@endforeach @foreach($article->relatedModelTerms as $model)<a href="{{ route('admin.models.show',$model->id) }}">{{ $model->name }}</a>@endforeach</div></section>
+    @endif
+</aside>
 </div>
-<div class="col-4">
-<div class="card card-pad" style="margin-bottom:16px;"><div class="section-title">Details</div>
-<div class="flex justify-between" style="padding:9px 0;border-bottom:1px solid var(--border-soft);"><span class="cell-sub">Category</span><b>{{ $article->categoryTerm->name ?? $article->category ?? '—' }}</b></div>
-<div class="flex justify-between" style="padding:9px 0;border-bottom:1px solid var(--border-soft);"><span class="cell-sub">Reviewer</span><b>{{ $article->reviewer->name ?? 'Unassigned' }}</b></div>
-<div class="flex justify-between" style="padding:9px 0;border-bottom:1px solid var(--border-soft);"><span class="cell-sub">Approval</span><span class="badge badge-neutral">{{ ucwords(str_replace('_',' ',$article->approval_status ?? 'draft')) }}</span></div>
-<div class="flex justify-between" style="padding:9px 0;"><span class="cell-sub">Publication</span><x-status-badge status="{{ ucfirst($article->status) }}" type="{{ $article->status==='published'?'pos':'neutral' }}" /></div></div>
-@if($article->tagTerms->isNotEmpty())<div class="card card-pad" style="margin-bottom:16px;"><div class="cell-sub" style="margin-bottom:8px;">Tags</div><div class="flex gap-8" style="flex-wrap:wrap;">@foreach($article->tagTerms as $tag)<span class="badge badge-neutral">{{ $tag->name }}</span>@endforeach</div></div>@endif
-@if($article->relatedToolTerms->isNotEmpty() || $article->relatedModelTerms->isNotEmpty())<div class="card card-pad"><div class="section-title">Related AI</div>@foreach($article->relatedToolTerms as $tool)<span class="badge badge-neutral" style="margin:3px;">{{ $tool->name }}</span>@endforeach @foreach($article->relatedModelTerms as $model)<span class="badge badge-neutral" style="margin:3px;">{{ $model->name }}</span>@endforeach</div>@endif
-</div></div>
+</div>
 @endsection

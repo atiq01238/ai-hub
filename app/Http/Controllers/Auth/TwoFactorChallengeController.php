@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use PragmaRX\Google2FA\Google2FA;
 
 class TwoFactorChallengeController extends Controller
@@ -35,7 +36,7 @@ class TwoFactorChallengeController extends Controller
         }
 
         $data = $request->validate([
-            'code'          => ['nullable', 'digits:6'],
+            'code' => ['nullable', 'digits:6'],
             'recovery_code' => ['nullable', 'string'],
         ]);
 
@@ -44,12 +45,17 @@ class TwoFactorChallengeController extends Controller
         if (! empty($data['code'])) {
             $verified = (new Google2FA())->verifyKey($user->two_factor_secret, $data['code']);
         } elseif (! empty($data['recovery_code'])) {
-            $codes = $user->two_factor_recovery_codes ?? [];
-            if (in_array($data['recovery_code'], $codes, true)) {
-                $verified = true;
-                // Burn the used recovery code so it can't be reused.
-                $user->two_factor_recovery_codes = array_values(array_diff($codes, [$data['recovery_code']]));
-                $user->save();
+            $submitted = strtoupper(trim($data['recovery_code']));
+            $storedHashes = array_values($user->two_factor_recovery_codes ?? []);
+
+            foreach ($storedHashes as $index => $hash) {
+                if (is_string($hash) && Hash::check($submitted, $hash)) {
+                    $verified = true;
+                    unset($storedHashes[$index]);
+                    $user->two_factor_recovery_codes = array_values($storedHashes);
+                    $user->save();
+                    break;
+                }
             }
         }
 

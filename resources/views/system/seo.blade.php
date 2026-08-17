@@ -1,54 +1,20 @@
 @extends('layouts.admin')
-@section('title', 'SEO Health')
-
+@section('title','SEO Health')
+@push('styles')<link rel="stylesheet" href="{{ asset('css/pages/final-polish.css') }}">@endpush
 @section('content')
-
-<x-page-header title="SEO Health" subtitle="Which published content is missing SEO details" :breadcrumb="['System', 'SEO']" />
-
-<div class="kpi-grid" style="grid-template-columns:repeat(2,1fr); margin-bottom:20px;">
-    <x-kpi-card icon="wrench" label="Tools Missing SEO" value="{{ $toolsMissing->count() }} / {{ $toolsTotal }}" />
-    <x-kpi-card icon="file-text" label="Articles Missing SEO" value="{{ $articlesMissing->count() }} / {{ $articlesTotal }}" />
-</div>
-
-<div class="card" style="margin-bottom:16px;">
-    <div class="card-head"><h3>Tools Missing SEO Title or Meta Description</h3></div>
-    <div class="table-wrap">
-    <table class="data-table">
-        <thead><tr><th>Tool</th><th>SEO Title</th><th>Meta Description</th><th></th></tr></thead>
-        <tbody>
-        @forelse ($toolsMissing as $tool)
-        <tr>
-            <td><b>{{ $tool->name }}</b></td>
-            <td>{{ $tool->seo_title ? '✓' : '—' }}</td>
-            <td>{{ $tool->meta_description ? '✓' : '—' }}</td>
-            <td><a href="{{ route('admin.tools.edit', $tool->id) }}" class="btn btn-secondary btn-sm">Fix Now</a></td>
-        </tr>
-        @empty
-        <tr><td colspan="4" class="text-sub" style="text-align:center; padding:24px;">All published tools have SEO fields filled in.</td></tr>
-        @endforelse
-        </tbody>
-    </table>
-    </div>
-</div>
-
-<div class="card">
-    <div class="card-head"><h3>Articles Missing SEO Title or Meta Description</h3></div>
-    <div class="table-wrap">
-    <table class="data-table">
-        <thead><tr><th>Article</th><th>SEO Title</th><th>Meta Description</th><th></th></tr></thead>
-        <tbody>
-        @forelse ($articlesMissing as $article)
-        <tr>
-            <td><b>{{ $article->title }}</b></td>
-            <td>{{ $article->seo_title ? '✓' : '—' }}</td>
-            <td>{{ $article->meta_description ? '✓' : '—' }}</td>
-            <td><a href="{{ route('admin.content.articles.editor.edit', $article->id) }}" class="btn btn-secondary btn-sm">Fix Now</a></td>
-        </tr>
-        @empty
-        <tr><td colspan="4" class="text-sub" style="text-align:center; padding:24px;">All published articles have SEO fields filled in.</td></tr>
-        @endforelse
-        </tbody>
-    </table>
-    </div>
-</div>
+@php
+$toolMissing=$toolsMissing->count(); $articleMissing=$articlesMissing->count();
+$totalPublished=$toolsTotal+$articlesTotal; $missing=$toolMissing+$articleMissing;
+$coverage=$totalPublished?(int)round((($totalPublished-$missing)/$totalPublished)*100):100;
+@endphp
+<div class="fp-page">
+<x-page-header title="SEO Health" subtitle="Find published tools and articles missing search metadata before they become discoverability debt." :breadcrumb="['System','SEO']" />
+<section class="fp-seo-hero"><div class="fp-health-orb" style="--score:{{ $coverage }}"><strong>{{ $coverage }}</strong><span>% complete</span></div><div><span class="fp-eyebrow">Metadata Coverage</span><h1>{{ $missing ? $missing.' published record(s) need SEO work' : 'Published SEO coverage is complete' }}</h1><p>Audit is based on real published Tools and Articles missing either an SEO title or meta description.</p></div></section>
+<section class="fp-kpis">
+@foreach([['Published Tools',$toolsTotal,'wrench',''],['Tools Missing SEO',$toolMissing,'search-x','amber'],['Published Articles',$articlesTotal,'file-text','violet'],['Articles Missing SEO',$articleMissing,'file-warning','amber']] as [$label,$value,$icon,$tone])<article class="fp-kpi fp-kpi--{{ $tone }}"><span><i data-lucide="{{ $icon }}"></i></span><div><small>{{ $label }}</small><strong>{{ number_format($value) }}</strong></div></article>@endforeach
+</section>
+<div class="fp-seo-grid">
+<section class="card fp-table-card"><header class="fp-card-head"><div><span class="fp-eyebrow">Tool Directory</span><h2>Tools missing metadata</h2><p>Published tools only.</p></div><span class="fp-count">{{ $toolMissing }}</span></header>@if($toolsMissing->count())<div class="table-wrap"><table class="data-table fp-table"><thead><tr><th>Tool</th><th>SEO Title</th><th>Meta Description</th><th></th></tr></thead><tbody>@foreach($toolsMissing as $tool)<tr><td><strong>{{ $tool->name }}</strong></td><td><span class="fp-field-state {{ $tool->seo_title?'is-good':'is-missing' }}"><i data-lucide="{{ $tool->seo_title?'check':'minus' }}"></i>{{ $tool->seo_title?'Present':'Missing' }}</span></td><td><span class="fp-field-state {{ $tool->meta_description?'is-good':'is-missing' }}"><i data-lucide="{{ $tool->meta_description?'check':'minus' }}"></i>{{ $tool->meta_description?'Present':'Missing' }}</span></td><td><a href="{{ route('admin.tools.edit',$tool->id) }}" class="btn btn-secondary btn-sm"><i data-lucide="pencil"></i>Fix</a></td></tr>@endforeach</tbody></table></div>@else<div class="fp-empty fp-empty--small"><p>All published tools have SEO metadata.</p></div>@endif</section>
+<section class="card fp-table-card"><header class="fp-card-head"><div><span class="fp-eyebrow">Editorial</span><h2>Articles missing metadata</h2><p>Published articles only.</p></div><span class="fp-count">{{ $articleMissing }}</span></header>@if($articlesMissing->count())<div class="table-wrap"><table class="data-table fp-table"><thead><tr><th>Article</th><th>SEO Title</th><th>Meta Description</th><th></th></tr></thead><tbody>@foreach($articlesMissing as $article)<tr><td><strong>{{ $article->title }}</strong></td><td><span class="fp-field-state {{ $article->seo_title?'is-good':'is-missing' }}"><i data-lucide="{{ $article->seo_title?'check':'minus' }}"></i>{{ $article->seo_title?'Present':'Missing' }}</span></td><td><span class="fp-field-state {{ $article->meta_description?'is-good':'is-missing' }}"><i data-lucide="{{ $article->meta_description?'check':'minus' }}"></i>{{ $article->meta_description?'Present':'Missing' }}</span></td><td><a href="{{ route('admin.content.articles.editor.edit',$article->id) }}" class="btn btn-secondary btn-sm"><i data-lucide="pencil"></i>Fix</a></td></tr>@endforeach</tbody></table></div>@else<div class="fp-empty fp-empty--small"><p>All published articles have SEO metadata.</p></div>@endif</section>
+</div></div>
 @endsection

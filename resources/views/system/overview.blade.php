@@ -1,52 +1,63 @@
 @extends('layouts.admin')
-@section('title', 'System Overview')
+@section('title','System Overview')
+@push('styles')<link rel="stylesheet" href="{{ asset('css/pages/final-polish.css') }}">@endpush
 @section('content')
-<x-page-header title="System Operations Center" subtitle="Health, security, backups, APIs and operational risk in one place" :breadcrumb="['System', 'Overview']">
-    <x-slot:actions><a href="{{ route('admin.system.health') }}" class="btn btn-secondary btn-sm"><i data-lucide="heart-pulse"></i> Live Health</a></x-slot:actions>
+@php
+$checks=collect($healthData['checks']??[]);
+$healthy=$checks->where('status','pos')->count();
+$warnings=$checks->where('status','warn')->count();
+$critical=$checks->where('status','neg')->count();
+$total=$checks->count();
+$healthPct=$total?(int)round(($healthy/$total)*100):100;
+$latestBackup=collect($backupItems)->first();
+$providers=collect($apiData['providers']??[]);
+@endphp
+<div class="fp-page">
+<x-page-header title="System Overview" subtitle="One operational snapshot across infrastructure, security, backups and external API activity." :breadcrumb="['System','Overview']">
+<x-slot:actions><a href="{{ route('admin.system.health') }}" class="btn btn-secondary"><i data-lucide="stethoscope"></i>System Health</a><a href="{{ route('admin.system.security') }}" class="btn btn-primary"><i data-lucide="shield-check"></i>Security Center</a></x-slot:actions>
 </x-page-header>
 
-<div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;">
-    <x-kpi-card icon="activity" label="Health Score" value="{{ $healthData['overallPercent'] }}%" />
-    <x-kpi-card icon="shield-check" label="Failed Logins · 24h" value="{{ $security['failed_24h'] }}" />
-    <x-kpi-card icon="octagon-alert" label="Open Errors" value="{{ $security['open_errors'] }}" />
-    <x-kpi-card icon="database-backup" label="Backups" value="{{ count($backupItems) }}" />
-</div>
+<section class="fp-overview-hero">
+<div class="fp-health-orb" style="--score:{{ $healthPct }}"><strong>{{ $healthPct }}</strong><span>% healthy</span></div>
+<div class="fp-overview-hero__copy"><span class="fp-eyebrow">Operations Command Center</span><h1>{{ $critical ? 'Critical attention required' : ($warnings ? 'Operational with warnings' : 'Systems operating normally') }}</h1><p>Live summary assembled from the existing System Health, Backup, API Monitoring and Security services.</p></div>
+<div class="fp-overview-hero__signals"><div><span>Healthy</span><strong>{{ $healthy }}</strong></div><div><span>Warnings</span><strong>{{ $warnings }}</strong></div><div><span>Critical</span><strong>{{ $critical }}</strong></div></div>
+</section>
 
-<div class="grid-12" style="margin-bottom:20px;">
-    <div class="col-8 card card-pad">
-        <div class="flex items-center justify-between" style="margin-bottom:16px;"><div><div class="section-title">Platform Health</div><div class="cell-sub">Live checks generated {{ $healthData['generatedAt']->diffForHumans() }}</div></div><span class="badge badge-{{ $healthData['critical'] ? 'neg' : ($healthData['warnings'] ? 'warn' : 'pos') }}">{{ $healthData['critical'] ? 'Action Required' : ($healthData['warnings'] ? 'Needs Attention' : 'Operational') }}</span></div>
-        <div class="grid-2" style="gap:10px;">
-            @foreach($healthData['checks'] as $check)
-                <a href="{{ route('admin.system.health') }}" class="card card-pad" style="text-decoration:none;padding:14px;">
-                    <div class="flex items-center justify-between"><div class="flex items-center gap-8"><i data-lucide="{{ $check['icon'] }}" style="width:16px;height:16px;"></i><b style="font-size:13px;">{{ $check['name'] }}</b></div><span class="badge badge-{{ $check['status'] }}">{{ $check['label'] }}</span></div>
-                    <div class="cell-sub" style="margin-top:6px;">{{ $check['detail'] }}</div>
-                </a>
-            @endforeach
-        </div>
-    </div>
-    <div class="col-4 card card-pad">
-        <div class="section-title">Security Posture</div>
-        <div style="display:grid;gap:14px;margin-top:16px;">
-            <div class="flex justify-between"><span class="text-sub">Admins without 2FA</span><b>{{ $security['admins_without_2fa'] }}</b></div>
-            <div class="flex justify-between"><span class="text-sub">Failed logins · 24h</span><b>{{ $security['failed_24h'] }}</b></div>
-            <div class="flex justify-between"><span class="text-sub">Open application errors</span><b>{{ $security['open_errors'] }}</b></div>
-        </div>
-        <a href="{{ route('admin.system.security') }}" class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;margin-top:18px;">Open Security Center</a>
-    </div>
-</div>
+<section class="fp-kpis">
+@foreach([
+['Failed Logins · 24h',$security['failed_24h']??0,'log-in','red'],
+['Admins Without 2FA',$security['admins_without_2fa']??0,'shield-alert','amber'],
+['Open Errors',$security['open_errors']??0,'bug','red'],
+['Configured APIs',$providers->where('configured',true)->count(),'plug-zap','violet'],
+] as [$label,$value,$icon,$tone])
+<article class="fp-kpi fp-kpi--{{ $tone }}"><span><i data-lucide="{{ $icon }}"></i></span><div><small>{{ $label }}</small><strong>{{ number_format($value) }}</strong></div></article>
+@endforeach
+</section>
 
-<div class="grid-12">
-    <div class="col-6 card card-pad">
-        <div class="flex items-center justify-between"><div class="section-title">Backup Protection</div><a href="{{ route('admin.system.backups') }}" class="btn btn-ghost btn-sm">Manage</a></div>
-        @if($latest = collect($backupItems)->first())
-            <div style="font-size:26px;font-weight:700;margin-top:12px;">{{ $latest['created_at']->diffForHumans() }}</div><div class="cell-sub">Latest {{ ucfirst($latest['type']) }} backup · {{ $latest['size'] }}</div>
-        @else
-            <div class="text-sub" style="padding:24px 0;">No local backups found yet. Create the first protected snapshot from Backup Center.</div>
-        @endif
-    </div>
-    <div class="col-6 card card-pad">
-        <div class="flex items-center justify-between"><div class="section-title">API Operations</div><a href="{{ route('admin.system.api-monitoring') }}" class="btn btn-ghost btn-sm">Monitor</a></div>
-        <div class="grid-3" style="gap:10px;margin-top:14px;"><div><div class="cell-sub">Configured</div><b style="font-size:20px;">{{ $apiData['providers']->where('configured', true)->count() }}</b></div><div><div class="cell-sub">Requests Today</div><b style="font-size:20px;">{{ number_format($apiData['todayRequests']) }}</b></div><div><div class="cell-sub">Error Rate</div><b style="font-size:20px;">{{ $apiData['errorRate'] }}%</b></div></div>
-    </div>
+<div class="fp-overview-grid">
+<section class="card fp-panel">
+<header class="fp-card-head"><div><span class="fp-eyebrow">Infrastructure</span><h2>Health checks</h2><p>Current readiness of core application dependencies.</p></div><a href="{{ route('admin.system.health') }}" class="btn btn-ghost btn-sm">Open Health</a></header>
+<div class="fp-health-list">
+@forelse($checks as $check)
+<div><span class="fp-health-icon"><i data-lucide="{{ $check['icon']??'activity' }}"></i></span><div><strong>{{ $check['name']??'Check' }}</strong><small>{{ $check['detail']??'' }}</small></div><span class="fp-state {{ ($check['status']??'warn')==='pos'?'is-good':(($check['status']??'warn')==='neg'?'is-bad':'is-warning') }}">{{ $check['label']??'Unknown' }}</span></div>
+@empty<div class="fp-empty fp-empty--small"><p>No health checks returned.</p></div>@endforelse
+</div>
+</section>
+
+<aside class="fp-overview-side">
+<section class="card fp-snapshot-card">
+<div class="fp-snapshot-card__head"><span class="fp-eyebrow">Backup Protection</span><a href="{{ route('admin.system.backups') }}">Manage</a></div>
+@if($latestBackup)<strong>{{ $latestBackup['created_at']->diffForHumans() }}</strong><p>Latest {{ ucfirst($latestBackup['type']) }} snapshot · {{ $latestBackup['size'] }}</p>@else<strong>No backups yet</strong><p>Create the first protected local snapshot.</p>@endif
+</section>
+<section class="card fp-snapshot-card">
+<div class="fp-snapshot-card__head"><span class="fp-eyebrow">API Operations</span><a href="{{ route('admin.system.api-monitoring') }}">Monitor</a></div>
+<div class="fp-mini-grid"><div><strong>{{ $providers->where('configured',true)->count() }}</strong><span>Configured</span></div><div><strong>{{ number_format($apiData['todayRequests']??0) }}</strong><span>Requests Today</span></div><div><strong>{{ $apiData['errorRate']??0 }}%</strong><span>Error Rate</span></div></div>
+</section>
+<section class="card fp-snapshot-card">
+<div class="fp-snapshot-card__head"><span class="fp-eyebrow">Quick Access</span></div>
+<div class="fp-quick-links"><a href="{{ route('admin.system.errors.index') }}"><i data-lucide="bug"></i>Error Monitoring</a><a href="{{ route('admin.system.automation-monitor') }}"><i data-lucide="workflow"></i>Automation Monitor</a><a href="{{ route('admin.system.activity-logs') }}"><i data-lucide="scroll-text"></i>Activity Logs</a></div>
+</section>
+</aside>
+</div>
 </div>
 @endsection

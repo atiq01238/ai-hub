@@ -4,18 +4,16 @@ namespace App\Http\Controllers\Admin\System;
 
 use App\Http\Controllers\Controller;
 use App\Models\AppNotification;
-use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
     public function index()
     {
-        $notifications = AppNotification::where('user_id', auth()->id())
-            ->orWhereNull('user_id')
+        $notifications = $this->visibleNotifications()
             ->latest()
             ->paginate(30);
 
-        $unreadCount = AppNotification::where(fn ($q) => $q->where('user_id', auth()->id())->orWhereNull('user_id'))
+        $unreadCount = $this->visibleNotifications()
             ->unread()
             ->count();
 
@@ -24,14 +22,15 @@ class NotificationController extends Controller
 
     public function markRead(int $id)
     {
-        AppNotification::findOrFail($id)->update(['read_at' => now()]);
+        $notification = $this->visibleNotifications()->findOrFail($id);
+        $notification->update(['read_at' => now()]);
 
         return redirect()->back();
     }
 
     public function markAllRead()
     {
-        AppNotification::where(fn ($q) => $q->where('user_id', auth()->id())->orWhereNull('user_id'))
+        $this->visibleNotifications()
             ->unread()
             ->update(['read_at' => now()]);
 
@@ -40,8 +39,17 @@ class NotificationController extends Controller
 
     public function destroy(int $id)
     {
-        AppNotification::findOrFail($id)->delete();
+        $notification = $this->visibleNotifications()->findOrFail($id);
+        $notification->delete();
 
         return redirect()->back();
+    }
+
+    private function visibleNotifications()
+    {
+        return AppNotification::query()->where(function ($query) {
+            $query->where('user_id', auth()->id())
+                ->orWhereNull('user_id');
+        });
     }
 }

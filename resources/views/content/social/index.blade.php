@@ -1,75 +1,45 @@
 @extends('layouts.admin')
-@section('title', 'Social Posts')
+@section('title','Social Posts')
 
-@php
-    use Illuminate\Support\Facades\Storage;
-    $platformIcons = ['x'=>'twitter','facebook'=>'facebook','instagram'=>'instagram','linkedin'=>'linkedin','youtube'=>'youtube','tiktok'=>'music-2'];
-    $platformLabels = ['x'=>'X','facebook'=>'Facebook','instagram'=>'Instagram','linkedin'=>'LinkedIn','youtube'=>'YouTube','tiktok'=>'TikTok'];
-@endphp
+@push('styles')
+<link rel="stylesheet" href="{{ asset('css/pages/content.css') }}">
+@endpush
 
 @section('content')
-
-<x-page-header title="Social Content Management" subtitle="{{ $posts->total() }} posts" :breadcrumb="['Content', 'Social Posts']">
-    <x-slot:actions><a href="{{ route('admin.content.social.create') }}" class="btn btn-primary btn-sm"><i data-lucide="share-2"></i> New Post</a></x-slot:actions>
+@php
+$platformIcons=['x'=>'twitter','facebook'=>'facebook','instagram'=>'instagram','linkedin'=>'linkedin','youtube'=>'youtube','tiktok'=>'music-2'];
+$platformLabels=['x'=>'X','facebook'=>'Facebook','instagram'=>'Instagram','linkedin'=>'LinkedIn','youtube'=>'YouTube','tiktok'=>'TikTok'];
+@endphp
+<div class="content-page">
+<x-page-header title="Social Content" subtitle="Draft, schedule and track social distribution derived from AI Hub intelligence." :breadcrumb="['Content','Social Posts']">
+<x-slot:actions>@if(auth()->user()->canAccessModule('Content','Add'))<a href="{{ route('admin.content.social.create') }}" class="btn btn-primary"><i data-lucide="share-2"></i>New Post</a>@endif</x-slot:actions>
 </x-page-header>
+@if(session('status'))<div class="alert alert-success content-flash"><i data-lucide="check-circle-2"></i><span>{{ session('status') }}</span></div>@endif
 
-@if (session('status'))
-    <div class="alert alert-success" style="margin-bottom:16px;">{{ session('status') }}</div>
-@endif
+<nav class="content-tabs">
+<a href="{{ route('admin.content.social.index') }}" class="{{ !request('platform')?'is-active':'' }}">All</a>
+@foreach($platformIcons as $key=>$icon)<a href="{{ route('admin.content.social.index',['platform'=>$key]) }}" class="{{ request('platform')===$key?'is-active':'' }}"><i data-lucide="{{ $icon }}"></i>{{ $platformLabels[$key] }}</a>@endforeach
+</nav>
 
-<div class="filter-bar">
-    <a href="{{ route('admin.content.social.index') }}" class="chip {{ !request('platform') ? 'is-active' : '' }}">All</a>
-    @foreach ($platformIcons as $key => $icon)
-        <a href="{{ route('admin.content.social.index', ['platform' => $key]) }}" class="chip {{ request('platform') === $key ? 'is-active' : '' }}"><i data-lucide="{{ $icon }}" style="width:13px;height:13px;"></i> {{ $platformLabels[$key] }}</a>
-    @endforeach
-</div>
+<section class="card content-news-convert">
+<span class="content-news-convert__icon"><i data-lucide="wand-sparkles"></i></span>
+<div><span class="content-eyebrow">News → Social</span><h2>Turn recent intelligence into a draft</h2><p>Choose a news item to pre-fill a new social post.</p></div>
+<select class="select" onchange="if(this.value) window.location='{{ route('admin.content.social.create') }}?news_id='+this.value"><option value="">Choose recent news...</option>@foreach($recentNews as $news)<option value="{{ $news->id }}">{{ $news->headline }}</option>@endforeach</select>
+</section>
 
-<div class="card card-pad" style="margin-bottom:20px; background:linear-gradient(135deg, rgba(91,127,255,.08), rgba(139,92,246,.08)); border-color:var(--brand-1);">
-    <div class="flex items-center gap-12">
-        <div class="kpi-icon" style="width:40px;height:40px;"><i data-lucide="wand-2"></i></div>
-        <div style="flex:1;">
-            <b>Turn News Into Social Post</b>
-            <div class="text-sub" style="font-size:12.5px;">Pick a recent news item to pre-fill a draft post.</div>
-        </div>
-        <select onchange="if(this.value) window.location = '{{ route('admin.content.social.create') }}?news_id=' + this.value" class="select" style="max-width:260px;">
-            <option value="">Choose news...</option>
-            @foreach ($recentNews as $news)
-                <option value="{{ $news->id }}">{{ $news->headline }}</option>
-            @endforeach
-        </select>
-    </div>
-</div>
-
-<div class="grid-3">
-@forelse ($posts as $post)
-    <div class="card card-pad">
-        <div class="flex items-center justify-between" style="margin-bottom:10px;">
-            <span class="badge badge-neutral"><i data-lucide="{{ $platformIcons[$post->platform] }}" style="width:11px;height:11px;"></i> {{ $platformLabels[$post->platform] }}</span>
-            <x-status-badge status="{{ ucfirst($post->status) }}" type="{{ $post->status === 'published' ? 'pos' : ($post->status === 'scheduled' ? 'info' : 'neutral') }}" />
-        </div>
-        @if ($post->image_path)
-            <img src="{{ Storage::url($post->image_path) }}" alt="" style="width:100%; height:120px; object-fit:cover; border-radius:10px; margin-bottom:10px;">
-        @else
-            <div class="thumb lg" style="width:100%; height:120px; border-radius:10px; margin-bottom:10px;"><i data-lucide="image"></i></div>
-        @endif
-        <p style="font-size:13px; line-height:1.5; margin:0 0 10px;">{{ \Illuminate\Support\Str::limit($post->content, 140) }}</p>
-        <div class="cell-sub" style="margin-bottom:10px;">
-            {{ $post->status === 'published' ? $post->published_at?->format('M j, g:i A') : ($post->status === 'scheduled' ? $post->scheduled_at?->format('M j, g:i A') : '—') }}
-            @if ($post->newsItem) · from "{{ \Illuminate\Support\Str::limit($post->newsItem->headline, 30) }}" @endif
-        </div>
-        <div class="flex gap-8">
-            <a href="{{ route('admin.content.social.edit', $post->id) }}" class="btn btn-ghost btn-sm">Edit</a>
-            <form action="{{ route('admin.content.social.destroy', $post->id) }}" method="POST" onsubmit="return confirm('Delete this post?')">
-                @csrf
-                @method('DELETE')
-                <button type="submit" class="btn btn-ghost btn-sm">Delete</button>
-            </form>
-        </div>
-    </div>
+<section class="content-social-grid">
+@forelse($posts as $post)
+<article class="card content-social-card">
+<div class="content-social-card__head"><span class="content-platform"><i data-lucide="{{ $platformIcons[$post->platform] }}"></i>{{ $platformLabels[$post->platform] }}</span><x-status-badge status="{{ ucfirst($post->status) }}" type="{{ $post->status==='published'?'pos':($post->status==='scheduled'?'info':'neutral') }}" /></div>
+@if($post->image_path)<img class="content-social-card__image" src="{{ \Illuminate\Support\Facades\Storage::url($post->image_path) }}" alt="">@else<div class="content-social-card__placeholder"><i data-lucide="image"></i></div>@endif
+<p>{{ \Illuminate\Support\Str::limit($post->content,170) }}</p>
+<div class="content-social-card__meta">{{ $post->status==='published' ? ($post->published_at?->format('M j, g:i A') ?? 'Published') : ($post->status==='scheduled' ? ($post->scheduled_at?->format('M j, g:i A') ?? 'Schedule pending') : 'Draft') }}@if($post->newsItem) · from “{{ \Illuminate\Support\Str::limit($post->newsItem->headline,34) }}”@endif</div>
+<div class="content-social-card__actions">@if(auth()->user()->canAccessModule('Content','Edit'))<a href="{{ route('admin.content.social.edit',$post->id) }}" class="btn btn-secondary btn-sm"><i data-lucide="pencil"></i>Edit</a>@endif @if(auth()->user()->canAccessModule('Content','Delete'))<form action="{{ route('admin.content.social.destroy',$post->id) }}" method="POST" onsubmit="return confirm('Delete this post?')">@csrf @method('DELETE')<button class="icon-btn icon-btn--danger"><i data-lucide="trash-2"></i></button></form>@endif</div>
+</article>
 @empty
-    <div class="card card-pad text-sub" style="text-align:center; padding:32px; grid-column:1/-1;">No posts yet — create your first one.</div>
+<div class="card content-empty content-empty--grid"><span><i data-lucide="share-2"></i></span><h3>No social posts yet</h3><p>Create the first distribution draft.</p></div>
 @endforelse
+</section>
+<div class="content-pagination"><span>{{ number_format($posts->total()) }} posts</span><div>{{ $posts->links() }}</div></div>
 </div>
-
-<div class="pager" style="margin-top:16px;">{{ $posts->links() }}</div>
 @endsection

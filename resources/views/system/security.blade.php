@@ -1,10 +1,85 @@
 @extends('layouts.admin')
-@section('title', 'Security Center')
+@section('title','Security Center')
+
+@push('styles')
+<link rel="stylesheet" href="{{ asset('css/pages/system-operations.css') }}">
+@endpush
+
 @section('content')
-<x-page-header title="Security Center" subtitle="Authentication risk, 2FA compliance and session control" :breadcrumb="['System', 'Security']" />
-@if(session('status'))<div class="alert alert-success" style="margin-bottom:16px;">{{ session('status') }}</div>@endif
-<div class="grid-12" style="margin-bottom:20px;"><div class="col-4 card card-pad" style="text-align:center;"><div class="cell-sub">Security Score</div><div style="font-size:52px;font-weight:700;color:{{ $securityScore >= 85 ? 'var(--pos)' : ($securityScore >= 65 ? 'var(--warn)' : 'var(--neg)') }};">{{ $securityScore }}</div><div class="cell-sub">Calculated from login failures, suspicious IPs and 2FA posture</div></div><div class="col-8"><div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);"><x-kpi-card icon="alert-triangle" label="Failed · 24h" value="{{ $failed24h }}" /><x-kpi-card icon="shield-alert" label="Suspicious IPs" value="{{ $suspiciousIps->count() }}" /><x-kpi-card icon="shield-check" label="2FA Compliance" value="{{ $twoFactorCompliance }}%" /><x-kpi-card icon="monitor" label="Admin Sessions" value="{{ $allAdminSessions }}" /></div></div></div>
-@if($adminsWithout2fa > 0)<div class="card card-pad" style="margin-bottom:20px;border-color:var(--warn);"><div class="flex items-center gap-12"><div class="kpi-icon" style="color:var(--warn);"><i data-lucide="shield-alert"></i></div><div style="flex:1;"><b>{{ $adminsWithout2fa }} admin account(s) do not have 2FA enabled</b><div class="cell-sub">2FA policy is currently {{ $require2fa ? 'required in Settings' : 'not enforced in Settings' }}. Compliance should reach 100% before production launch.</div></div><a href="{{ route('admin.system.2fa') }}" class="btn btn-primary btn-sm">Manage My 2FA</a></div></div>@endif
-<div class="grid-12" style="margin-bottom:20px;"><div class="col-7 card"><div class="card-head"><h3>Active Sessions · Your Account</h3></div>@if(!$usingDatabaseSessions)<div class="card-pad text-sub">Session inventory requires <code>SESSION_DRIVER=database</code>. The sessions table already exists in this project.</div>@else<div class="table-wrap"><table class="data-table"><thead><tr><th>Device / Browser</th><th>IP</th><th>Last Active</th><th></th></tr></thead><tbody>@forelse($activeSessions as $session)<tr><td class="text-sub" style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ $session->user_agent ?: 'Unknown device' }} @if($session->id===session()->getId())<span class="badge badge-pos">This device</span>@endif</td><td class="mono">{{ $session->ip_address }}</td><td class="cell-sub">{{ \Illuminate\Support\Carbon::createFromTimestamp($session->last_activity)->diffForHumans() }}</td><td>@if($session->id!==session()->getId())<form method="POST" action="{{ route('admin.system.security.revoke-session',$session->id) }}">@csrf<button class="btn btn-ghost btn-sm">Revoke</button></form>@endif</td></tr>@empty<tr><td colspan="4" class="text-sub" style="padding:24px;text-align:center;">No sessions found.</td></tr>@endforelse</tbody></table></div>@endif</div><div class="col-5 card"><div class="card-head"><h3>Suspicious IP Activity</h3></div><div class="table-wrap"><table class="data-table"><thead><tr><th>IP</th><th>Failed Attempts · 24h</th></tr></thead><tbody>@forelse($suspiciousIps as $ip)<tr><td class="mono">{{ $ip->ip_address }}</td><td><span class="badge badge-neg">{{ $ip->attempts }}</span></td></tr>@empty<tr><td colspan="2" class="text-sub" style="padding:24px;text-align:center;">No IP crossed the 5-failure risk threshold.</td></tr>@endforelse</tbody></table></div></div></div>
-<div class="card"><div class="card-head"><h3>Recent Login Attempts</h3><span class="cell-sub">{{ $failed7d }} failed in last 7 days</span></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Email</th><th>IP Address</th><th>Result</th><th>When</th></tr></thead><tbody>@forelse($recentAttempts as $attempt)<tr><td>{{ $attempt->email }}</td><td class="mono">{{ $attempt->ip_address }}</td><td><span class="badge {{ $attempt->successful?'badge-pos':'badge-neg' }}">{{ $attempt->successful?'Success':'Failed' }}</span></td><td class="cell-sub">{{ $attempt->created_at->diffForHumans() }}</td></tr>@empty<tr><td colspan="4" class="text-sub" style="padding:28px;text-align:center;">No login attempts logged yet.</td></tr>@endforelse</tbody></table></div></div>
+<div class="so-page">
+<x-page-header title="Security Center" subtitle="Authentication risk, administrator 2FA compliance and active-session control." :breadcrumb="['System','Security Center']">
+<x-slot:actions>
+    <a href="{{ route('admin.system.2fa') }}" class="btn btn-secondary"><i data-lucide="shield-check"></i>Two-Factor Authentication</a>
+</x-slot:actions>
+</x-page-header>
+
+@if(session('status'))<div class="alert alert-success so-flash"><i data-lucide="check-circle-2"></i><span>{{ session('status') }}</span></div>@endif
+
+<section class="card so-security-hero">
+    <div class="so-security-score">
+        <div class="so-score-ring" style="--score:{{ $securityScore }}"><strong>{{ $securityScore }}</strong><span>/100</span></div>
+        <div><span class="so-eyebrow">Security Posture</span><h2>{{ $securityScore >= 85 ? 'Strong security posture' : ($securityScore >= 65 ? 'Attention recommended' : 'Elevated security risk') }}</h2><p>Calculated from failed logins, suspicious IP activity, administrator 2FA adoption and enforcement policy.</p></div>
+    </div>
+    <div class="so-security-policy">
+        <span class="so-eyebrow">Admin 2FA Policy</span>
+        <strong>{{ $require2fa ? 'Required' : 'Not enforced' }}</strong>
+        <small>{{ $twoFactorCompliance }}% administrator compliance</small>
+    </div>
+</section>
+
+<section class="so-kpis">
+@foreach([
+['Failed logins · 24h',$failed24h,'log-in','red'],
+['Failed logins · 7d',$failed7d,'calendar-x','amber'],
+['Suspicious IPs',$suspiciousIps->count(),'scan-eye','red'],
+['Admin 2FA compliance',$twoFactorCompliance.'%','badge-check','green'],
+['Admins without 2FA',$adminsWithout2fa,'shield-alert','amber'],
+['Active admin sessions',$allAdminSessions,'monitor-smartphone',''],
+] as [$label,$value,$icon,$tone])
+<article class="so-kpi so-kpi--{{ $tone }}"><span><i data-lucide="{{ $icon }}"></i></span><div><small>{{ $label }}</small><strong>{{ $value }}</strong></div></article>
+@endforeach
+</section>
+
+<div class="so-grid so-grid--security">
+<section class="card so-panel">
+<header class="so-card-head"><div><span class="so-eyebrow">Authentication Telemetry</span><h2>Recent login attempts</h2><p>Latest authentication events recorded by the security layer.</p></div><i data-lucide="key-round"></i></header>
+@if($recentAttempts->count())
+<div class="table-wrap"><table class="data-table so-table"><thead><tr><th>Time</th><th>Identity</th><th>IP Address</th><th>Result</th></tr></thead><tbody>
+@foreach($recentAttempts as $attempt)
+<tr><td><span class="so-muted">{{ $attempt->created_at->format('M j, H:i') }}</span></td><td>{{ $attempt->email ?? 'Unknown identity' }}</td><td><code>{{ $attempt->ip_address ?: '—' }}</code></td><td><span class="so-status {{ $attempt->successful?'is-good':'is-bad' }}"><i data-lucide="{{ $attempt->successful?'circle-check':'circle-x' }}"></i>{{ $attempt->successful?'Successful':'Failed' }}</span></td></tr>
+@endforeach
+</tbody></table></div>
+@else<div class="so-empty so-empty--small"><span><i data-lucide="key-round"></i></span><h3>No login telemetry</h3><p>The login-attempts table is unavailable or no attempts are recorded yet.</p></div>@endif
+</section>
+
+<aside class="so-stack">
+<section class="card so-panel">
+<header class="so-card-head"><div><span class="so-eyebrow">Threat Signals</span><h2>Suspicious IP activity</h2></div><i data-lucide="radar"></i></header>
+<div class="so-list">
+@forelse($suspiciousIps as $item)
+<div><span class="so-list__icon is-risk"><i data-lucide="shield-alert"></i></span><div><strong>{{ $item->ip_address }}</strong><small>{{ $item->attempts }} failed attempts in the last 24 hours</small></div></div>
+@empty<div class="so-empty so-empty--tiny"><p>No IP crossed the suspicious-activity threshold.</p></div>@endforelse
+</div>
+</section>
+
+<section class="card so-panel">
+<header class="so-card-head"><div><span class="so-eyebrow">Session Control</span><h2>Your active sessions</h2></div><i data-lucide="monitor-smartphone"></i></header>
+@if(!$usingDatabaseSessions)
+<div class="so-callout is-warning"><i data-lucide="triangle-alert"></i><div><strong>Database sessions not enabled</strong><p>Per-session revocation requires the database session driver and sessions table.</p></div></div>
+@else
+<div class="so-session-list">
+@forelse($activeSessions as $session)
+<article>
+<div><strong>{{ $session->ip_address ?: 'Unknown IP' }}</strong><small>Last activity {{ \Illuminate\Support\Carbon::createFromTimestamp($session->last_activity)->diffForHumans() }} · Session {{ \Illuminate\Support\Str::limit($session->id,14) }}</small></div>
+@if(auth()->user()->canAccessModule('Security','Edit'))
+<form method="POST" action="{{ route('admin.system.security.revoke-session',$session->id) }}" onsubmit="return confirm('Revoke this session?')">@csrf<button class="icon-btn icon-btn--danger" type="submit"><i data-lucide="log-out"></i></button></form>
+@endif
+</article>
+@empty<div class="so-empty so-empty--tiny"><p>No database-backed sessions found for this account.</p></div>@endforelse
+</div>
+@endif
+</section>
+</aside>
+</div>
+</div>
 @endsection
