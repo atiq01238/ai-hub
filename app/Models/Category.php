@@ -15,4 +15,9 @@ class Category extends Model
     {
         return $this->hasMany(Tool::class);
     }
+
+    public function articles()
+    {
+        return $this->hasMany(Article::class);
+    }
 }

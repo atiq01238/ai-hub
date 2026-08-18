@@ -1,0 +1,49 @@
+@extends('frontend.layouts.app')
+@section('title',$category->name.' AI Tools, Models & Guides — AI Hub')
+@section('meta_description','Explore the best '.$category->name.' AI tools, models, news and practical guides on AI Hub.')
+@push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/discovery.css') }}">@endpush
+@section('content')
+<section class="category-detail-hero">
+    <div class="category-detail-inner">
+        <div class="category-hero-main"><a class="breadcrumb-link" href="{{ route('categories.index') }}"><i data-lucide="arrow-left"></i> All Categories</a><span class="eyebrow"><i data-lucide="sparkles"></i> AI Category</span><h1>{{ $category->name }}</h1><p>Compare leading {{ strtolower($category->name) }} products and explore related models, research, news and practical resources.</p><div class="category-hero-actions"><a class="primary-action" href="#category-tools">Explore tools <i data-lucide="arrow-down"></i></a><a class="secondary-action" href="{{ route('search.index',['q'=>$category->name]) }}">Search this topic <i data-lucide="search"></i></a></div></div>
+        <div class="category-stat-board"><span><strong>{{ number_format($stats['tools']) }}</strong><small>Published tools</small></span><span><strong>{{ number_format($stats['models']) }}</strong><small>Related models</small></span><span><strong>{{ number_format($stats['articles']) }}</strong><small>Guides</small></span><span><strong>{{ number_format($stats['news']) }}</strong><small>News stories</small></span></div>
+    </div>
+</section>
+<div class="discovery-page category-detail-page">
+    <section id="category-tools" class="result-section">
+        <div class="section-bar category-tools-bar"><div><span class="section-icon"><i data-lucide="bot"></i></span><h2>Top {{ $category->name }} Tools</h2><small>{{ number_format($tools->total()) }} published products</small></div><form method="get" class="sort-form"><label for="category-sort">Sort</label><select id="category-sort" name="sort" onchange="this.form.submit()"><option value="top" @selected($sort==='top')>Top rated</option><option value="popular" @selected($sort==='popular')>Most popular</option><option value="newest" @selected($sort==='newest')>Newest</option></select></form></div>
+        @if($tools->isEmpty())
+            <div class="inline-empty"><i data-lucide="package-open"></i><div><h3>No published tools yet</h3><p>This category is ready for future listings.</p></div></div>
+        @else
+            <div class="category-tool-grid">
+                @foreach($tools as $tool)
+                    <article class="category-tool-card"><div class="tool-card-head"><img src="{{ asset($tool->logo_path ?: 'storage/ai-hub/tools/logos/chatgpt.png') }}" alt="{{ $tool->name }} logo"><div><small>{{ $tool->company?->name ?? 'AI Tool' }}</small><h3><a href="{{ route('tools.show',$tool) }}">{{ $tool->name }}</a></h3></div><span class="rating-pill"><i data-lucide="star"></i>{{ number_format((float)$tool->rating,1) }}</span></div><p>{{ \Illuminate\Support\Str::limit($tool->short_description ?: $tool->description, 125) }}</p><div class="tool-card-tags">@foreach(array_slice($tool->capabilities ?? [],0,3) as $capability)<span>{{ $capability }}</span>@endforeach</div><div class="tool-card-foot"><span><i data-lucide="flame"></i>{{ number_format((int)$tool->popularity) }} popularity</span><a href="{{ route('tools.show',$tool) }}">View tool <i data-lucide="arrow-right"></i></a></div></article>
+                @endforeach
+            </div>
+            <div class="category-pagination">
+                <nav class="category-pager" aria-label="Category tools pagination">
+                    @if($tools->onFirstPage())<span class="pager-disabled"><i data-lucide="chevron-left"></i> Previous</span>@else<a href="{{ $tools->previousPageUrl() }}"><i data-lucide="chevron-left"></i> Previous</a>@endif
+                    <div class="pager-pages">
+                        @foreach(range(max(1,$tools->currentPage()-2), min($tools->lastPage(),$tools->currentPage()+2)) as $page)
+                            @if($page===$tools->currentPage())<span class="active">{{ $page }}</span>@else<a href="{{ $tools->url($page) }}">{{ $page }}</a>@endif
+                        @endforeach
+                    </div>
+                    @if($tools->hasMorePages())<a href="{{ $tools->nextPageUrl() }}">Next <i data-lucide="chevron-right"></i></a>@else<span class="pager-disabled">Next <i data-lucide="chevron-right"></i></span>@endif
+                </nav>
+                <p class="pager-summary">Showing {{ $tools->firstItem() }}–{{ $tools->lastItem() }} of {{ $tools->total() }} tools</p>
+            </div>
+        @endif
+    </section>
+
+    @if($models->isNotEmpty())
+    <section class="result-section"><div class="section-bar"><div><span class="section-icon cyan"><i data-lucide="cpu"></i></span><h2>Related AI Models</h2><small>Models powering products in this category</small></div><a href="{{ route('models.index') }}">Models directory <i data-lucide="arrow-right"></i></a></div><div class="category-model-grid">@foreach($models as $model)<a class="category-model-card" href="{{ route('models.show',$model) }}"><img src="{{ asset($model->logo_path ?: ($model->tool?->logo_path ?: 'storage/ai-hub/tools/logos/chatgpt.png')) }}" alt="{{ $model->name }}"><div><small>{{ $model->company?->name }}</small><h3>{{ $model->name }}</h3><span>{{ $model->context_window ?: '—' }} context</span></div><b>{{ number_format((float)$model->benchmark_score,1) }}</b></a>@endforeach</div></section>
+    @endif
+
+    <div class="category-content-split">
+        @if($articles->isNotEmpty())<section class="result-section"><div class="section-bar"><div><span class="section-icon gold"><i data-lucide="newspaper"></i></span><h2>Guides & Articles</h2></div><a href="{{ route('articles.index',['category'=>$category->slug]) }}">All articles <i data-lucide="arrow-right"></i></a></div><div class="mini-story-list">@foreach($articles as $article)<a href="{{ route('articles.show',$article) }}"><img src="{{ asset($article->featured_image_path ?: 'storage/ai-hub/news/ai-research.png') }}" alt="{{ $article->title }}"><div><small>{{ optional($article->published_at)->format('M j, Y') }}</small><h3>{{ $article->title }}</h3><p>{{ \Illuminate\Support\Str::limit($article->summary,85) }}</p></div></a>@endforeach</div></section>@endif
+        @if($news->isNotEmpty())<section class="result-section"><div class="section-bar"><div><span class="section-icon red"><i data-lucide="radio"></i></span><h2>Latest {{ $category->name }} News</h2></div><a href="{{ route('news.index',['q'=>$category->name]) }}">All news <i data-lucide="arrow-right"></i></a></div><div class="mini-story-list">@foreach($news as $item)<a href="{{ route('news.show',$item) }}"><img src="{{ asset($item->image_path ?: 'storage/ai-hub/news/ai-research.png') }}" alt="{{ $item->headline }}"><div><small>{{ $item->source ?? $item->company?->name }} · {{ optional($item->published_at)->diffForHumans() }}</small><h3>{{ $item->headline }}</h3><p>{{ \Illuminate\Support\Str::limit($item->summary ?: $item->ai_summary,85) }}</p></div></a>@endforeach</div></section>@endif
+    </div>
+
+    <section class="related-category-strip"><div><span class="eyebrow"><i data-lucide="compass"></i> Keep exploring</span><h2>Related AI categories</h2></div><div class="related-category-links">@foreach($relatedCategories as $related)<a href="{{ route('categories.show',$related) }}"><span>{{ $related->name }}</span><small>{{ $related->tools_count }} tools</small><i data-lucide="arrow-up-right"></i></a>@endforeach</div></section>
+</div>
+@endsection

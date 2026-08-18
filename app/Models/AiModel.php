@@ -41,4 +41,9 @@ class AiModel extends Model
         return $this->morphMany(BenchmarkResult::class, 'benchmarkable');
     }
 
+
+    public function testResults()
+    {
+        return $this->hasMany(AiTestResult::class, 'ai_model_id');
+    }
 }

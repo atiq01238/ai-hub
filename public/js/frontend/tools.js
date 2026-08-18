@@ -28,14 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setView(savedView);
     viewButtons.forEach(button => button.addEventListener('click', () => setView(button.dataset.viewMode)));
 
-    document.querySelectorAll('.save-tool-btn').forEach(button => {
-        button.addEventListener('click', () => {
-            button.classList.toggle('saved');
-            const icon = button.querySelector('svg');
-            if (icon) icon.style.fill = button.classList.contains('saved') ? 'currentColor' : 'none';
-        });
-    });
-
     const tray = document.querySelector('[data-compare-tray]');
     const selectedWrap = document.querySelector('[data-compare-selected]');
     const launch = document.querySelector('[data-compare-launch]');

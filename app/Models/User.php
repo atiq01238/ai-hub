@@ -27,6 +27,11 @@ class User extends Authenticatable
         return $this->hasMany(Submission::class);
     }
 
+    public function savedItems()
+    {
+        return $this->hasMany(SavedItem::class);
+    }
+
     public function reportsFiled()
     {
         return $this->hasMany(Report::class, 'reporter_id');

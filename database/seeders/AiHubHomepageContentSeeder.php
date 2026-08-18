@@ -8,6 +8,7 @@ use App\Models\Benchmark;
 use App\Models\BenchmarkResult;
 use App\Models\Company;
 use App\Models\PricingPlan;
+use App\Models\PricingHistory;
 use App\Models\Review;
 use App\Models\Tool;
 use App\Models\User;
@@ -24,6 +25,7 @@ class AiHubHomepageContentSeeder extends Seeder
         );
 
         $this->seedPricing();
+        $this->seedPricingHistory();
         $this->seedReviews($user);
         $this->seedArticles($user);
         $this->seedBenchmarks();
@@ -59,6 +61,25 @@ class AiHubHomepageContentSeeder extends Seeder
                     'credits' => $credits,
                     'limits' => $limits,
                 ]
+            );
+        }
+    }
+
+    private function seedPricingHistory(): void
+    {
+        $rows = [
+            ['ChatGPT','Plus',18,20,'increase',12],
+            ['Claude','Pro',22,20,'decrease',10],
+            ['Midjourney','Basic',8,10,'increase',8],
+            ['Runway','Standard',12,15,'increase',6],
+            ['Perplexity','Pro',18,20,'increase',4],
+        ];
+        foreach ($rows as [$toolName,$plan,$old,$new,$type,$days]) {
+            $tool = Tool::where('name',$toolName)->first();
+            if (!$tool) continue;
+            PricingHistory::firstOrCreate(
+                ['tool_id'=>$tool->id,'plan_name'=>$plan,'old_price'=>$old,'new_price'=>$new],
+                ['metric'=>'monthly_price','old_value'=>(string)$old,'new_value'=>(string)$new,'change_type'=>$type,'created_at'=>now()->subDays($days),'updated_at'=>now()->subDays($days)]
             );
         }
     }
@@ -170,6 +191,43 @@ class AiHubHomepageContentSeeder extends Seeder
                         'tested_at' => now()->subDays(7)->toDateString(),
                         'source_name' => 'AI Hub seeded validation dataset',
                         'notes' => 'Seeded benchmark result for public UI validation.',
+                        'verified' => true,
+                    ]
+                );
+            }
+        }
+
+
+        // Public benchmark explorer also needs tool-level coverage. These scores are
+        // derived from the structured benchmark snapshot already stored on seeded tools.
+        foreach (Tool::query()->where('status', 'published')->get() as $tool) {
+            foreach (($tool->benchmarks ?? []) as $benchmarkName => $score) {
+                if (!is_numeric($score)) continue;
+
+                $benchmark = Benchmark::firstOrCreate(
+                    ['name' => $benchmarkName],
+                    [
+                        'slug' => Str::slug($benchmarkName),
+                        'category' => 'Product Evaluation',
+                        'description' => 'AI Hub product-level evaluation metric for public tool comparison.',
+                        'weight' => 1,
+                        'max_score' => 100,
+                        'higher_is_better' => true,
+                        'is_active' => true,
+                    ]
+                );
+
+                BenchmarkResult::updateOrCreate(
+                    [
+                        'benchmark_id' => $benchmark->id,
+                        'benchmarkable_type' => Tool::class,
+                        'benchmarkable_id' => $tool->id,
+                    ],
+                    [
+                        'score' => (float) $score,
+                        'tested_at' => now()->subDays(5)->toDateString(),
+                        'source_name' => 'AI Hub seeded product evaluation',
+                        'notes' => 'Seeded from the tool benchmark snapshot for frontend validation.',
                         'verified' => true,
                     ]
                 );

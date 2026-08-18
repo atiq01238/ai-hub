@@ -24,4 +24,14 @@ class Company extends Model
     {
         return $this->hasMany(AiModel::class);
     }
+
+    public function newsItems()
+    {
+        return $this->hasMany(NewsItem::class);
+    }
+
+    public function articles()
+    {
+        return $this->hasMany(Article::class);
+    }
 }

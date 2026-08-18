@@ -62,7 +62,7 @@
                 @if($tool->company)<span><i data-lucide="building-2"></i><small>Company</small><b>{{ $tool->company->name }}</b></span>@endif
             </div>
             <div class="tool-hero-actions">
-                <button type="button" class="detail-secondary-btn" data-save-tool><i data-lucide="bookmark"></i><span>Save</span></button>
+                <button type="button" class="detail-secondary-btn" data-save-item data-save-type="tool" data-save-id="{{ $tool->id }}" aria-pressed="false"><i data-lucide="bookmark"></i><span data-save-label data-default-label="Save">Save</span></button>
                 <a href="{{ route('tools.index', ['compare'=>$tool->slug]) }}" class="detail-secondary-btn"><i data-lucide="scale"></i><span>Compare</span></a>
                 @if($tool->website)<a href="{{ $tool->website }}" target="_blank" rel="noopener noreferrer nofollow" class="detail-primary-btn">Visit Website<i data-lucide="arrow-up-right"></i></a>@endif
             </div>

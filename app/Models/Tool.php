@@ -70,6 +70,11 @@ class Tool extends Model
         return $this->hasMany(Review::class);
     }
 
+    public function pricingPlans()
+    {
+        return $this->hasMany(PricingPlan::class);
+    }
+
     public function recalculateRating(): void
     {
         $average = $this->reviews()->published()->avg('rating');

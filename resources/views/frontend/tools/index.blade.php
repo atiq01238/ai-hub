@@ -209,7 +209,7 @@
                             <div class="tool-card-media" @if($cover) style="--tool-cover:url('{{ $cover }}')" @endif>
                                 <div class="tool-media-shade"></div>
                                 <span class="tool-rank-badge"><i data-lucide="trending-up"></i>{{ $tool->popularity }}% popular</span>
-                                <button type="button" class="save-tool-btn" aria-label="Save {{ $tool->name }}"><i data-lucide="bookmark"></i></button>
+                                <button type="button" class="save-tool-btn" data-save-item data-save-type="tool" data-save-id="{{ $tool->id }}" aria-label="Save {{ $tool->name }}" aria-pressed="false"><i data-lucide="bookmark"></i></button>
                             </div>
                             <div class="tool-card-body">
                                 <div class="tool-card-identity">

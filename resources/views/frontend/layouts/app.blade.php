@@ -4,12 +4,16 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="saved-toggle-url" content="{{ route('saved.toggle') }}">
+    <meta name="saved-status-url" content="{{ route('saved.status') }}">
+    <meta name="login-url" content="{{ route('login') }}">
     <title>@yield('title', 'AI Hub — Discover, Compare, Master AI')</title>
     <meta name="description" content="@yield('meta_description', 'Discover AI tools, models, news, comparisons, pricing and independent test results in one place.')">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/frontend/app.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/frontend/saved.css') }}">
     @stack('styles')
 </head>
 <body>
@@ -24,30 +28,33 @@
             <a class="{{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}"><i data-lucide="house"></i>Home</a>
             <a class="{{ request()->routeIs('tools.*') ? 'active' : '' }}" href="{{ route('tools.index') }}"><i data-lucide="bot"></i>AI Tools</a>
             <a class="{{ request()->routeIs('models.*') ? 'active' : '' }}" href="{{ route('models.index') }}"><i data-lucide="code-xml"></i>AI Models</a>
-            <a href="#news"><i data-lucide="radio"></i>AI News</a>
-            <a href="#comparisons"><i data-lucide="scale"></i>Compare</a>
-            <a href="#test-lab"><i data-lucide="flask-conical"></i>Test Lab</a>
-            <a href="#pricing"><i data-lucide="badge-dollar-sign"></i>Pricing</a>
-            <a href="#reviews"><i data-lucide="star"></i>Reviews</a>
-            <a href="#articles"><i data-lucide="newspaper"></i>Articles</a>
-            <a href="#companies"><i data-lucide="building-2"></i>Companies</a>
+            <a class="{{ request()->routeIs('news.*') ? 'active' : '' }}" href="{{ route('news.index') }}"><i data-lucide="radio"></i>AI News</a>
+            <a class="{{ request()->routeIs('comparisons.*') ? 'active' : '' }}" href="{{ route('comparisons.index') }}"><i data-lucide="scale"></i>Compare</a>
+            <a class="{{ request()->routeIs('testlab.*') ? 'active' : '' }}" href="{{ route('testlab.index') }}"><i data-lucide="flask-conical"></i>Test Lab</a>
+            <a class="{{ request()->routeIs('pricing.*') ? 'active' : '' }}" href="{{ route('pricing.index') }}"><i data-lucide="badge-dollar-sign"></i>Pricing</a>
+            <a class="{{ request()->routeIs('reviews.*') ? 'active' : '' }}" href="{{ route('reviews.index') }}"><i data-lucide="star"></i>Reviews</a>
+            <a class="{{ request()->routeIs('articles.*') ? 'active' : '' }}" href="{{ route('articles.index') }}"><i data-lucide="newspaper"></i>Articles</a>
+            <a class="{{ request()->routeIs('companies.*') ? 'active' : '' }}" href="{{ route('companies.index') }}"><i data-lucide="building-2"></i>Companies</a>
         </nav>
 
         <div class="nav-actions">
-            <button class="icon-btn" type="button" aria-label="Search" data-focus-search><i data-lucide="search"></i></button>
-            <button class="icon-btn" type="button" aria-label="Toggle theme"><i data-lucide="moon"></i></button>
-            <button class="icon-btn" type="button" aria-label="Language"><i data-lucide="globe-2"></i></button>
+            <a class="icon-btn" href="{{ route('search.index') }}" aria-label="Search AI Hub"><i data-lucide="search"></i></a>
+            <a class="icon-btn {{ request()->routeIs('saved.*') ? 'active' : '' }}" href="{{ route('saved.index') }}" aria-label="Saved library"><i data-lucide="bookmark"></i></a>
             @auth
-                <a class="signin-btn" href="{{ route('admin.dashboard') }}"><span class="avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>Dashboard<i data-lucide="chevron-down"></i></a>
+                @if(auth()->user()->role === 'admin' && auth()->user()->status === 'active')
+                    <a class="signin-btn" href="{{ route('admin.dashboard') }}"><span class="avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>Admin<i data-lucide="chevron-right"></i></a>
+                @else
+                    <a class="signin-btn" href="{{ route('saved.index') }}"><span class="avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>My Library<i data-lucide="chevron-right"></i></a>
+                @endif
             @else
-                <a class="signin-btn" href="{{ route('login') }}"><span class="avatar"><i data-lucide="user"></i></span>Sign In<i data-lucide="chevron-down"></i></a>
+                <a class="signin-btn" href="{{ route('login') }}"><span class="avatar"><i data-lucide="user"></i></span>Sign In<i data-lucide="chevron-right"></i></a>
             @endauth
             <button class="menu-btn" type="button" aria-label="Open navigation" data-menu-toggle><i data-lucide="menu"></i></button>
         </div>
     </header>
 
     <div class="mobile-nav" data-mobile-nav>
-        <a href="{{ route('home') }}">Home</a><a href="{{ route('tools.index') }}">AI Tools</a><a href="{{ route('models.index') }}">AI Models</a><a href="#news">AI News</a><a href="#comparisons">Compare</a><a href="#test-lab">Test Lab</a><a href="#pricing">Pricing</a><a href="#reviews">Reviews</a><a href="#articles">Articles</a><a href="#companies">Companies</a>
+        <a href="{{ route('home') }}">Home</a><a href="{{ route('search.index') }}">Search</a><a href="{{ route('saved.index') }}">Saved</a><a href="{{ route('categories.index') }}">Categories</a><a href="{{ route('trending.index') }}">Trending</a><a href="{{ route('benchmarks.index') }}">Benchmarks</a><a href="{{ route('tools.index') }}">AI Tools</a><a href="{{ route('models.index') }}">AI Models</a><a href="{{ route('news.index') }}">AI News</a><a href="{{ route('comparisons.index') }}">Compare</a><a href="{{ route('testlab.index') }}">Test Lab</a><a href="{{ route('pricing.index') }}">Pricing</a><a href="{{ route('reviews.index') }}">Reviews</a><a href="{{ route('articles.index') }}">Articles</a><a href="{{ route('companies.index') }}">Companies</a><a href="{{ route('about') }}">About</a><a href="{{ route('methodology') }}">Methodology</a><a href="{{ route('contact') }}">Contact</a>
     </div>
 
     <main>@yield('content')</main>
@@ -63,11 +70,11 @@
                     <h2>Stay ahead of what is happening in AI.</h2>
                     <p>Discover new tools, model releases, pricing changes, benchmarks and practical comparisons without searching across dozens of sites.</p>
                 </div>
-                <form class="footer-subscribe" action="#" method="get">
-                    <div class="subscribe-field"><i data-lucide="mail"></i><input type="email" aria-label="Email address" placeholder="Enter your email address"></div>
-                    <button type="submit">Get AI Updates <i data-lucide="arrow-right"></i></button>
-                    <small>No spam. Just useful AI updates and product intelligence.</small>
-                </form>
+                <div class="footer-subscribe footer-discovery-actions">
+                    <a class="footer-discovery-primary" href="{{ route('trending.index') }}">Explore Trending AI <i data-lucide="arrow-right"></i></a>
+                    <a class="footer-discovery-secondary" href="{{ route('news.index') }}">Read Latest News</a>
+                    <small>Fresh tools, model releases, pricing changes and verified AI intelligence.</small>
+                </div>
             </div>
 
             <div class="footer-main">
@@ -77,32 +84,32 @@
                         <span><strong>AI Hub</strong><small>Discover • Compare • Master AI</small></span>
                     </a>
                     <p>A research-driven hub for finding the right AI tools and models, understanding the latest AI news and comparing products with useful data.</p>
-                    <div class="footer-socials">
-                        <a href="#" aria-label="X"><i data-lucide="twitter"></i></a>
-                        <a href="#" aria-label="YouTube"><i data-lucide="youtube"></i></a>
-                        <a href="#" aria-label="LinkedIn"><i data-lucide="linkedin"></i></a>
-                        <a href="#" aria-label="Github"><i data-lucide="github"></i></a>
+                    <div class="footer-proof">
+                        <span><i data-lucide="shield-check"></i> Source-aware</span>
+                        <span><i data-lucide="flask-conical"></i> Test-driven</span>
+                        <span><i data-lucide="scale"></i> Comparison-ready</span>
                     </div>
                 </div>
 
                 <div class="footer-links">
-                    <div><h3>Explore</h3><a href="{{ route('tools.index') }}">AI Tools</a><a href="{{ route('models.index') }}">AI Models</a><a href="#news">AI News</a><a href="#comparisons">Comparisons</a><a href="#test-lab">Test Lab</a></div>
-                    <div><h3>Intelligence</h3><a href="#">Pricing</a><a href="#">Benchmarks</a><a href="#">Reviews</a><a href="#">Articles</a><a href="#">Companies</a></div>
-                    <div><h3>Company</h3><a href="#">About AI Hub</a><a href="#">Methodology</a><a href="#">Editorial Policy</a><a href="#">Contact</a><a href="#">Suggest a Tool</a></div>
-                    <div><h3>Resources</h3><a href="#">AI Glossary</a><a href="#">For Developers</a><a href="#">API & Data</a><a href="#">Advertise</a><a href="#">Help Center</a></div>
+                    <div><h3>Explore</h3><a href="{{ route('search.index') }}">Global Search</a><a href="{{ route('categories.index') }}">AI Categories</a><a href="{{ route('tools.index') }}">AI Tools</a><a href="{{ route('models.index') }}">AI Models</a><a href="{{ route('news.index') }}">AI News</a><a href="{{ route('comparisons.index') }}">Comparisons</a><a href="{{ route('testlab.index') }}">Test Lab</a></div>
+                    <div><h3>Intelligence</h3><a href="{{ route('pricing.index') }}">Pricing</a><a href="{{ route('benchmarks.index') }}">Benchmarks</a><a href="{{ route('trending.index') }}">Trending</a><a href="{{ route('reviews.index') }}">Reviews</a><a href="{{ route('articles.index') }}">Articles</a><a href="{{ route('companies.index') }}">Companies</a></div>
+                    <div><h3>Company</h3><a href="{{ route('about') }}">About AI Hub</a><a href="{{ route('methodology') }}">Methodology</a><a href="{{ route('methodology') }}#editorial">Editorial Policy</a><a href="{{ route('contact') }}">Contact</a><a href="{{ route('submissions.create') }}">Suggest a Tool</a></div>
+                    <div><h3>Resources</h3><a href="{{ route('saved.index') }}">Saved Library</a><a href="{{ route('categories.index') }}">AI Categories</a><a href="{{ route('benchmarks.index') }}">Benchmark Data</a><a href="{{ route('pricing.index') }}">Pricing Intelligence</a><a href="{{ route('disclosures') }}">Data Disclosures</a><a href="{{ route('contact') }}">Help & Feedback</a></div>
                 </div>
             </div>
 
             <div class="footer-bottom">
                 <p>© {{ date('Y') }} AI Hub. All rights reserved.</p>
-                <div class="footer-legal"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Cookies</a><a href="#">Disclosures</a></div>
-                <div class="footer-status"><span></span> Systems operational <b>•</b> <i data-lucide="globe-2"></i> English</div>
+                <div class="footer-legal"><a href="{{ route('privacy') }}">Privacy</a><a href="{{ route('terms') }}">Terms</a><a href="{{ route('cookies') }}">Cookies</a><a href="{{ route('disclosures') }}">Disclosures</a></div>
+                <div class="footer-status"><i data-lucide="database"></i> Public AI intelligence <b>•</b> English</div>
             </div>
         </div>
     </footer>
 </div>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script src="{{ asset('js/frontend/app.js') }}"></script>
+<script src="{{ asset('js/frontend/saved.js') }}"></script>
 @stack('scripts')
 </body>
 </html>
