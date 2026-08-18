@@ -45,6 +45,9 @@ use App\Http\Controllers\Admin\System\IntegrationController;
 use App\Http\Controllers\Admin\System\SettingController;
 use App\Http\Controllers\Admin\System\NotificationRuleController;
 use App\Http\Controllers\PublicReviewController;
+use App\Http\Controllers\Frontend\HomeController;
+use App\Http\Controllers\Frontend\ToolController as FrontendToolController;
+use App\Http\Controllers\Frontend\ModelController as FrontendModelController;
 use App\Http\Controllers\Admin\SubmissionController as AdminSubmissionController;
 use App\Http\Controllers\ReportController as PublicReportController;
 use App\Http\Controllers\SubmissionController as PublicSubmissionController;
@@ -58,7 +61,11 @@ use App\Http\Middleware\RequirePermission;
 |--------------------------------------------------------------------------
 */
 
-Route::view('/', 'welcome')->name('home');
+Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/ai-tools', [FrontendToolController::class, 'index'])->name('tools.index');
+Route::get('/ai-tools/{tool:slug}', [FrontendToolController::class, 'show'])->name('tools.show');
+Route::get('/ai-models', [FrontendModelController::class, 'index'])->name('models.index');
+Route::get('/ai-models/{model:slug}', [FrontendModelController::class, 'show'])->name('models.show');
 
 /*
 |--------------------------------------------------------------------------

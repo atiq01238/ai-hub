@@ -16,6 +16,7 @@ class NewsItem extends Model
         'headline',
         'normalized_headline',
         'slug',
+        'image_path',
         'summary',
         'why_it_matters',
         'category',

@@ -15,6 +15,7 @@ class Comparison extends Model
 
     protected $casts = [
         'item_ids' => 'array',
+        'views'    => 'integer',
     ];
 
     /**

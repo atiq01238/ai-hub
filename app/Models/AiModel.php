@@ -13,7 +13,7 @@ class AiModel extends Model
     protected $table = 'ai_models';
 
     protected $fillable = [
-        'company_id', 'tool_id', 'name', 'slug', 'version', 'release_date',
+        'company_id', 'tool_id', 'name', 'slug', 'logo_path', 'cover_image_path', 'version', 'release_date',
         'context_window', 'input_price_per_million', 'output_price_per_million',
         'capabilities', 'capability_notes', 'benchmark_score', 'benchmarks', 'status',
     ];
@@ -22,6 +22,9 @@ class AiModel extends Model
         'capabilities' => 'array',
         'benchmarks'   => 'array',
         'release_date' => 'date',
+        'input_price_per_million'  => 'float',
+        'output_price_per_million' => 'float',
+        'benchmark_score'          => 'float',
     ];
 
     public function company()

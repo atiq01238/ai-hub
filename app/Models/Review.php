@@ -21,7 +21,7 @@ class Review extends Model
         'pros'             => 'array',
         'cons'             => 'array',
         'rating_breakdown' => 'array',
-        'rating'           => 'decimal:1',
+        'rating'           => 'float',
         'moderated_at'     => 'datetime',
     ];
 

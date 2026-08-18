@@ -30,6 +30,9 @@ class Tool extends Model
         'benchmarks'       => 'array',
         'launch_date'      => 'date',
         'published_at'     => 'datetime',
+        'rating'           => 'float',
+        'popularity'       => 'integer',
+        'benchmark_score'  => 'float',
     ];
 
     public function company()
