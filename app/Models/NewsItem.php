@@ -47,6 +47,7 @@ class NewsItem extends Model
         'published_at',
         'fetched_at',
         'ai_processed_at',
+        'discovery_analyzed_at',
     ];
 
     protected $casts = [
@@ -59,6 +60,7 @@ class NewsItem extends Model
         'published_at' => 'datetime',
         'fetched_at' => 'datetime',
         'ai_processed_at' => 'datetime',
+        'discovery_analyzed_at' => 'datetime',
         'verified_at' => 'datetime',
         'duplicate_checked_at' => 'datetime',
     ];
@@ -75,6 +77,7 @@ class NewsItem extends Model
                     $item->duplicate_of_id = null;
                     $item->duplicate_score = null;
                     $item->duplicate_status = 'unique';
+                    $item->discovery_analyzed_at = null;
                 }
             }
 

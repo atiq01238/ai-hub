@@ -56,6 +56,17 @@ class RunNewsPipeline extends Command
                 $failedSteps[] = 'RSS collection';
             }
 
+            if ($this->commandExists('discovery:scan')) {
+                if (! $this->runStep('AI discovery scan', 'discovery:scan', [
+                    '--limit' => $limit,
+                ])) {
+                    $failedSteps[] = 'AI discovery scan';
+                }
+            } else {
+                $this->error('discovery:scan command not found.');
+                $failedSteps[] = 'AI discovery scan';
+            }
+
             if ($this->commandExists('news:duplicates')) {
                 if (! $this->runStep('Duplicate detection', 'news:duplicates', [
                     '--all' => true,

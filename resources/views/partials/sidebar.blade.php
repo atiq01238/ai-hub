@@ -6,6 +6,7 @@
         ],
         'AI Intelligence' => [
             ['AI News Feed', '/admin/news', 'newspaper', null, null, ['admin.news.index']],
+            ['AI Discovery', '/admin/discovery', 'radar', null, null, ['admin.discovery.*']],
             ['Breaking News', '/admin/news/breaking', 'zap'],
             ['Trending AI', '/admin/news/trending', 'trending-up'],
             ['AI Updates', '/admin/news/updates', 'refresh-cw'],
@@ -86,7 +87,7 @@
     // Central route-to-permission map. Existing tuple-level permissions still win.
     $permissionByPath = [
         '/admin' => ['Dashboard','View'],
-        '/admin/news' => ['AI News','View'], '/admin/news/breaking' => ['AI News','View'], '/admin/news/trending' => ['AI News','View'], '/admin/news/updates' => ['AI News','View'], '/admin/news/saved' => ['AI News','View'],
+        '/admin/news' => ['AI News','View'], '/admin/discovery' => ['AI News','View'], '/admin/news/breaking' => ['AI News','View'], '/admin/news/trending' => ['AI News','View'], '/admin/news/updates' => ['AI News','View'], '/admin/news/saved' => ['AI News','View'],
         '/admin/tools' => ['AI Tools','View'], '/admin/models' => ['AI Models','View'], '/admin/companies' => ['AI Companies','View'],
         '/admin/taxonomy/categories' => ['Taxonomy','View'], '/admin/taxonomy/subcategories' => ['Taxonomy','View'], '/admin/taxonomy/features' => ['Taxonomy','View'], '/admin/taxonomy/tags' => ['Taxonomy','View'],
         '/admin/comparisons' => ['Comparisons','View'], '/admin/comparisons/builder' => ['Comparisons','Add'], '/admin/comparisons/metrics' => ['Comparisons','View'],

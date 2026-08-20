@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\System;
 
 use App\Http\Controllers\Controller;
 use App\Models\Company;
+use App\Models\DiscoverySource;
 use App\Models\NewsSource;
 use Illuminate\Http\Request;
 
@@ -27,7 +28,17 @@ class NewsSourceController extends Controller
             'company_id'        => ['nullable', 'exists:companies,id'],
         ]);
 
-        NewsSource::create($data);
+        $source = NewsSource::create($data);
+        DiscoverySource::firstOrCreate(
+            ['news_source_id' => $source->id],
+            [
+                'enabled' => true,
+                'trusted' => !empty($source->company_id),
+                'detect_tools' => true,
+                'detect_models' => true,
+                'minimum_confidence' => !empty($source->company_id) ? 50 : 60,
+            ]
+        );
 
         return redirect()->route('admin.system.news-sources')->with('status', 'Source added.');
     }

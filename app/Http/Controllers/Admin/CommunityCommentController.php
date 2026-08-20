@@ -49,10 +49,17 @@ class CommunityCommentController extends Controller
 
         $base = CommunityComment::query();
 
-        $comments->getCollection()->each(fn ($comment) => $comment->setAttribute('risk', $this->risk->score($comment)));
+        $comments = $query
+            ->latest()
+            ->paginate(25)
+            ->withQueryString();
+
+        $comments->getCollection()->each(
+            fn ($comment) => $comment->setAttribute('risk', $this->risk->score($comment))
+        );
 
         return view('community.comments.index', [
-            'comments' => $query->latest()->paginate(25)->withQueryString(),
+            'comments' => $comments,
             'counts' => [
                 'all' => (clone $base)->count(),
                 'pending' => (clone $base)->where('status', 'pending')->count(),
@@ -121,7 +128,8 @@ class CommunityCommentController extends Controller
         abort_unless(
             $request->user()
             && $request->user()->role === 'admin'
-            && $request->user()->status === 'active',
+            && $request->user()->status === 'active'
+            && $request->user()->canAccessModule('Reviews', 'Edit'),
             403
         );
     }

@@ -51,6 +51,16 @@ Schedule::command('news:health-check')
     ->withoutOverlapping(20)
     ->appendOutputTo(storage_path('logs/news-health.log'));
 
+Schedule::command('discovery:scan --limit=500')
+    ->hourly()
+    ->withoutOverlapping(30)
+    ->appendOutputTo(storage_path('logs/ai-discovery.log'));
+
+Schedule::command('discovery:health-check --notify')
+    ->everySixHours()
+    ->withoutOverlapping(20)
+    ->appendOutputTo(storage_path('logs/ai-discovery-health.log'));
+
 /* Content publishing: approved scheduled articles become public when due. */
 Schedule::command('content:publish-scheduled')
     ->everyMinute()

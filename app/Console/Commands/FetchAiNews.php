@@ -5,9 +5,11 @@ namespace App\Console\Commands;
 use App\Models\Company;
 use App\Models\NewsItem;
 use App\Models\NewsSource;
+use App\Services\Discovery\DiscoveryClassifier;
 use Illuminate\Console\Command;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class FetchAiNews extends Command
@@ -231,7 +233,7 @@ class FetchAiNews extends Command
 
         $companyId = $source->company_id ?: $this->guessCompany($headline);
 
-        NewsItem::create([
+        $newsItem = NewsItem::create([
             'news_source_id' => $source->id,
             'company_id' => $companyId,
             'headline' => $headline,
@@ -250,6 +252,16 @@ class FetchAiNews extends Command
             'published_at' => $entry['published_at'] ?? now(),
             'fetched_at' => now(),
         ]);
+
+        // Discovery is intentionally non-blocking: a classifier failure must
+        // never stop the existing RSS/news collection pipeline.
+        try {
+            app(DiscoveryClassifier::class)->analyze($newsItem->loadMissing(['company', 'newsSource.company']));
+        } catch (\Throwable $e) {
+            Log::warning('AI discovery analysis failed for news item ' . $newsItem->id, [
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return 'created';
     }

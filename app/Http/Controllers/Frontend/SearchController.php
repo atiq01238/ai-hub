@@ -23,7 +23,19 @@ class SearchController extends Controller {
    if(in_array($type,['all','news']))$news=$newsQ->orderByDesc('published_at')->take($type==='news'?30:6)->get();
    if(in_array($type,['all','companies']))$companies=$companyQ->orderByDesc('tools_count')->take($type==='companies'?30:6)->get();
    if(in_array($type,['all','articles']))$articles=$articleQ->orderByDesc('published_at')->take($type==='articles'?30:6)->get();
-   SearchEvent::create(['user_id'=>$request->user()?->id,'query'=>Str::lower($query),'type'=>$type,'result_count'=>array_sum($counts),'session_key'=>$request->session()->getId()]);
+   $sessionFingerprint = hash_hmac(
+       'sha256',
+       $request->session()->getId(),
+       (string) config('app.key')
+   );
+
+   SearchEvent::create([
+       'user_id'=>$request->user()?->id,
+       'query'=>Str::lower($query),
+       'type'=>$type,
+       'result_count'=>array_sum($counts),
+       'session_key'=>$sessionFingerprint,
+   ]);
   }
   $popularCategories=Category::withCount(['tools'=>fn($q)=>$q->where('status','published')])->orderByDesc('tools_count')->take(8)->get();
   $trendingTools=Tool::with('company')->where('status','published')->orderByDesc('popularity')->orderByDesc('rating')->take(6)->get();
@@ -34,5 +46,16 @@ class SearchController extends Controller {
  public function save(Request $r){$d=$r->validate(['query'=>'required|string|max:180','type'=>'nullable|in:all,tools,models,news,companies,articles']);SavedSearch::firstOrCreate(['user_id'=>$r->user()->id,'query'=>trim($d['query']),'type'=>$d['type']??'all']);return back()->with('status','Search saved.');}
  public function destroySaved(Request $r,SavedSearch $savedSearch){abort_unless($savedSearch->user_id===$r->user()->id,403);$savedSearch->delete();return back()->with('status','Saved search removed.');}
  public function click(Request $r){$d=$r->validate(['query'=>'required|string|max:180','target_type'=>'required|in:tool,model,news,company,article','target_id'=>'required|integer|min:1']);SearchEvent::where('user_id',$r->user()?->id)->where('query',Str::lower(trim($d['query'])))->latest()->first()?->update(['clicked'=>true,'clicked_type'=>$d['target_type'],'clicked_id'=>$d['target_id']]);return response()->json(['ok'=>true]);}
- private function tokens($q,$tokens,array $cols){foreach($tokens as $token){$q->where(function($x)use($token,$cols){foreach($cols as $i=>$col){$method=$i?'orWhere':'where';$x->{$method}($col,'like','%'.$token.'%');}});}return $q;}
+ private function tokens($q,$tokens,array $cols){
+  foreach($tokens as $token){
+   $safeToken=addcslashes((string)$token,'\\%_');
+   $q->where(function($x)use($safeToken,$cols){
+    foreach($cols as $i=>$col){
+     $method=$i?'orWhere':'where';
+     $x->{$method}($col,'like','%'.$safeToken.'%');
+    }
+   });
+  }
+  return $q;
+ }
 }

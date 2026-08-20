@@ -165,6 +165,21 @@ Route::middleware(['auth', EnsureAccountIsActive::class, 'admin'])
         | AI Intelligence — News
         |----------------------------------------------------------------
         */
+        Route::controller(\App\Http\Controllers\Admin\Discovery\DiscoveryController::class)
+            ->prefix('discovery')
+            ->name('discovery.')
+            ->group(function () {
+                Route::get('/', 'index')->middleware(RequirePermission::class . ':AI News,View')->name('index');
+                Route::post('/scan-now', 'scanNow')->middleware(RequirePermission::class . ':AI News,Edit')->name('scan-now');
+                Route::get('/{id}', 'show')->whereNumber('id')->middleware(RequirePermission::class . ':AI News,View')->name('show');
+                Route::post('/{id}/ignore', 'ignore')->whereNumber('id')->middleware(RequirePermission::class . ':AI News,Edit')->name('ignore');
+                Route::post('/{id}/restore', 'restore')->whereNumber('id')->middleware(RequirePermission::class . ':AI News,Edit')->name('restore');
+                Route::post('/{id}/merge', 'merge')->whereNumber('id')->middleware(RequirePermission::class . ':AI News,Edit')->name('merge');
+                Route::post('/{id}/tool', 'convertToTool')->whereNumber('id')->middleware(RequirePermission::class . ':AI Tools,Add')->name('tool');
+                Route::post('/{id}/model', 'convertToModel')->whereNumber('id')->middleware(RequirePermission::class . ':AI Models,Add')->name('model');
+                Route::put('/sources/{id}', 'updateSource')->whereNumber('id')->middleware(RequirePermission::class . ':AI News,Edit')->name('sources.update');
+            });
+
         Route::controller(NewsController::class)
             ->prefix('news')
             ->name('news.')

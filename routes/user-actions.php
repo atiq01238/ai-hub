@@ -93,13 +93,6 @@ Route::middleware(['auth', EnsureAccountIsActive::class])->group(function () {
         ->name('community.report');
 
     // Reviews
-    Route::get('/tools/{tool}/review', [PublicReviewController::class, 'createTool'])
-        ->name('reviews.tools.create');
-
-    Route::post('/tools/{tool}/review', [PublicReviewController::class, 'storeTool'])
-        ->middleware('throttle:10,1')
-        ->name('reviews.tools.store');
-
     Route::get('/models/{model}/review', [PublicReviewController::class, 'createModel'])
         ->name('reviews.models.create');
 
@@ -181,6 +174,7 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('admin/community/comments')
         ->name('admin.community.comments.')
+        ->middleware(\App\Http\Middleware\RequirePermission::class . ':Reviews,Edit')
         ->group(function () {
             Route::get('/', [CommunityCommentController::class, 'index'])
                 ->name('index');
@@ -196,14 +190,27 @@ Route::middleware('auth')->group(function () {
 
 /* Six-feature intelligence upgrade */
 Route::middleware(['auth', EnsureAccountIsActive::class])->group(function () {
-    Route::post('/search/save', [AdvancedSearchController::class, 'save'])->name('search.save');
-    Route::delete('/search/saved/{savedSearch}', [AdvancedSearchController::class, 'destroySaved'])->name('search.saved.destroy');
-    Route::post('/search/click', [AdvancedSearchController::class, 'click'])->name('search.click');
+    Route::post('/search/save', [AdvancedSearchController::class, 'save'])
+        ->middleware('throttle:20,1')
+        ->name('search.save');
 
-    Route::get('/onboarding', [OnboardingController::class, 'show'])->name('account.onboarding');
-    Route::post('/onboarding', [OnboardingController::class, 'store'])->name('account.onboarding.store');
+    Route::delete('/search/saved/{savedSearch}', [AdvancedSearchController::class, 'destroySaved'])
+        ->middleware('throttle:30,1')
+        ->name('search.saved.destroy');
+
+    Route::post('/search/click', [AdvancedSearchController::class, 'click'])
+        ->middleware('throttle:120,1')
+        ->name('search.click');
+
+    Route::get('/onboarding', [OnboardingController::class, 'show'])
+        ->name('account.onboarding');
+
+    Route::post('/onboarding', [OnboardingController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('account.onboarding.store');
 
     Route::patch('/account/following/{interaction}/alerts', [FollowPreferenceController::class, 'update'])
+        ->middleware('throttle:30,1')
         ->name('account.following.alerts');
 });
 
