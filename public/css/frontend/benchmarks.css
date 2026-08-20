@@ -1,0 +1,11 @@
+/* Benchmark discussion page — scoped companion to community.css. */
+.benchmark-intel-hero{position:relative;overflow:hidden;padding:72px 0 58px;border-bottom:1px solid rgba(121,139,192,.16);background:radial-gradient(circle at 62% 18%,rgba(111,73,255,.24),transparent 35%),linear-gradient(180deg,#080b1d,#050713)}
+.benchmark-intel-hero .intel-hero-grid{position:absolute;inset:0;opacity:.22;background-image:linear-gradient(rgba(135,151,205,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(135,151,205,.12) 1px,transparent 1px);background-size:42px 42px;mask-image:linear-gradient(to bottom,black,transparent 90%)}
+.intel-wrap{position:relative;z-index:1;width:min(1180px,calc(100% - 40px));margin-inline:auto}
+.intel-back{display:inline-flex;align-items:center;gap:7px;margin-bottom:24px;color:#9aa8cb;font-size:14px;font-weight:700;text-decoration:none}.intel-back:hover{color:#fff}.intel-back svg{width:16px;height:16px}
+.benchmark-intel-hero .intel-eyebrow{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid rgba(140,118,255,.28);border-radius:999px;background:rgba(104,75,214,.1);color:#b8abff;font-size:12px;font-weight:800;letter-spacing:.12em}.benchmark-intel-hero .intel-eyebrow svg{width:14px;height:14px}
+.benchmark-intel-hero h1{max-width:900px;margin:16px 0 14px;color:#f5f7ff;font-size:clamp(38px,5vw,64px);line-height:1.02;letter-spacing:-.045em}
+.benchmark-intel-hero p{max-width:780px;margin:0;color:#9aa8c8;font-size:15px;line-height:1.75}
+.intel-hero-stats{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}.intel-hero-stats span{min-width:150px;padding:12px 15px;border:1px solid #242d4d;border-radius:13px;background:rgba(9,14,31,.72)}.intel-hero-stats b,.intel-hero-stats small{display:block}.intel-hero-stats b{color:#f2f5ff;font-size:15px}.intel-hero-stats small{margin-top:3px;color:#7786aa;font-size:12px}
+.intel-directory{padding:34px 0 64px;background:#060817}.intel-directory [data-community-static]{min-height:220px}
+@media(max-width:700px){.benchmark-intel-hero{padding:54px 0 42px}.intel-wrap{width:min(100% - 24px,1180px)}.benchmark-intel-hero h1{font-size:38px}.benchmark-intel-hero p{font-size:14px}.intel-hero-stats{display:grid;grid-template-columns:1fr}.intel-hero-stats span{min-width:0}}

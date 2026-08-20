@@ -92,7 +92,7 @@ Route::middleware(['auth', EnsureAccountIsActive::class])->group(function () {
         ->middleware('throttle:10,1')
         ->name('community.report');
 
-    // Reviews
+    // Reviews. Tool review routes are defined in routes/web.php; model reviews live here.
     Route::get('/models/{model}/review', [PublicReviewController::class, 'createModel'])
         ->name('reviews.models.create');
 
@@ -167,22 +167,25 @@ Route::middleware(['auth', EnsureAccountIsActive::class])->group(function () {
 |--------------------------------------------------------------------------
 */
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', EnsureAccountIsActive::class, 'admin'])->group(function () {
     Route::patch('/admin/users/{id}/community-trust', [AdminUserController::class, 'updateCommunityTrust'])
         ->whereNumber('id')
+        ->middleware(\App\Http\Middleware\RequirePermission::class . ':Users,Edit')
         ->name('admin.users.community-trust');
 
     Route::prefix('admin/community/comments')
         ->name('admin.community.comments.')
-        ->middleware(\App\Http\Middleware\RequirePermission::class . ':Reviews,Edit')
         ->group(function () {
             Route::get('/', [CommunityCommentController::class, 'index'])
+                ->middleware(\App\Http\Middleware\RequirePermission::class . ':Users,View')
                 ->name('index');
 
             Route::patch('/{comment}', [CommunityCommentController::class, 'update'])
+                ->middleware(\App\Http\Middleware\RequirePermission::class . ':Users,Edit')
                 ->name('update');
 
             Route::delete('/{comment}', [CommunityCommentController::class, 'destroy'])
+                ->middleware(\App\Http\Middleware\RequirePermission::class . ':Users,Delete')
                 ->name('destroy');
         });
 });
@@ -190,27 +193,14 @@ Route::middleware('auth')->group(function () {
 
 /* Six-feature intelligence upgrade */
 Route::middleware(['auth', EnsureAccountIsActive::class])->group(function () {
-    Route::post('/search/save', [AdvancedSearchController::class, 'save'])
-        ->middleware('throttle:20,1')
-        ->name('search.save');
+    Route::post('/search/save', [AdvancedSearchController::class, 'save'])->name('search.save');
+    Route::delete('/search/saved/{savedSearch}', [AdvancedSearchController::class, 'destroySaved'])->name('search.saved.destroy');
+    Route::post('/search/click', [AdvancedSearchController::class, 'click'])->name('search.click');
 
-    Route::delete('/search/saved/{savedSearch}', [AdvancedSearchController::class, 'destroySaved'])
-        ->middleware('throttle:30,1')
-        ->name('search.saved.destroy');
-
-    Route::post('/search/click', [AdvancedSearchController::class, 'click'])
-        ->middleware('throttle:120,1')
-        ->name('search.click');
-
-    Route::get('/onboarding', [OnboardingController::class, 'show'])
-        ->name('account.onboarding');
-
-    Route::post('/onboarding', [OnboardingController::class, 'store'])
-        ->middleware('throttle:10,1')
-        ->name('account.onboarding.store');
+    Route::get('/onboarding', [OnboardingController::class, 'show'])->name('account.onboarding');
+    Route::post('/onboarding', [OnboardingController::class, 'store'])->name('account.onboarding.store');
 
     Route::patch('/account/following/{interaction}/alerts', [FollowPreferenceController::class, 'update'])
-        ->middleware('throttle:30,1')
         ->name('account.following.alerts');
 });
 
