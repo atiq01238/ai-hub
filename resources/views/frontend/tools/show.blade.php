@@ -21,8 +21,10 @@
     $benchmarkMax = max(1, (float) ($benchmarkResults->max(fn($result) => $result->benchmark?->max_score) ?: 100));
 @endphp
 
-<section class="tool-detail-hero">
+<section class="tool-detail-hero tool-detail-hero-network">
+    <div class="tool-network-art" aria-hidden="true"></div>
     @if($cover)<div class="tool-hero-cover" style="background-image:url('{{ $cover }}')"></div>@endif
+    <div class="tool-logo-aura" aria-hidden="true" style="background-image:url('{{ $logo }}')"></div>
     <div class="tool-hero-grid"></div><div class="tool-hero-glow"></div>
     <div class="tool-detail-wrap hero-wrap">
         <nav class="tool-breadcrumb" aria-label="Breadcrumb">
@@ -73,9 +75,13 @@
 <div class="tool-sticky-nav" data-detail-nav>
     <div class="tool-detail-wrap sticky-nav-inner">
         <div class="detail-nav-links">
-            <a href="#overview" class="active">Overview</a><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="#benchmarks">Benchmarks</a><a href="#reviews">Reviews</a><a href="#alternatives">Alternatives</a>
+            <a href="#overview" class="active">Overview</a>
+            @if($capabilities->isNotEmpty() || $tool->featureTerms->isNotEmpty())<a href="#features">Features</a>@endif
+            <a href="#pricing">Pricing</a>
+            @if($benchmarkResults->isNotEmpty() || $tool->benchmark_score)<a href="#benchmarks">Benchmarks</a>@endif
+            @if($publishedReviews->isNotEmpty() || $pros->isNotEmpty() || $cons->isNotEmpty())<a href="#reviews">Reviews</a>@endif
+            @if($relatedTools->isNotEmpty())<a href="#alternatives">Alternatives</a>@endif
         </div>
-        @if($tool->website)<a href="{{ $tool->website }}" target="_blank" rel="noopener noreferrer nofollow" class="sticky-visit">Visit {{ $tool->name }}<i data-lucide="arrow-up-right"></i></a>@endif
     </div>
 </div>
 
@@ -89,6 +95,7 @@
             @endif
         </section>
 
+        @if($capabilities->isNotEmpty() || $tool->featureTerms->isNotEmpty())
         <section class="detail-panel" id="features">
             <div class="detail-section-head"><div><span>Capabilities</span><h2>Features & use cases</h2><p>Core capabilities listed for {{ $tool->name }}.</p></div><i data-lucide="blocks"></i></div>
             <div class="feature-detail-grid">
@@ -105,6 +112,7 @@
             </div>
             @endif
         </section>
+        @endif
 
         <section class="detail-panel" id="pricing">
             <div class="detail-section-head"><div><span>Pricing</span><h2>{{ $tool->name }} pricing plans</h2><p>Pricing stored in AI Hub's pricing database. Always verify final rates on the provider website.</p></div><i data-lucide="badge-dollar-sign"></i></div>
@@ -121,15 +129,15 @@
                         @foreach(preg_split('/[\r\n,;]+/', (string)$plan->limits, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $limit)<li><i data-lucide="check"></i>{{ trim($limit) }}</li>@endforeach
                         @if($plan->credits)<li><i data-lucide="check"></i>{{ $plan->credits }}</li>@endif
                     </ul>
-                    @if($tool->website)<a href="{{ $tool->website }}" target="_blank" rel="noopener noreferrer nofollow">Check current pricing<i data-lucide="arrow-up-right"></i></a>@endif
                 </article>
                 @endforeach
             </div>
             @else
-            <div class="pricing-fallback"><div><i data-lucide="wallet-cards"></i></div><div><h3>{{ $priceLabel }}</h3><p>Detailed plan-level pricing has not been added yet.</p></div>@if($tool->website)<a href="{{ $tool->website }}" target="_blank" rel="noopener noreferrer nofollow">View provider pricing<i data-lucide="arrow-up-right"></i></a>@endif</div>
+            <div class="pricing-fallback"><div><i data-lucide="wallet-cards"></i></div><div><h3>{{ $priceLabel }}</h3><p>Detailed plan-level pricing has not been added yet.</p></div></div>
             @endif
         </section>
 
+        @if($benchmarkResults->isNotEmpty() || $tool->benchmark_score)
         <section class="detail-panel" id="benchmarks">
             <div class="detail-section-head"><div><span>Performance</span><h2>Benchmarks & scores</h2><p>Verified benchmark results and AI Hub scoring for this tool.</p></div><i data-lucide="gauge"></i></div>
             @if($benchmarkResults->isNotEmpty())
@@ -145,7 +153,9 @@
             <p class="detail-empty">No verified benchmark results are published for {{ $tool->name }} yet.</p>
             @endif
         </section>
+        @endif
 
+        @if($publishedReviews->isNotEmpty() || $pros->isNotEmpty() || $cons->isNotEmpty())
         <section class="detail-panel" id="reviews">
             <div class="detail-section-head"><div><span>Reviews</span><h2>What reviewers say</h2><p>Published reviews and rating evidence for {{ $tool->name }}.</p></div><i data-lucide="messages-square"></i></div>
             @if($pros->isNotEmpty() || $cons->isNotEmpty())
@@ -164,7 +174,9 @@
             <p class="detail-empty">No published reviews are available yet.</p>
             @endif
         </section>
+        @endif
 
+        @if($relatedTools->isNotEmpty())
         <section class="detail-panel" id="alternatives">
             <div class="detail-section-head"><div><span>Alternatives</span><h2>Similar AI tools</h2><p>Other highly rated tools in related categories or from the same company.</p></div><i data-lucide="shuffle"></i></div>
             <div class="alternative-grid">
@@ -173,6 +185,7 @@
                 @endforeach
             </div>
         </section>
+        @endif
     </div>
 
     <aside class="tool-detail-sidebar">
@@ -186,7 +199,6 @@
                 <div><dt>Platforms</dt><dd>{{ $platforms->join(', ') ?: 'Not specified' }}</dd></div>
                 @if($tool->company)<div><dt>Developer</dt><dd>{{ $tool->company->name }}</dd></div>@endif
             </dl>
-            @if($tool->website)<a href="{{ $tool->website }}" target="_blank" rel="noopener noreferrer nofollow">Official website<i data-lucide="arrow-up-right"></i></a>@endif
         </section>
 
         @if($tool->company)
@@ -211,8 +223,6 @@
             <div class="tool-news-list">@foreach($latestNews as $news)<article>@if($news->image_path)<img src="{{ asset($news->image_path) }}" alt="">@endif<div><span>{{ $news->category ?: 'AI News' }} @if($news->published_at)• {{ $news->published_at->diffForHumans() }}@endif</span><h3>{{ Str::limit($news->headline,75) }}</h3></div></article>@endforeach</div>
         </section>
         @endif
-
-        <section class="sidebar-card methodology-card"><div class="sidebar-title"><span>AI Hub methodology</span><i data-lucide="shield-check"></i></div><p>Profiles combine structured product data, published pricing, reviews and verified benchmark results where available. Provider details can change.</p><a href="#benchmarks">See evidence used<i data-lucide="arrow-down"></i></a></section>
     </aside>
 </section>
 

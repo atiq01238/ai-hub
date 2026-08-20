@@ -2,28 +2,36 @@
 
 @section('title', 'AI Hub — Discover, Compare, Master AI')
 
+@push('styles')
+<link rel="stylesheet" href="{{ asset('css/frontend/home-hero-refined.css') }}">
+@endpush
+
 @section('content')
-<section class="hero">
+<section class="hero home-hero home-hero-reference">
     <div class="hero-grid"></div>
-    <div class="hero-glow glow-a"></div><div class="hero-glow glow-b"></div>
-    <div class="hero-content">
-        <h1>Discover. <span>Compare.</span> Master <em>AI.</em></h1>
-        <p>Explore the latest AI tools, models, news, reviews, pricing and real-world comparisons — all in one place.</p>
-        <form class="global-search" action="{{ route('search.index') }}" method="get">
-            <i data-lucide="search"></i>
-            <input id="home-global-search" name="q" type="search" placeholder="Search AI tools, models, companies, news..." autocomplete="off">
-            <button type="submit"><i data-lucide="search"></i>Search</button>
-        </form>
-        <div class="quick-chips">
-            @foreach($categories->take(7) as $category)
-                <a href="{{ route('categories.show', $category) }}">{{ $category->name }}</a>
-            @endforeach
+    <div class="hero-glow glow-a"></div>
+    <div class="hero-glow glow-b"></div>
+    <div class="hero-wave" aria-hidden="true"></div>
+
+    <img class="hero-neural-brain" src="{{ asset('images/frontend/ai-neural-brain.png') }}" alt="" aria-hidden="true">
+
+    <div class="home-hero-shell">
+        <div class="hero-content home-hero-copy">
+            <h1>Discover. <span>Compare.</span> Master <em>AI.</em></h1>
+            <p>Explore the latest AI tools, models, news, reviews, pricing and real-world comparisons — all in one place.</p>
+
+            <form class="global-search home-hero-search" action="{{ route('search.index') }}" method="get">
+                <div class="hero-search-icon"><i data-lucide="search"></i></div>
+                <input id="home-global-search" name="q" type="search" placeholder="Search AI tools, models, companies, news..." autocomplete="off">
+                <button type="submit"><i data-lucide="search"></i><span>Search</span></button>
+            </form>
+
+            <div class="quick-chips home-hero-chips">
+                @foreach($categories->take(7) as $category)
+                    <a href="{{ route('categories.show', $category) }}">{{ $category->name }}</a>
+                @endforeach
+            </div>
         </div>
-    </div>
-    <div class="hero-art" aria-hidden="true">
-        <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="orbit orbit-three"></div>
-        <i data-lucide="brain-circuit"></i>
-        <span class="node n1"></span><span class="node n2"></span><span class="node n3"></span><span class="node n4"></span>
     </div>
 </section>
 
@@ -32,14 +40,14 @@
         <div class="trend-label"><span>🔥</span><strong>Trending AI.</strong></div>
         <div class="trend-items">
             @foreach($trendingTools as $tool)
-                <a href="{{ route('tools.index', ['q' => $tool->name]) }}" class="trend-item">
+                <a href="{{ route('tools.show', $tool) }}" class="trend-item">
                     <img src="{{ asset($tool->logo_path) }}" alt="{{ $tool->name }} logo">
                     <span>{{ $tool->name }}</span>
                     <b>↑ {{ max(8, min(39, (int) round($tool->popularity / 3))) }}%</b>
                 </a>
             @endforeach
         </div>
-        <a class="ghost-link" href="{{ route('tools.index') }}">View All <i data-lucide="arrow-right"></i></a>
+        <a class="ghost-link" href="{{ route('trending.index') }}">View All <i data-lucide="arrow-right"></i></a>
     </section>
 
     <div class="dashboard-grid">
@@ -87,7 +95,7 @@
                             <span class="badge">{{ implode(' + ', array_slice($tool->pricing_models ?? [],0,2)) ?: 'Explore' }}</span>
                         </div>
                         <p>{{ $tool->short_description }}</p>
-                        <div class="card-actions"><a class="primary-btn" href="{{ route('tools.show', $tool) }}">View Tool</a><a class="secondary-btn" href="{{ route('comparisons.builder', ['type' => 'tool']) }}">Compare</a></div>
+                        <div class="card-actions"><a class="primary-btn" href="{{ route('tools.show', $tool) }}">View Tool</a><a class="secondary-btn" href="{{ route('comparisons.builder', ['type' => 'tool', 'item' => $tool->id]) }}">Compare</a></div>
                     </article>
                     @endforeach
                 </div>
@@ -154,7 +162,7 @@
                 <div class="section-heading row-heading"><div class="heading-left"><div class="heading-icon cyan"><i data-lucide="cpu"></i></div><div><h2>Top AI Models</h2><p>Benchmark-ready model records with dedicated artwork</p></div></div><a class="text-link" href="{{ route('models.index') }}">View All <i data-lucide="arrow-right"></i></a></div>
                 <div class="model-strip">
                     @foreach($featuredModels as $model)
-                        <article class="model-card"><img src="{{ asset($model->logo_path ?: ($model->tool?->logo_path ?? $model->company?->logo_path)) }}" alt="{{ $model->name }}"><div><h3>{{ $model->name }}</h3><span>{{ $model->company?->name }} · {{ $model->context_window }}</span></div><b>{{ number_format((float)$model->benchmark_score,1) }}</b></article>
+                        <a class="model-card" href="{{ route('models.show', $model) }}"><img src="{{ asset($model->logo_path ?: ($model->tool?->logo_path ?? $model->company?->logo_path)) }}" alt="{{ $model->name }}"><div><h3>{{ $model->name }}</h3><span>{{ $model->company?->name }} · {{ $model->context_window }}</span></div><b>{{ number_format((float)$model->benchmark_score,1) }}</b></a>
                     @endforeach
                 </div>
             </section>
@@ -171,7 +179,7 @@
             </section>
 
             <section class="panel side-panel news-categories">
-                <div class="side-title"><h2><i data-lucide="flask-conical"></i> AI News Categories</h2></div>
+                <div class="side-title"><h2><i data-lucide="newspaper"></i> AI News Categories</h2></div>
                 @php($sideIcons=['Breaking News'=>'flame','New Models'=>'sparkles','Product Launch'=>'box','Pricing Change'=>'badge-dollar-sign','Research'=>'microscope','Funding'=>'chart-no-axes-combined','Security'=>'shield-check'])
                 <div class="category-list">
                     @foreach($newsCategoryCounts as $name => $total)
@@ -183,7 +191,7 @@
             <section class="panel side-panel model-leaderboard">
                 <div class="side-title"><h2><i data-lucide="sparkles"></i> Model Leaderboard</h2></div>
                 @foreach($featuredModels->take(4) as $model)
-                    <div class="mini-model"><img src="{{ asset($model->logo_path ?: ($model->company?->logo_path ?? '')) }}" alt="{{ $model->name }}"><div><strong>{{ $model->name }}</strong><small>{{ $model->company?->name }}</small></div><b>{{ number_format((float)$model->benchmark_score,1) }}</b></div>
+                    <a class="mini-model" href="{{ route('models.show', $model) }}"><img src="{{ asset($model->logo_path ?: ($model->company?->logo_path ?? '')) }}" alt="{{ $model->name }}"><div><strong>{{ $model->name }}</strong><small>{{ $model->company?->name }}</small></div><b>{{ number_format((float)$model->benchmark_score,1) }}</b></a>
                 @endforeach
             </section>
         </aside>
@@ -197,18 +205,18 @@
             </div>
             <div class="release-grid">
                 @foreach($recentModels->take(3) as $model)
-                    <article class="release-card model-release">
+                    <a class="release-card model-release" href="{{ route('models.show', $model) }}">
                         <div class="release-top"><span class="release-label">NEW MODEL</span><span>{{ optional($model->release_date)->diffForHumans() }}</span></div>
                         <div class="release-main"><img src="{{ asset($model->logo_path ?: ($model->tool?->logo_path ?? $model->company?->logo_path)) }}" alt="{{ $model->name }}"><div><h3>{{ $model->name }}</h3><p>{{ $model->company?->name }} · {{ $model->context_window }} context</p></div></div>
                         <div class="release-stats"><span><i data-lucide="gauge"></i>{{ number_format((float)$model->benchmark_score,1) }} score</span><span><i data-lucide="calendar-days"></i>{{ optional($model->release_date)->format('M j') }}</span></div>
-                    </article>
+                    </a>
                 @endforeach
                 @foreach($recentTools->take(3) as $tool)
-                    <article class="release-card tool-release">
+                    <a class="release-card tool-release" href="{{ route('tools.show', $tool) }}">
                         <div class="release-top"><span class="release-label">TOOL UPDATE</span><span>{{ optional($tool->published_at)->diffForHumans() }}</span></div>
                         <div class="release-main"><img src="{{ asset($tool->logo_path) }}" alt="{{ $tool->name }}"><div><h3>{{ $tool->name }}</h3><p>{{ $tool->company?->name }} · {{ $tool->category?->name }}</p></div></div>
                         <div class="release-stats"><span><i data-lucide="star"></i>{{ number_format((float)$tool->rating,1) }}/5</span><span><i data-lucide="flame"></i>{{ $tool->popularity }} popularity</span></div>
-                    </article>
+                    </a>
                 @endforeach
             </div>
         </section>

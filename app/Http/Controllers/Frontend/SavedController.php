@@ -9,6 +9,7 @@ use App\Models\Company;
 use App\Models\NewsItem;
 use App\Models\SavedItem;
 use App\Models\Tool;
+use App\Services\Frontend\SavedItemService;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -17,18 +18,15 @@ use Illuminate\View\View;
 
 class SavedController extends Controller
 {
-    private const TYPE_MAP = [
-        'tool' => Tool::class,
-        'model' => AiModel::class,
-        'news' => NewsItem::class,
-        'article' => Article::class,
-        'company' => Company::class,
-    ];
+    public function __construct(private readonly SavedItemService $savedItems)
+    {
+    }
 
     public function index(Request $request): View
     {
+        $typeMap = $this->savedItems->typeMap();
         $type = (string) $request->query('type', 'all');
-        $type = $type === 'all' || array_key_exists($type, self::TYPE_MAP) ? $type : 'all';
+        $type = $type === 'all' || array_key_exists($type, $typeMap) ? $type : 'all';
 
         $recommendations = [
             'tools' => Tool::query()
@@ -46,16 +44,7 @@ class SavedController extends Controller
                 ->get(),
         ];
 
-        if (! auth()->check()) {
-            return view('frontend.saved.index', [
-                'savedItems' => null,
-                'counts' => collect(),
-                'type' => $type,
-                'recommendations' => $recommendations,
-            ]);
-        }
-
-        $userId = (int) auth()->id();
+        $userId = (int) $request->user()->id;
         $query = SavedItem::query()
             ->where('user_id', $userId)
             ->with(['saveable' => function (MorphTo $morphTo): void {
@@ -70,7 +59,7 @@ class SavedController extends Controller
             ->latest();
 
         if ($type !== 'all') {
-            $query->where('saveable_type', self::TYPE_MAP[$type]);
+            $query->where('saveable_type', $typeMap[$type]);
         }
 
         $savedItems = $query->paginate(18)->withQueryString();
@@ -84,34 +73,44 @@ class SavedController extends Controller
         return view('frontend.saved.index', compact('savedItems', 'counts', 'type', 'recommendations'));
     }
 
+    public function intent(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'type' => ['required', 'string', 'in:' . implode(',', array_keys($this->savedItems->typeMap()))],
+            'id' => ['required', 'integer', 'min:1'],
+            'return_to' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        if ($request->user()) {
+            return response()->json([
+                'authenticated' => true,
+                'login_url' => null,
+            ]);
+        }
+
+        $this->savedItems->rememberPending($request, $validated['type'], (int) $validated['id']);
+
+        $returnTo = $this->safeReturnUrl($request, (string) ($validated['return_to'] ?? ''));
+        $request->session()->put('url.intended', $returnTo);
+
+        return response()->json([
+            'authenticated' => false,
+            'login_url' => route('login'),
+        ]);
+    }
+
     public function toggle(Request $request): JsonResponse|RedirectResponse
     {
         $validated = $request->validate([
-            'type' => ['required', 'string', 'in:' . implode(',', array_keys(self::TYPE_MAP))],
+            'type' => ['required', 'string', 'in:' . implode(',', array_keys($this->savedItems->typeMap()))],
             'id' => ['required', 'integer', 'min:1'],
         ]);
 
-        $modelClass = self::TYPE_MAP[$validated['type']];
-        $record = $this->publicRecord($modelClass, (int) $validated['id']);
-        $userId = (int) auth()->id();
-
-        $existing = SavedItem::query()
-            ->where('user_id', $userId)
-            ->where('saveable_type', $modelClass)
-            ->where('saveable_id', $record->getKey())
-            ->first();
-
-        if ($existing) {
-            $existing->delete();
-            $saved = false;
-        } else {
-            SavedItem::create([
-                'user_id' => $userId,
-                'saveable_type' => $modelClass,
-                'saveable_id' => $record->getKey(),
-            ]);
-            $saved = true;
-        }
+        $saved = $this->savedItems->toggle(
+            $request->user(),
+            $validated['type'],
+            (int) $validated['id']
+        );
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -126,11 +125,11 @@ class SavedController extends Controller
     public function status(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'type' => ['required', 'string', 'in:' . implode(',', array_keys(self::TYPE_MAP))],
+            'type' => ['required', 'string', 'in:' . implode(',', array_keys($this->savedItems->typeMap()))],
             'ids' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        if (! auth()->check()) {
+        if (! $request->user()) {
             return response()->json(['authenticated' => false, 'saved_ids' => []]);
         }
 
@@ -146,8 +145,8 @@ class SavedController extends Controller
         }
 
         $savedIds = SavedItem::query()
-            ->where('user_id', auth()->id())
-            ->where('saveable_type', self::TYPE_MAP[$validated['type']])
+            ->where('user_id', $request->user()->id)
+            ->where('saveable_type', $this->savedItems->typeMap()[$validated['type']])
             ->whereIn('saveable_id', $ids)
             ->pluck('saveable_id')
             ->map(fn ($id) => (int) $id)
@@ -156,22 +155,38 @@ class SavedController extends Controller
         return response()->json(['authenticated' => true, 'saved_ids' => $savedIds]);
     }
 
-    private function publicRecord(string $modelClass, int $id)
+    private function safeReturnUrl(Request $request, string $returnTo): string
     {
-        $query = $modelClass::query()->whereKey($id);
+        $fallback = url()->previous();
 
-        if ($modelClass === Tool::class) {
-            $query->where('status', 'published');
-        } elseif ($modelClass === AiModel::class) {
-            $query->whereIn('status', ['active', 'preview']);
-        } elseif ($modelClass === NewsItem::class) {
-            $query->where('status', 'published');
-        } elseif ($modelClass === Article::class) {
-            $query->where('status', 'published')->where('approval_status', 'approved');
-        } elseif ($modelClass === Company::class) {
-            $query->where('status', 'active');
+        if ($returnTo === '') {
+            return $fallback;
         }
 
-        return $query->firstOrFail();
+        if (str_starts_with($returnTo, '//')) {
+            return $fallback;
+        }
+
+        $parts = parse_url($returnTo);
+        if ($parts === false) {
+            return $fallback;
+        }
+
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $host = $parts['host'] ?? null;
+
+        if ($scheme !== '' && ! in_array($scheme, ['http', 'https'], true)) {
+            return $fallback;
+        }
+
+        if ($host !== null && $host !== $request->getHost()) {
+            return $fallback;
+        }
+
+        if ($host === null && ! str_starts_with($returnTo, '/')) {
+            return $fallback;
+        }
+
+        return $returnTo;
     }
 }

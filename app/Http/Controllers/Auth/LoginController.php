@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\LoginAttempt;
 use App\Models\User;
+use App\Services\Frontend\SavedItemService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -62,6 +63,11 @@ class LoginController extends Controller
                 'last_login_at' => now(),
                 'last_login_ip' => $request->ip(),
             ])->save();
+
+            $completedAction = app(SavedItemService::class)->consumePending($request, $user);
+            if ($completedAction) {
+                $request->session()->flash('status', $completedAction['message']);
+            }
 
             $destination = $user->role === 'admin'
                 ? route('admin.dashboard')

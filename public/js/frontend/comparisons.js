@@ -10,7 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const formItems = root.querySelector('[data-form-items]');
   const submit = root.querySelector('[data-build-button]');
   let type = root.querySelector('[data-builder-type].active')?.dataset.builderType || 'tool';
-  let selected = [];
+  const initialItem = new URLSearchParams(window.location.search).get('item');
+  let selected = initialItem ? [initialItem] : [];
 
   const activeItems = () => [...root.querySelectorAll(`[data-builder-item][data-type="${type}"]`)];
   const resetSearch = () => { if (search) search.value = ''; activeItems().forEach(i => i.classList.remove('filtered-out')); };

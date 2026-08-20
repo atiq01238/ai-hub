@@ -14,37 +14,86 @@
         ->count();
 @endphp
 
-<section class="tools-hero">
-    <div class="tools-hero-glow one"></div>
-    <div class="tools-hero-glow two"></div>
+<section class="tools-hero tools-hero-cinematic">
+    <div class="tools-wavefield" aria-hidden="true">
+        <svg viewBox="0 0 1600 520" preserveAspectRatio="none">
+            <defs>
+                <linearGradient id="toolsWaveBlue" x1="0" x2="1">
+                    <stop offset="0" stop-color="#215bff" stop-opacity=".05"/>
+                    <stop offset=".45" stop-color="#2ab7ff" stop-opacity=".9"/>
+                    <stop offset="1" stop-color="#7657ff" stop-opacity=".35"/>
+                </linearGradient>
+                <linearGradient id="toolsWavePurple" x1="0" x2="1">
+                    <stop offset="0" stop-color="#7b35ff" stop-opacity=".22"/>
+                    <stop offset=".5" stop-color="#d83cff" stop-opacity=".82"/>
+                    <stop offset="1" stop-color="#24c9ff" stop-opacity=".28"/>
+                </linearGradient>
+                <filter id="toolsWaveGlow"><feGaussianBlur stdDeviation="5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            <path d="M-80 330 C180 245 350 430 590 315 S970 150 1210 300 S1510 420 1690 245" fill="none" stroke="url(#toolsWaveBlue)" stroke-width="4" filter="url(#toolsWaveGlow)"/>
+            <path d="M-90 380 C170 300 330 455 560 365 S930 210 1160 330 S1480 430 1690 285" fill="none" stroke="url(#toolsWavePurple)" stroke-width="3" filter="url(#toolsWaveGlow)"/>
+            <path d="M-50 286 C230 205 380 365 650 282 S1030 155 1260 270 S1500 340 1660 215" fill="none" stroke="#286fff" stroke-opacity=".22" stroke-width="1.3"/>
+            <path d="M-40 420 C210 350 390 470 640 402 S980 265 1210 390 S1500 455 1670 338" fill="none" stroke="#c33cff" stroke-opacity=".18" stroke-width="1.2"/>
+        </svg>
+    </div>
+
     <div class="tools-page-container tools-hero-inner">
         <nav class="tools-breadcrumb" aria-label="Breadcrumb">
             <a href="{{ route('home') }}">Home</a><i data-lucide="chevron-right"></i><span>AI Tools</span>
         </nav>
 
-        <div class="tools-hero-copy">
-            <span class="tools-eyebrow"><i data-lucide="sparkles"></i> Curated AI Tools Directory</span>
-            <h1>Find the right <span>AI tool</span> for any workflow.</h1>
-            <p>Search, filter and compare trusted AI products for writing, coding, image generation, video, research, productivity and more.</p>
+        <div class="tools-hero-layout">
+            <div class="tools-hero-content">
+                <span class="tools-eyebrow"><i data-lucide="sparkles"></i> Curated AI Tools Directory</span>
+
+                {{-- Heading split into two controlled lines, matching reference composition --}}
+                <h1>Discover the best<br><span>AI tools</span> for every task.</h1>
+
+                <p>Search, compare and explore trusted AI products for chat, image, video, coding, voice, writing, agents and more.</p>
+
+                <form class="tools-search" method="GET" action="{{ route('tools.index') }}" role="search">
+                    @foreach(['category','pricing','rating','company','platform','feature','sort','view'] as $param)
+                        @if(request()->filled($param))<input type="hidden" name="{{ $param }}" value="{{ request($param) }}">@endif
+                    @endforeach
+                    <i data-lucide="search"></i>
+                    <input type="search" name="q" value="{{ request('q') }}" placeholder="Search 1,000+ AI tools, brands, categories..." aria-label="Search AI tools">
+                    @if(request()->filled('q'))
+                        <a class="search-clear" href="{{ route('tools.index', request()->except('q','page')) }}" aria-label="Clear search"><i data-lucide="x"></i></a>
+                    @endif
+                    <button type="submit"><i data-lucide="search"></i> Search</button>
+                </form>
+
+                <div class="tools-hero-chips" aria-label="Popular AI tool categories">
+                    @foreach($categories->take(7) as $category)
+                        @php
+                            $categoryIcon = match(true) {
+                                str_contains(strtolower($category->name), 'chat') => 'message-circle',
+                                str_contains(strtolower($category->name), 'image') => 'image',
+                                str_contains(strtolower($category->name), 'video') => 'play-circle',
+                                str_contains(strtolower($category->name), 'coding') || str_contains(strtolower($category->name), 'code') => 'code-2',
+                                str_contains(strtolower($category->name), 'voice') => 'mic-2',
+                                str_contains(strtolower($category->name), 'writing') => 'pen-line',
+                                str_contains(strtolower($category->name), 'agent') => 'bot',
+                                default => 'sparkles',
+                            };
+                        @endphp
+                        <a href="{{ route('tools.index', ['category' => $category->slug]) }}"><i data-lucide="{{ $categoryIcon }}"></i>{{ $category->name }}</a>
+                    @endforeach
+                    <a href="{{ route('tools.index') }}" class="tools-chip-more">More <i data-lucide="chevron-down"></i></a>
+                </div>
+            </div>
+
+            <div class="tools-hero-scene" aria-hidden="true">
+                <div class="tools-scene-glow"></div>
+                <img src="{{ asset('images/frontend/ai-tools-universe.png') }}" alt="" loading="eager" fetchpriority="high">
+            </div>
         </div>
 
-        <form class="tools-search" method="GET" action="{{ route('tools.index') }}" role="search">
-            @foreach(['category','pricing','rating','company','platform','feature','sort','view'] as $param)
-                @if(request()->filled($param))<input type="hidden" name="{{ $param }}" value="{{ request($param) }}">@endif
-            @endforeach
-            <i data-lucide="search"></i>
-            <input type="search" name="q" value="{{ request('q') }}" placeholder="Search ChatGPT, Midjourney, coding tools, voice AI..." aria-label="Search AI tools">
-            @if(request()->filled('q'))
-                <a class="search-clear" href="{{ route('tools.index', request()->except('q','page')) }}" aria-label="Clear search"><i data-lucide="x"></i></a>
-            @endif
-            <button type="submit">Search Tools <i data-lucide="arrow-right"></i></button>
-        </form>
-
         <div class="tools-hero-stats">
-            <div><strong>{{ number_format($stats['tools']) }}+</strong><span>Published tools</span></div>
-            <div><strong>{{ number_format($stats['categories']) }}</strong><span>Categories</span></div>
-            <div><strong>{{ number_format($stats['free']) }}+</strong><span>Free options</span></div>
-            <div><strong>{{ number_format($stats['topRated']) }}</strong><span>Top rated 4.5+</span></div>
+            <div><span class="stat-icon"><i data-lucide="box"></i></span><span><strong>{{ number_format($stats['tools']) }}+</strong><small>Published tools</small></span></div>
+            <div><span class="stat-icon"><i data-lucide="layout-grid"></i></span><span><strong>{{ number_format($stats['categories']) }}+</strong><small>Categories</small></span></div>
+            <div><span class="stat-icon"><i data-lucide="sparkles"></i></span><span><strong>{{ number_format($stats['free']) }}+</strong><small>Free options</small></span></div>
+            <div><span class="stat-icon"><i data-lucide="trophy"></i></span><span><strong>{{ number_format($stats['topRated']) }}</strong><small>Top rated 4.5+</small></span></div>
         </div>
     </div>
 </section>

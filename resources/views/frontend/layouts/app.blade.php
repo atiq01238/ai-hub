@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="{{ asset('css/frontend/app.css') }}">
     <link rel="stylesheet" href="{{ asset('css/frontend/saved.css') }}">
     @stack('styles')
+    <link rel="stylesheet" href="{{ asset('css/frontend/ui-polish.css') }}">
 </head>
 <body>
 <div class="site-shell">
@@ -53,7 +54,8 @@
         </div>
     </header>
 
-    <div class="mobile-nav" data-mobile-nav>
+    <div class="mobile-nav-backdrop" data-mobile-nav-backdrop aria-hidden="true"></div>
+    <div class="mobile-nav" data-mobile-nav aria-hidden="true">
         <a href="{{ route('home') }}">Home</a><a href="{{ route('search.index') }}">Search</a><a href="{{ route('saved.index') }}">Saved</a><a href="{{ route('categories.index') }}">Categories</a><a href="{{ route('trending.index') }}">Trending</a><a href="{{ route('benchmarks.index') }}">Benchmarks</a><a href="{{ route('tools.index') }}">AI Tools</a><a href="{{ route('models.index') }}">AI Models</a><a href="{{ route('news.index') }}">AI News</a><a href="{{ route('comparisons.index') }}">Compare</a><a href="{{ route('testlab.index') }}">Test Lab</a><a href="{{ route('pricing.index') }}">Pricing</a><a href="{{ route('reviews.index') }}">Reviews</a><a href="{{ route('articles.index') }}">Articles</a><a href="{{ route('companies.index') }}">Companies</a><a href="{{ route('about') }}">About</a><a href="{{ route('methodology') }}">Methodology</a><a href="{{ route('contact') }}">Contact</a>
     </div>
 

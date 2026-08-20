@@ -32,8 +32,19 @@
             @if($companies->hasPages())<div class="company-pagination"><a class="{{ $companies->onFirstPage() ? 'disabled' : '' }}" href="{{ $companies->previousPageUrl() ?: '#' }}"><i data-lucide="chevron-left"></i> Previous</a><div>@foreach(range(1,$companies->lastPage()) as $page)<a class="{{ $companies->currentPage()===$page ? 'active' : '' }}" href="{{ $companies->url($page) }}">{{ $page }}</a>@endforeach</div><a class="{{ !$companies->hasMorePages() ? 'disabled' : '' }}" href="{{ $companies->nextPageUrl() ?: '#' }}">Next <i data-lucide="chevron-right"></i></a></div>@endif
         </div>
 
-        <aside class="company-leaders"><div class="company-leader-title"><i data-lucide="trophy"></i><div><strong>Leading AI companies</strong><small>By active models & tools</small></div></div>@foreach($leaders as $i=>$leader)@php $logo=$leader->logo_path && file_exists(public_path($leader->logo_path)) ? asset($leader->logo_path) : asset('favicon.ico'); @endphp<a href="{{ route('companies.show',$leader) }}"><span>#{{ $i+1 }}</span><img src="{{ $logo }}" alt=""><div><strong>{{ $leader->name }}</strong><small>{{ $leader->active_models_count }} models · {{ $leader->published_tools_count }} tools</small></div><i data-lucide="chevron-right"></i></a>@endforeach</aside>
     </div>
+
+    @if($leaders->count())
+    <aside class="company-leaders company-leaders-wide">
+        <div class="company-leader-title"><i data-lucide="trophy"></i><div><strong>Leading AI companies</strong><small>By active models & tools</small></div></div>
+        <div class="company-leader-grid">
+            @foreach($leaders as $i=>$leader)
+                @php $logo=$leader->logo_path && file_exists(public_path($leader->logo_path)) ? asset($leader->logo_path) : asset('favicon.ico'); @endphp
+                <a href="{{ route('companies.show',$leader) }}"><span>#{{ $i+1 }}</span><img src="{{ $logo }}" alt=""><div><strong>{{ $leader->name }}</strong><small>{{ $leader->active_models_count }} models · {{ $leader->published_tools_count }} tools</small></div><i data-lucide="chevron-right"></i></a>
+            @endforeach
+        </div>
+    </aside>
+    @endif
 </div></section>
 @endsection
 @push('scripts')<script src="{{ asset('js/frontend/companies.js') }}"></script>@endpush

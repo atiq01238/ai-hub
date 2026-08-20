@@ -1,0 +1,258 @@
+/* AI Hub — Refined original Home hero
+   Keeps the original brain/waves concept; only improves balance, depth and responsive positioning. */
+
+.home-hero-reference{
+    position:relative;
+    isolation:isolate;
+    min-height:318px;
+    height:318px;
+    overflow:hidden;
+    background:
+        radial-gradient(circle at 73% 42%,rgba(105,46,255,.30),transparent 28%),
+        radial-gradient(circle at 25% 82%,rgba(0,117,255,.16),transparent 31%),
+        linear-gradient(107deg,#061029 0%,#090d2d 50%,#16094a 100%);
+    border-bottom:1px solid rgba(102,86,255,.20);
+}
+
+.home-hero-reference::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    z-index:1;
+    pointer-events:none;
+    background:
+        linear-gradient(90deg,rgba(4,9,27,.18) 0%,rgba(5,10,30,.02) 52%,rgba(10,4,35,.12) 100%),
+        linear-gradient(180deg,transparent 58%,rgba(3,7,21,.22) 100%);
+}
+
+.home-hero-reference .hero-grid{
+    opacity:.22;
+    background-size:52px 52px;
+    -webkit-mask-image:linear-gradient(to right,transparent,#000 24%,#000 90%,transparent);
+    mask-image:linear-gradient(to right,transparent,#000 24%,#000 90%,transparent);
+}
+
+.home-hero-reference .glow-a{
+    left:23%;
+    top:72px;
+    width:330px;
+    height:230px;
+    opacity:.22;
+    background:#1648ff;
+    filter:blur(54px);
+}
+
+.home-hero-reference .glow-b{
+    right:10%;
+    top:-5px;
+    width:430px;
+    height:300px;
+    opacity:.34;
+    background:#7f2cff;
+    filter:blur(58px);
+}
+
+/* Bring the original brain inward instead of letting it hang off-screen. */
+.home-hero-reference .hero-neural-brain{
+    right:34px;
+    top:-5px;
+    width:min(470px,34vw);
+    height:315px;
+    object-fit:contain;
+    object-position:center right;
+    opacity:.90;
+    filter:
+        drop-shadow(0 0 14px rgba(32,165,255,.30))
+        drop-shadow(0 0 30px rgba(151,53,255,.25));
+    transform:translateZ(0);
+}
+
+/* Softer connector glow behind the brain to visually anchor it. */
+.home-hero-reference .hero-neural-brain::before{
+    content:none;
+}
+
+.home-hero-reference .hero-wave{
+    left:-20px;
+    bottom:-34px;
+    width:455px;
+    height:154px;
+    opacity:.78;
+    border-top-color:rgba(54,91,255,.28);
+    box-shadow:
+        0 -13px 0 -12px rgba(78,49,255,.30),
+        0 -28px 0 -27px rgba(42,115,255,.23),
+        0 -44px 0 -43px rgba(96,39,255,.20);
+}
+
+.home-hero-reference .home-hero-shell{
+    width:min(1040px,calc(100% - 48px));
+    min-height:318px;
+    padding:27px 0 22px;
+    position:relative;
+    z-index:4;
+}
+
+.home-hero-reference .home-hero-copy{
+    width:min(790px,68vw);
+    margin:0 auto;
+}
+
+.home-hero-reference h1{
+    margin-bottom:9px;
+    font-size:43px;
+    line-height:1.06;
+    letter-spacing:-1.85px;
+    text-shadow:0 5px 26px rgba(0,0,0,.22);
+}
+
+.home-hero-reference p{
+    margin-bottom:17px;
+    color:#c4cdec;
+    line-height:1.55;
+}
+
+.home-hero-reference .home-hero-search{
+    width:min(760px,100%);
+    height:50px;
+    border-color:rgba(112,82,244,.78);
+    background:rgba(10,16,45,.86);
+    box-shadow:
+        0 10px 34px rgba(18,11,82,.34),
+        inset 0 1px 0 rgba(255,255,255,.035),
+        0 0 24px rgba(83,53,255,.08);
+}
+
+.home-hero-reference .home-hero-search:focus-within{
+    border-color:#7964ff;
+    box-shadow:
+        0 12px 36px rgba(19,12,85,.40),
+        0 0 0 3px rgba(103,82,255,.10);
+}
+
+.home-hero-reference .home-hero-chips{
+    margin-top:12px;
+    gap:8px;
+}
+
+.home-hero-reference .home-hero-chips a{
+    background:rgba(17,23,66,.88);
+    border-color:rgba(65,78,153,.58);
+    transition:transform .16s ease,border-color .16s ease,background .16s ease,color .16s ease;
+}
+
+.home-hero-reference .home-hero-chips a:hover{
+    transform:translateY(-1px);
+    border-color:#7062f0;
+    background:#1c2462;
+}
+
+/* Large laptops: still keep the brain visibly inside the hero. */
+@media(max-width:1200px){
+    .home-hero-reference .hero-neural-brain{
+        right:8px;
+        width:430px;
+        opacity:.78;
+    }
+
+    .home-hero-reference .home-hero-copy{
+        width:min(730px,66vw);
+    }
+}
+
+/* Tablet: use the brain as atmosphere, not as a competing focal point. */
+@media(max-width:900px){
+    .home-hero-reference{
+        min-height:320px;
+        height:auto;
+    }
+
+    .home-hero-reference .home-hero-shell{
+        min-height:320px;
+        padding:30px 0 25px;
+    }
+
+    .home-hero-reference .home-hero-copy{
+        width:min(680px,88vw);
+    }
+
+    .home-hero-reference h1{
+        font-size:38px;
+    }
+
+    .home-hero-reference .hero-neural-brain{
+        right:-38px;
+        top:14px;
+        width:390px;
+        opacity:.30;
+    }
+
+    .home-hero-reference .hero-wave{
+        left:-90px;
+        opacity:.52;
+    }
+}
+
+/* Mobile: keep a subtle visible portion of the brain in the upper-right;
+   do not let it cover heading/search. */
+@media(max-width:600px){
+    .home-hero-reference{
+        min-height:354px;
+    }
+
+    .home-hero-reference .home-hero-shell{
+        width:calc(100% - 28px);
+        min-height:354px;
+        padding:30px 0 25px;
+    }
+
+    .home-hero-reference .home-hero-copy{
+        width:100%;
+        text-align:left;
+    }
+
+    .home-hero-reference h1{
+        max-width:350px;
+        font-size:34px;
+        line-height:1.06;
+    }
+
+    .home-hero-reference p{
+        max-width:360px;
+        margin-left:0;
+        font-size:12.5px;
+    }
+
+    .home-hero-reference .hero-neural-brain{
+        right:-72px;
+        top:15px;
+        width:300px;
+        height:230px;
+        opacity:.16;
+    }
+
+    .home-hero-reference .hero-wave{
+        left:-135px;
+        bottom:-42px;
+        opacity:.40;
+    }
+
+    .home-hero-reference .glow-b{
+        right:-22%;
+        opacity:.23;
+    }
+}
+
+@media(max-width:420px){
+    .home-hero-reference .hero-neural-brain{
+        right:-95px;
+        top:22px;
+        width:285px;
+        opacity:.13;
+    }
+
+    .home-hero-reference h1{
+        max-width:330px;
+        font-size:32px;
+    }
+}

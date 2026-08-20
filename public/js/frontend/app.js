@@ -3,7 +3,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const menuButton = document.querySelector('[data-menu-toggle]');
     const mobileNav = document.querySelector('[data-mobile-nav]');
-    menuButton?.addEventListener('click', () => mobileNav?.classList.toggle('open'));
+    const mobileNavBackdrop = document.querySelector('[data-mobile-nav-backdrop]');
+
+    const setMobileMenu = (open) => {
+        if (!menuButton || !mobileNav) return;
+
+        mobileNav.classList.toggle('open', open);
+        mobileNav.style.removeProperty('display');
+        document.body.classList.toggle('mobile-menu-open', open);
+        menuButton.setAttribute('aria-expanded', open ? 'true' : 'false');
+        menuButton.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+        mobileNav.setAttribute('aria-hidden', open ? 'false' : 'true');
+    };
+
+    menuButton?.setAttribute('aria-expanded', 'false');
+    menuButton?.addEventListener('click', () => {
+        setMobileMenu(!mobileNav?.classList.contains('open'));
+    });
+
+    mobileNavBackdrop?.addEventListener('click', () => setMobileMenu(false));
+
+    mobileNav?.querySelectorAll('a').forEach((link) => {
+        link.addEventListener('click', () => setMobileMenu(false));
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') setMobileMenu(false);
+    });
+
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 1100) setMobileMenu(false);
+    });
 
     const search = document.getElementById('home-global-search');
     document.querySelector('[data-focus-search]')?.addEventListener('click', () => search?.focus());
@@ -13,12 +43,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let category = 'all';
 
     const applyFilter = () => {
-        const query = (search?.value || '').trim().toLowerCase();
         let visible = 0;
         cards.forEach(card => {
             const categoryMatch = category === 'all' || card.dataset.category === category;
-            const searchMatch = !query || (card.dataset.search || '').includes(query);
-            const show = categoryMatch && searchMatch;
+            const show = categoryMatch;
             card.hidden = !show;
             if (show) visible++;
         });
@@ -46,5 +74,4 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    search?.addEventListener('input', applyFilter);
 });
