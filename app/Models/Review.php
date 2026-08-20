@@ -12,7 +12,7 @@ class Review extends Model
     use HasFactory, LogsActivity, SoftDeletes;
 
     protected $fillable = [
-        'tool_id', 'user_id', 'review_type', 'rating', 'verdict', 'body',
+        'tool_id', 'model_id', 'user_id', 'review_type', 'rating', 'verdict', 'body',
         'pros', 'cons', 'rating_breakdown', 'status', 'moderation_note',
         'moderated_by', 'moderated_at',
     ];
@@ -30,9 +30,19 @@ class Review extends Model
         return $this->belongsTo(Tool::class);
     }
 
+    public function model()
+    {
+        return $this->belongsTo(AiModel::class, 'model_id');
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function reviewedItem()
+    {
+        return $this->model ?: $this->tool;
     }
 
     public function moderator()

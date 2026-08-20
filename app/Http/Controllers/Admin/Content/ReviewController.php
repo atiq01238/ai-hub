@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Content;
 use App\Http\Controllers\Controller;
 use App\Models\Review;
 use App\Models\Tool;
+use App\Models\AiModel;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -24,6 +25,7 @@ class ReviewController extends Controller
     {
         return view('content.reviews.editor', [
             'tools' => Tool::orderBy('name')->get(),
+            'models' => AiModel::orderBy('name')->get(),
             'reviewers' => User::orderBy('name')->get(),
         ]);
     }
@@ -124,7 +126,7 @@ class ReviewController extends Controller
 
     private function listing(Request $request, ?string $forcedType, string $context)
     {
-        $query = Review::query()->with(['tool', 'user', 'moderator']);
+        $query = Review::query()->with(['tool', 'model.company', 'user', 'moderator']);
 
         if ($forcedType) {
             $query->where('review_type', $forcedType);
@@ -136,7 +138,8 @@ class ReviewController extends Controller
                 ->orWhereHas('user', fn ($user) => $user
                     ->where('name', 'like', "%{$search}%")
                     ->orWhere('email', 'like', "%{$search}%"))
-                ->orWhereHas('tool', fn ($tool) => $tool->where('name', 'like', "%{$search}%")));
+                ->orWhereHas('tool', fn ($tool) => $tool->where('name', 'like', "%{$search}%"))
+                ->orWhereHas('model', fn ($model) => $model->where('name', 'like', "%{$search}%")));
         }
 
         if ($status = $request->query('status')) {
@@ -155,6 +158,10 @@ class ReviewController extends Controller
             $query->where('tool_id', $toolId);
         }
 
+        if ($modelId = $request->integer('model_id')) {
+            $query->where('model_id', $modelId);
+        }
+
         if ($rating = $request->query('rating')) {
             if (in_array((string) $rating, ['3', '4', '5'], true)) {
                 $query->where('rating', '>=', (float) $rating);
@@ -166,6 +173,7 @@ class ReviewController extends Controller
         return view('content.reviews.index', [
             'reviews' => $query->latest()->paginate(20)->withQueryString(),
             'tools' => Tool::orderBy('name')->get(),
+            'models' => AiModel::orderBy('name')->get(),
             'counts' => [
                 'all' => (clone $countQuery)->count(),
                 'pending' => (clone $countQuery)->where('status', 'pending')->count(),
@@ -179,7 +187,7 @@ class ReviewController extends Controller
     private function detail(int $id, string $context, ?string $forcedType = null)
     {
         $review = Review::query()
-            ->with(['tool', 'user', 'moderator'])
+            ->with(['tool', 'model.company', 'user', 'moderator'])
             ->withCount('reports')
             ->when($forcedType, fn ($q) => $q->where('review_type', $forcedType))
             ->findOrFail($id);

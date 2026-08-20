@@ -6,12 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Models\AiModel;
 use App\Models\Comparison;
 use App\Models\Tool;
+use App\Services\Frontend\ComparisonHistoryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 
 class ComparisonController extends Controller
 {
+    public function __construct(private readonly ComparisonHistoryService $userHistory)
+    {
+    }
     public function index(Request $request)
     {
         $type = in_array($request->query('type'), ['tool', 'model'], true)
@@ -110,12 +114,22 @@ class ComparisonController extends Controller
         $relatedComparisons = collect();
         $isPreview = true;
 
+        if ($request->user()) {
+            $this->userHistory->fromPreview(
+                $request->user(),
+                $comparisonType,
+                $items->pluck('id')->all(),
+                $title,
+                false
+            );
+        }
+
         return view('frontend.comparisons.show', compact(
             'comparison', 'comparisonType', 'items', 'winner', 'title', 'relatedComparisons', 'isPreview'
         ));
     }
 
-    public function show(Comparison $comparison)
+    public function show(Request $request, Comparison $comparison)
     {
         abort_unless($comparison->status === 'published', 404);
 
@@ -136,6 +150,10 @@ class ComparisonController extends Controller
         $winner = $this->winner($items);
         $title = $comparison->title;
         $isPreview = false;
+
+        if ($request->user()) {
+            $this->userHistory->fromPublished($request->user(), $comparison, false);
+        }
 
         $relatedComparisons = Comparison::query()
             ->where('status', 'published')

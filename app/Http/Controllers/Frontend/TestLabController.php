@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Frontend;
 use App\Http\Controllers\Controller;
 use App\Models\AiModel;
 use App\Models\AiTest;
+use App\Services\Frontend\UserInteractionService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
@@ -50,9 +51,13 @@ class TestLabController extends Controller
         return view('frontend.testlab.index', compact('tests','categories','leaderboard','stats'));
     }
 
-    public function show(AiTest $test)
+    public function show(Request $request, AiTest $test)
     {
         $test->load(['results.model.company']);
+
+        if ($request->user()) {
+            app(UserInteractionService::class)->recordTestView($request->user(), $test->id);
+        }
         $results = $test->results->sortByDesc('overall_score')->values();
         $winner = $results->first();
         $related = AiTest::query()->withCount('results')->whereKeyNot($test->id)

@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\Report;
 use App\Models\Review;
 use App\Models\Submission;
+use App\Models\CommunityComment;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
@@ -29,12 +30,16 @@ class AppServiceProvider extends ServiceProvider
 
         \App\Models\Review::observe(\App\Observers\ReviewObserver::class);
         \App\Models\PricingPlan::observe(\App\Observers\PricingPlanObserver::class);
+        \App\Models\Tool::observe(\App\Observers\FollowedEntityObserver::class);
+        \App\Models\AiModel::observe(\App\Observers\FollowedEntityObserver::class);
+        \App\Models\Company::observe(\App\Observers\FollowedEntityObserver::class);
 
         View::composer('partials.sidebar', function ($view) {
             $counts = [
                 'reviews' => 0,
                 'submissions' => 0,
                 'reports' => 0,
+                'comments' => 0,
             ];
 
             if (Schema::hasTable('reviews')) {
@@ -49,6 +54,10 @@ class AppServiceProvider extends ServiceProvider
 
             if (Schema::hasTable('submissions')) {
                 $counts['submissions'] = Submission::whereIn('status', ['pending', 'needs_info'])->count();
+            }
+
+            if (Schema::hasTable('community_comments')) {
+                $counts['comments'] = CommunityComment::where('status','pending')->count();
             }
 
             if (Schema::hasTable('reports')) {

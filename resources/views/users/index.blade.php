@@ -50,6 +50,12 @@
                 <option value="{{ $role->id }}" @selected((string)request('role_id')===(string)$role->id)>{{ $role->name }}</option>
             @endforeach
         </select>
+        <select class="select" name="community_trust">
+            <option value="">All community trust</option>
+            <option value="normal" @selected(request('community_trust')==='normal')>Normal</option>
+            <option value="trusted" @selected(request('community_trust')==='trusted')>Trusted</option>
+            <option value="restricted" @selected(request('community_trust')==='restricted')>Restricted</option>
+        </select>
         <select class="select" name="status">
             <option value="">All statuses</option>
             <option value="active" @selected(request('status')==='active')>Active</option>
@@ -85,7 +91,7 @@
                             <th>User</th>
                             <th>Access</th>
                             <th>Permission Role</th>
-                            <th>Community Activity</th>
+                            <th>Community Activity</th><th>Trust</th>
                             <th>Joined</th>
                             <th>Status</th>
                             <th></th>
@@ -141,6 +147,13 @@
                                         <span class="is-risk"><i data-lucide="flag"></i>{{ $user->reports_received_count }} reports received</span>
                                     @endif
                                 </div>
+                            </td>
+                            <td>
+                                <span class="uc-access {{ $user->community_trust_level==='trusted'?'is-admin':'' }}">
+                                    <i data-lucide="{{ $user->community_trust_level==='trusted'?'badge-check':($user->community_trust_level==='restricted'?'shield-alert':'user-check') }}"></i>
+                                    {{ ucfirst($user->community_trust_level ?? 'normal') }}
+                                </span>
+                                <small class="uc-muted">{{ $user->community_comments_count }} comments</small>
                             </td>
                             <td><span class="uc-muted">{{ $user->created_at->format('M j, Y') }}<small>{{ $user->created_at->diffForHumans() }}</small></span></td>
                             <td><x-status-badge status="{{ ucfirst($user->status) }}" type="{{ $user->status==='active'?'pos':'neg' }}" /></td>

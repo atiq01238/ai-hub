@@ -75,3 +75,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
 });
+
+
+document.addEventListener('click', function(e){
+ const btn=e.target.closest('[data-front-notif-toggle]'); const menu=document.querySelector('[data-front-notif-menu]');
+ if(btn && menu){e.preventDefault();menu.classList.toggle('open');return;}
+ if(menu && !e.target.closest('[data-front-notif-menu]')) menu.classList.remove('open');
+});

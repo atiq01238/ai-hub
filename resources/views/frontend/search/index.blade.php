@@ -7,7 +7,23 @@
 <link rel="stylesheet" href="{{ asset('css/frontend/discovery.css') }}">
 @endpush
 
+
+@push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/intelligence.css') }}">@endpush
 @section('content')
+@if(session('status'))<div class="search-smart-flash">{{ session('status') }}</div>@endif
+@if(auth()->check() && $query)
+<div class="search-smartbar">
+    <div><strong>Search intelligence</strong><span>{{ number_format($total) }} results across AI Hub</span></div>
+    <form method="POST" action="{{ route('search.save') }}">@csrf<input type="hidden" name="query" value="{{ $query }}"><input type="hidden" name="type" value="{{ $type }}"><button type="submit"><i data-lucide="bookmark-plus"></i> Save this search</button></form>
+</div>
+@endif
+@if(auth()->check() && ($recentSearches->isNotEmpty() || $savedSearches->isNotEmpty()))
+<div class="search-memory">
+ <div><b>Recent</b>@foreach($recentSearches as $term)<a href="{{ route('search.index',['q'=>$term]) }}">{{ $term }}</a>@endforeach</div>
+ <div><b>Saved</b>@foreach($savedSearches as $saved)<span><a href="{{ route('search.index',['q'=>$saved->query,'type'=>$saved->type]) }}">{{ $saved->query }}</a><form method="POST" action="{{ route('search.saved.destroy',$saved) }}">@csrf @method('DELETE')<button>×</button></form></span>@endforeach</div>
+</div>
+@endif
+
 <section class="discovery-hero search-hero">
     <div class="discovery-hero-grid"></div>
     <div class="discovery-hero-copy">

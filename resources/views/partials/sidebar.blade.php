@@ -60,6 +60,7 @@
             ['Comparison Analytics', '/admin/analytics/comparisons', 'git-compare'],
             ['Content Analytics', '/admin/analytics/content', 'file-bar-chart'],
             ['Trending Searches', '/admin/analytics/trending', 'flame'],
+            ['Engagement Intelligence', '/admin/analytics/engagement', 'users-round'],
         ],
         'System' => [
             ['System Overview', '/admin/system', 'command', null, null, ['admin.system.overview'], 'Security', 'View'],
@@ -93,7 +94,7 @@
         '/admin/pricing' => ['Pricing','View'], '/admin/pricing/api' => ['Pricing','View'], '/admin/pricing/history' => ['Pricing','View'], '/admin/pricing/changes' => ['Pricing','View'],
         '/admin/content/articles' => ['Content','View'], '/admin/content/articles/drafts' => ['Content','View'], '/admin/content/reviews' => ['Reviews','View'], '/admin/content/guides' => ['Content','View'], '/admin/content/social' => ['Content','View'], '/admin/content/approval-workflow' => ['Content','View'], '/admin/media' => ['Content','View'],
         '/admin/users' => ['Users','View'], '/admin/community/reviews' => ['Reviews','View'], '/admin/submissions' => ['Submissions','View'], '/admin/community/reports' => ['Reports','View'],
-        '/admin/analytics/website' => ['Analytics','View'], '/admin/analytics/tools' => ['Analytics','View'], '/admin/analytics/search' => ['Analytics','View'], '/admin/analytics/comparisons' => ['Analytics','View'], '/admin/analytics/content' => ['Analytics','View'], '/admin/analytics/trending' => ['Analytics','View'],
+        '/admin/analytics/website' => ['Analytics','View'], '/admin/analytics/tools' => ['Analytics','View'], '/admin/analytics/search' => ['Analytics','View'], '/admin/analytics/comparisons' => ['Analytics','View'], '/admin/analytics/content' => ['Analytics','View'], '/admin/analytics/trending' => ['Analytics','View'], '/admin/analytics/engagement' => ['Analytics','View'],
         '/admin/system' => ['Security','View'], '/admin/system/health' => ['System Health','View'], '/admin/system/errors' => ['Error Monitoring','View'], '/admin/system/api-monitoring' => ['API Monitoring','View'], '/admin/system/security' => ['Security','View'], '/admin/system/roles' => ['Roles & Permissions','View'], '/admin/system/activity-logs' => ['Security','View'], '/admin/system/backups' => ['Backups','View'],
         '/admin/system/notifications' => ['Notifications','View'], '/admin/system/notification-rules' => ['Notifications','View'], '/admin/system/data-verification' => ['Data Verification','View'], '/admin/system/source-reliability' => ['Source Reliability','View'], '/admin/system/news-sources' => ['News Sources','View'], '/admin/system/automation-monitor' => ['Automation','View'], '/admin/system/feature-flags' => ['Feature Flags','View'], '/admin/system/integrations' => ['Integrations','View'], '/admin/system/seo' => ['SEO','View'], '/admin/system/settings' => ['Settings','View'],
     ];

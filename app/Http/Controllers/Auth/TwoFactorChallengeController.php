@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Services\Frontend\SavedItemService;
+use App\Services\Frontend\PendingUserActionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -74,7 +74,7 @@ class TwoFactorChallengeController extends Controller
             'last_login_ip' => $request->ip(),
         ])->save();
 
-        $completedAction = app(SavedItemService::class)->consumePending($request, $user);
+        $completedAction = app(PendingUserActionService::class)->consume($request, $user);
         if ($completedAction) {
             $request->session()->flash('status', $completedAction['message']);
         }

@@ -97,7 +97,7 @@
                                 <div><b>#{{ $rank+1 }}</b><span>{{ $entity?->name ?? 'Unknown' }}<small>{{ class_basename($result->benchmarkable_type) === 'AiModel' ? 'AI Model' : 'AI Tool' }} @if($result->verified) · Verified @endif</small></span><strong>{{ number_format((float)$result->score,1) }}</strong></div>
                             @endforeach
                         </div>
-                        <footer><span>Max score {{ number_format((float)$benchmark->max_score,0) }}</span><span>Weight {{ number_format((float)$benchmark->weight,2) }}×</span></footer>
+                        <footer><span>Max score {{ number_format((float)$benchmark->max_score,0) }}</span><span>Weight {{ number_format((float)$benchmark->weight,2) }}×</span><a href="{{ route('benchmarks.discussion',$benchmark) }}"><i data-lucide="messages-square"></i> Discussion</a></footer>
                     </article>
                 @endforeach
             </div>

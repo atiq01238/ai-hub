@@ -11,7 +11,7 @@ $communityMode = $context === 'community';
 $backRoute = $communityMode ? 'admin.community.reviews.index' : 'admin.content.reviews.index';
 @endphp
 <div class="content-page content-review">
-<x-page-header :title="$review->verdict ?: 'Review Detail'" :subtitle="($review->tool->name ?? 'Deleted tool').' · '.number_format((float)$review->rating,1).'/5'" :breadcrumb="$communityMode ? ['Users & Community','Review Moderation','Detail'] : ['Content','Reviews','Detail']">
+<x-page-header :title="$review->verdict ?: 'Review Detail'" :subtitle="($review->model?->name ?? $review->tool?->name ?? 'Deleted item').' · '.number_format((float)$review->rating,1).'/5'" :breadcrumb="$communityMode ? ['Users & Community','Review Moderation','Detail'] : ['Content','Reviews','Detail']">
 <x-slot:actions><a href="{{ route($backRoute) }}" class="btn btn-secondary"><i data-lucide="arrow-left"></i>Back</a>
 @if($review->status==='pending' && auth()->user()->canAccessModule('Reviews','Publish'))<form method="POST" action="{{ route('admin.content.reviews.approve',$review->id) }}">@csrf<button class="btn btn-primary"><i data-lucide="badge-check"></i>Approve</button></form>@endif
 </x-slot:actions>
@@ -21,7 +21,7 @@ $backRoute = $communityMode ? 'admin.community.reviews.index' : 'admin.content.r
 @if($errors->any())<div class="alert alert-danger content-flash"><i data-lucide="circle-alert"></i><span>{{ $errors->first() }}</span></div>@endif
 
 <section class="card content-review__hero">
-<div class="content-review__identity"><span class="content-review__tool"><i data-lucide="wrench"></i></span><div><span class="content-eyebrow">{{ ucfirst($review->review_type) }} Review</span><h1>{{ $review->tool->name ?? 'Deleted tool' }}</h1><p>Reviewed by {{ $review->user?->name ?? ($review->review_type==='editorial'?'Editorial Team':'Deleted user') }}</p></div></div>
+<div class="content-review__identity"><span class="content-review__tool"><i data-lucide="{{ $review->model_id ? 'cpu' : 'wrench' }}"></i></span><div><span class="content-eyebrow">{{ ucfirst($review->review_type) }} Review</span><h1>{{ $review->model?->name ?? $review->tool?->name ?? 'Deleted item' }}</h1><p>Reviewed by {{ $review->user?->name ?? ($review->review_type==='editorial'?'Editorial Team':'Deleted user') }}</p></div></div>
 <div class="content-review__rating"><strong>{{ number_format((float)$review->rating,1) }}</strong><span>out of 5</span></div>
 </section>
 

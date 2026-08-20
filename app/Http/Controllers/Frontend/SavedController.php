@@ -22,8 +22,18 @@ class SavedController extends Controller
     {
     }
 
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
+        $user = $request->user();
+
+        if (! $user) {
+            $request->session()->put('url.intended', $request->fullUrl());
+
+            return redirect()
+                ->route('login')
+                ->with('status', 'Sign in to view your saved library.');
+        }
+
         $typeMap = $this->savedItems->typeMap();
         $type = (string) $request->query('type', 'all');
         $type = $type === 'all' || array_key_exists($type, $typeMap) ? $type : 'all';
@@ -44,7 +54,7 @@ class SavedController extends Controller
                 ->get(),
         ];
 
-        $userId = (int) $request->user()->id;
+        $userId = (int) $user->getAuthIdentifier();
         $query = SavedItem::query()
             ->where('user_id', $userId)
             ->with(['saveable' => function (MorphTo $morphTo): void {
@@ -101,13 +111,28 @@ class SavedController extends Controller
 
     public function toggle(Request $request): JsonResponse|RedirectResponse
     {
+        $user = $request->user();
+
+        if (! $user) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Authentication required.',
+                    'login_url' => route('login'),
+                ], 401);
+            }
+
+            $request->session()->put('url.intended', url()->previous());
+
+            return redirect()->route('login');
+        }
+
         $validated = $request->validate([
             'type' => ['required', 'string', 'in:' . implode(',', array_keys($this->savedItems->typeMap()))],
             'id' => ['required', 'integer', 'min:1'],
         ]);
 
         $saved = $this->savedItems->toggle(
-            $request->user(),
+            $user,
             $validated['type'],
             (int) $validated['id']
         );

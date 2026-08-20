@@ -1,3 +1,13 @@
+@php
+    $frontNotifications = collect();
+    $frontUnread = 0;
+    if (auth()->check() && auth()->user()->role !== 'admin') {
+        try {
+            $frontNotifications = \App\Models\AppNotification::where('user_id', auth()->id())->latest()->limit(5)->get();
+            $frontUnread = \App\Models\AppNotification::where('user_id', auth()->id())->unread()->count();
+        } catch (\Throwable $e) {}
+    }
+@endphp
 <!doctype html>
 <html lang="en">
 <head>
@@ -5,6 +15,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="saved-toggle-url" content="{{ route('saved.toggle') }}">
+    <meta name="saved-intent-url" content="{{ route('saved.intent') }}">
     <meta name="saved-status-url" content="{{ route('saved.status') }}">
     <meta name="login-url" content="{{ route('login') }}">
     <title>@yield('title', 'AI Hub — Discover, Compare, Master AI')</title>
@@ -13,6 +24,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/frontend/app.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/frontend/community.css') }}">
     <link rel="stylesheet" href="{{ asset('css/frontend/saved.css') }}">
     @stack('styles')
     <link rel="stylesheet" href="{{ asset('css/frontend/ui-polish.css') }}">
@@ -42,10 +54,24 @@
             <a class="icon-btn" href="{{ route('search.index') }}" aria-label="Search AI Hub"><i data-lucide="search"></i></a>
             <a class="icon-btn {{ request()->routeIs('saved.*') ? 'active' : '' }}" href="{{ route('saved.index') }}" aria-label="Saved library"><i data-lucide="bookmark"></i></a>
             @auth
+                @if(auth()->user()->role !== 'admin')
+                    <div class="front-notif-wrap">
+                        <button class="icon-btn front-notif-btn" type="button" data-front-notif-toggle aria-label="Notifications"><i data-lucide="bell"></i>@if($frontUnread)<span class="front-notif-count">{{ $frontUnread > 99 ? '99+' : $frontUnread }}</span>@endif</button>
+                        <div class="front-notif-menu" data-front-notif-menu>
+                            <div class="front-notif-head"><strong>Notifications</strong><span>{{ $frontUnread ? $frontUnread.' unread' : 'All caught up' }}</span></div>
+                            @forelse($frontNotifications as $notice)
+                                <a href="{{ route('account.notifications.open',$notice) }}" class="front-notif-row {{ $notice->read_at ? '' : 'is-unread' }}"><span><i data-lucide="{{ $notice->icon ?: 'bell' }}"></i></span><div><b>{{ $notice->title }}</b>@if($notice->description)<p>{{ \Illuminate\Support\Str::limit($notice->description,70) }}</p>@endif<small>{{ $notice->created_at->diffForHumans() }}</small></div></a>
+                            @empty
+                                <div class="front-notif-empty">No notifications yet.</div>
+                            @endforelse
+                            <a class="front-notif-footer" href="{{ route('account.notifications') }}">View all notifications <i data-lucide="arrow-right"></i></a>
+                        </div>
+                    </div>
+                @endif
                 @if(auth()->user()->role === 'admin' && auth()->user()->status === 'active')
                     <a class="signin-btn" href="{{ route('admin.dashboard') }}"><span class="avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>Admin<i data-lucide="chevron-right"></i></a>
                 @else
-                    <a class="signin-btn" href="{{ route('saved.index') }}"><span class="avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>My Library<i data-lucide="chevron-right"></i></a>
+                    <a class="signin-btn {{ request()->routeIs('account.*') ? 'active' : '' }}" href="{{ route('account.dashboard') }}"><span class="avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>My AI Hub<i data-lucide="chevron-right"></i></a>
                 @endif
             @else
                 <a class="signin-btn" href="{{ route('login') }}"><span class="avatar"><i data-lucide="user"></i></span>Sign In<i data-lucide="chevron-right"></i></a>
@@ -56,6 +82,13 @@
 
     <div class="mobile-nav-backdrop" data-mobile-nav-backdrop aria-hidden="true"></div>
     <div class="mobile-nav" data-mobile-nav aria-hidden="true">
+        @auth
+            @if(!(auth()->user()->role === 'admin' && auth()->user()->status === 'active'))
+                <a href="{{ route('account.dashboard') }}">My AI Hub</a>
+                <a href="{{ route('account.activity') }}">My Activity</a>
+                <a href="{{ route('account.notifications') }}">Notifications @if($frontUnread)({{ $frontUnread }})@endif</a>
+            @endif
+        @endauth
         <a href="{{ route('home') }}">Home</a><a href="{{ route('search.index') }}">Search</a><a href="{{ route('saved.index') }}">Saved</a><a href="{{ route('categories.index') }}">Categories</a><a href="{{ route('trending.index') }}">Trending</a><a href="{{ route('benchmarks.index') }}">Benchmarks</a><a href="{{ route('tools.index') }}">AI Tools</a><a href="{{ route('models.index') }}">AI Models</a><a href="{{ route('news.index') }}">AI News</a><a href="{{ route('comparisons.index') }}">Compare</a><a href="{{ route('testlab.index') }}">Test Lab</a><a href="{{ route('pricing.index') }}">Pricing</a><a href="{{ route('reviews.index') }}">Reviews</a><a href="{{ route('articles.index') }}">Articles</a><a href="{{ route('companies.index') }}">Companies</a><a href="{{ route('about') }}">About</a><a href="{{ route('methodology') }}">Methodology</a><a href="{{ route('contact') }}">Contact</a>
     </div>
 
@@ -112,6 +145,7 @@
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script src="{{ asset('js/frontend/app.js') }}"></script>
 <script src="{{ asset('js/frontend/saved.js') }}"></script>
+<script src="{{ asset('js/frontend/community.js') }}"></script>
 @stack('scripts')
 </body>
 </html>

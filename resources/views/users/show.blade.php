@@ -40,6 +40,10 @@
             <div class="uc-profile__badges">
                 <span class="uc-access {{ $user->role==='admin'?'is-admin':'' }}"><i data-lucide="{{ $user->role==='admin'?'shield':'user-round' }}"></i>{{ $user->role==='admin'?'Administrator':'Member' }}</span>
                 <x-status-badge status="{{ ucfirst($user->status) }}" type="{{ $user->status==='active'?'pos':'neg' }}" />
+                <span class="uc-access {{ $user->community_trust_level==='trusted'?'is-admin':'' }}">
+                    <i data-lucide="{{ $user->community_trust_level==='trusted'?'badge-check':($user->community_trust_level==='restricted'?'shield-alert':'user-check') }}"></i>
+                    {{ ucfirst($user->community_trust_level ?? 'normal') }} community
+                </span>
             </div>
             <h1>{{ $user->name }}</h1>
             <p>{{ $user->email }}</p>
@@ -54,6 +58,7 @@
         ['Submissions',$user->submissions_count,'inbox'],
         ['Reports received',$user->reports_received_count,'flag'],
         ['Reports filed',$user->reports_filed_count,'shield-alert'],
+        ['Comments',$user->community_comments_count,'messages-square'],
     ] as [$label,$value,$icon])
     <article class="card"><span><i data-lucide="{{ $icon }}"></i></span><div><strong>{{ number_format($value) }}</strong><small>{{ $label }}</small></div></article>
     @endforeach
@@ -97,6 +102,10 @@
             <div><dt>Permission role</dt><dd>{{ $user->role==='admin' ? ($user->roleModel?->name ?? 'Legacy admin') : 'Not applicable' }}</dd></div>
             <div><dt>Status</dt><dd>{{ ucfirst($user->status) }}</dd></div>
             <div><dt>Joined</dt><dd>{{ $user->created_at->format('M j, Y') }}</dd></div>
+            <div><dt>Community trust</dt><dd>{{ ucfirst($user->community_trust_level ?? 'normal') }}</dd></div>
+            <div><dt>Published comments</dt><dd>{{ $communityStats['published'] ?? 0 }}</dd></div>
+            <div><dt>Pending comments</dt><dd>{{ $communityStats['pending'] ?? 0 }}</dd></div>
+            <div><dt>Spam outcomes</dt><dd>{{ $communityStats['spam'] ?? 0 }}</dd></div>
         </dl>
     </section>
 
@@ -109,6 +118,37 @@
             <label><span>Access level</span><select class="select" name="access_level"><option value="user" @selected($user->role==='user')>Member</option><option value="admin" @selected($user->role==='admin')>Administrator</option></select></label>
             <label><span>Permission role</span><select class="select" name="role_id"><option value="" disabled {{ $user->role!=='admin'?'selected':'' }}>Choose role</option>@foreach($roles as $role)@continue($role->isSystemRole() && !auth()->user()->isSuperAdmin())<option value="{{ $role->id }}" @selected($user->role_id==$role->id)>{{ $role->name }}</option>@endforeach</select></label>
             <button class="btn btn-secondary" type="submit"><i data-lucide="shield-cog"></i>Update Access</button>
+        </form>
+    </section>
+    @endif
+
+
+    @if(auth()->id() !== $user->id && auth()->user()->canAccessModule('Users','Edit'))
+    <section class="card uc-action-card">
+        <span class="uc-eyebrow">Community Trust</span>
+        <h3>Moderation level</h3>
+        <p>
+            Normal users are manually reviewed until they earn trust.
+            Trusted users publish clean comments instantly.
+            Restricted users always require approval.
+        </p>
+        <form action="{{ route('admin.users.community-trust',$user->id) }}" method="POST">
+            @csrf @method('PATCH')
+            <label>
+                <span>Trust level</span>
+                <select class="select" name="community_trust_level">
+                    <option value="normal" @selected(($user->community_trust_level ?? 'normal')==='normal')>Normal</option>
+                    <option value="trusted" @selected($user->community_trust_level==='trusted')>Trusted</option>
+                    <option value="restricted" @selected($user->community_trust_level==='restricted')>Restricted</option>
+                </select>
+            </label>
+            <label>
+                <span>Restriction reason</span>
+                <textarea class="textarea" name="community_restriction_reason" rows="3" placeholder="Required only when Restricted">{{ $user->community_restriction_reason }}</textarea>
+            </label>
+            <button class="btn btn-secondary" type="submit">
+                <i data-lucide="shield-check"></i>Update Community Trust
+            </button>
         </form>
     </section>
     @endif

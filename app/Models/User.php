@@ -17,6 +17,11 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class, 'role_id');
     }
 
+    public function communityComments()
+    {
+        return $this->hasMany(CommunityComment::class);
+    }
+
     public function reviews()
     {
         return $this->hasMany(Review::class);
@@ -72,7 +77,29 @@ class User extends Authenticatable
             'suspended_at' => 'datetime',
             'suspended_until' => 'datetime',
             'last_login_at' => 'datetime',
+            'community_trusted_at' => 'datetime',
+            'community_restricted_at' => 'datetime',
         ];
+    }
+
+
+    public function isCommunityTrusted(): bool
+    {
+        return $this->community_trust_level === 'trusted';
+    }
+
+    public function isCommunityRestricted(): bool
+    {
+        return $this->community_trust_level === 'restricted';
+    }
+
+    public function communityTrustLabel(): string
+    {
+        return match ($this->community_trust_level) {
+            'trusted' => 'Trusted',
+            'restricted' => 'Restricted',
+            default => 'Normal',
+        };
     }
 
     public function isSuperAdmin(): bool
@@ -165,4 +192,9 @@ class User extends Authenticatable
 
         return true;
     }
+    public function preference()
+    {
+        return $this->hasOne(UserPreference::class);
+    }
+
 }

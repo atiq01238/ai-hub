@@ -27,6 +27,12 @@ class AiModel extends Model
         'benchmark_score'          => 'float',
     ];
 
+
+    public function reviews()
+    {
+        return $this->hasMany(Review::class, 'model_id');
+    }
+
     public function company()
     {
         return $this->belongsTo(Company::class);

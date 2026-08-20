@@ -104,7 +104,7 @@
                     <small>{{ $headerUnreadCount ? $headerUnreadCount.' unread' : 'All caught up' }}</small>
                 </div>
                 @forelse($headerNotifications as $notice)
-                    <a href="{{ route('admin.system.notifications') }}" class="notif-row {{ $notice->read_at ? '' : 'is-unread' }}">
+                    <a href="{{ $notice->action_url ?: route('admin.system.notifications') }}" class="notif-row {{ $notice->read_at ? '' : 'is-unread' }}">
                         <span class="notif-row__icon tone-{{ $notice->tone }}"><i data-lucide="{{ $notice->icon ?: 'bell' }}"></i></span>
                         <div>
                             <strong>{{ $notice->title }}</strong>

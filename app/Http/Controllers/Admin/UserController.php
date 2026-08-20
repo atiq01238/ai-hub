@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Frontend\CommunityModerationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -15,7 +16,7 @@ class UserController extends Controller
     {
         $query = User::query()
             ->with('roleModel')
-            ->withCount(['reviews', 'submissions', 'reportsReceived']);
+            ->withCount(['reviews', 'submissions', 'reportsReceived', 'communityComments']);
 
         if ($search = trim((string) $request->query('search'))) {
             $query->where(function ($q) use ($search) {
@@ -32,6 +33,12 @@ class UserController extends Controller
 
         if ($roleId = $request->integer('role_id')) {
             $query->where('role_id', $roleId);
+        }
+
+        if ($trust = $request->query('community_trust')) {
+            if (in_array($trust, ['normal', 'trusted', 'restricted'], true)) {
+                $query->where('community_trust_level', $trust);
+            }
         }
 
         if ($status = $request->query('status')) {
@@ -65,7 +72,7 @@ class UserController extends Controller
     {
         $user = User::query()
             ->with(['roleModel', 'suspendedBy'])
-            ->withCount(['reviews', 'submissions', 'reportsReceived', 'reportsFiled'])
+            ->withCount(['reviews', 'submissions', 'reportsReceived', 'reportsFiled', 'communityComments'])
             ->findOrFail($id);
 
         return view('users.show', [
@@ -74,6 +81,7 @@ class UserController extends Controller
             'recentSubmissions' => $user->submissions()->latest()->take(5)->get(),
             'recentReports' => $user->reportsReceived()->with('reporter')->latest()->take(5)->get(),
             'roles' => Role::orderBy('name')->get(),
+            'communityStats' => app(CommunityModerationService::class)->stats($user),
         ]);
     }
 
@@ -191,6 +199,43 @@ class UserController extends Controller
         $this->logAction($request->user()->id, 'access_updated', $user, $data['access_level']);
 
         return back()->with('status', "{$user->name}'s access level was updated and active sessions were revoked.");
+    }
+
+
+    public function updateCommunityTrust(Request $request, int $id)
+    {
+        abort_unless(
+            $request->user()?->role === 'admin'
+            && $request->user()?->status === 'active'
+            && $request->user()?->canAccessModule('Users', 'Edit'),
+            403
+        );
+
+        $data = $request->validate([
+            'community_trust_level' => ['required', 'in:normal,trusted,restricted'],
+            'community_restriction_reason' => ['nullable', 'required_if:community_trust_level,restricted', 'string', 'max:1000'],
+        ]);
+
+        $user = User::findOrFail($id);
+
+        $user->forceFill([
+            'community_trust_level' => $data['community_trust_level'],
+            'community_trusted_at' => $data['community_trust_level'] === 'trusted' ? now() : null,
+            'community_restricted_at' => $data['community_trust_level'] === 'restricted' ? now() : null,
+            'community_restriction_reason' => $data['community_trust_level'] === 'restricted'
+                ? trim((string) $data['community_restriction_reason'])
+                : null,
+            'community_trust_updated_by' => $request->user()->id,
+        ])->save();
+
+        $this->logAction(
+            $request->user()->id,
+            'community_trust_updated',
+            $user,
+            $data['community_trust_level']
+        );
+
+        return back()->with('status', "{$user->name}'s community trust level is now " . ucfirst($data['community_trust_level']) . '.');
     }
 
 

@@ -42,8 +42,9 @@ $showRoute = $communityMode ? 'admin.community.reviews.show' : 'admin.content.re
 
 <form method="GET" class="card content-filter content-filter--reviews">
 <input type="hidden" name="status" value="{{ request('status') }}">
-<div class="content-search"><i data-lucide="search"></i><input class="input" name="search" value="{{ request('search') }}" placeholder="Search review, user or tool..."></div>
+<div class="content-search"><i data-lucide="search"></i><input class="input" name="search" value="{{ request('search') }}" placeholder="Search review, user, tool or model..."></div>
 <select class="select" name="tool_id"><option value="">All tools</option>@foreach($tools as $tool)<option value="{{ $tool->id }}" @selected((string)request('tool_id')===(string)$tool->id)>{{ $tool->name }}</option>@endforeach</select>
+<select class="select" name="model_id"><option value="">All models</option>@foreach($models as $model)<option value="{{ $model->id }}" @selected((string)request('model_id')===(string)$model->id)>{{ $model->name }}</option>@endforeach</select>
 @if(!$communityMode)<select class="select" name="type"><option value="">All types</option><option value="user" @selected(request('type')==='user')>User</option><option value="editorial" @selected(request('type')==='editorial')>Editorial</option></select>@endif
 <select class="select" name="rating"><option value="">Any rating</option><option value="5" @selected(request('rating')==='5')>5+</option><option value="4" @selected(request('rating')==='4')>4+</option><option value="3" @selected(request('rating')==='3')>3+</option></select>
 <button class="btn btn-secondary"><i data-lucide="filter"></i>Filter</button>
@@ -52,11 +53,11 @@ $showRoute = $communityMode ? 'admin.community.reviews.show' : 'admin.content.re
 <section class="card content-table-card">
 <div class="content-section-head"><div><span class="content-eyebrow">Review Ledger</span><h2>{{ $communityMode ? 'Community reviews' : 'Review management' }}</h2><p>Moderation state, product context and rating quality at a glance.</p></div><span class="content-count">{{ number_format($reviews->total()) }} records</span></div>
 @if($reviews->count())
-<div class="table-wrap"><table class="data-table content-table"><thead><tr><th>Review</th><th>Tool</th><th>Type</th><th>Rating</th><th>Status</th><th>Moderator</th><th></th></tr></thead><tbody>
+<div class="table-wrap"><table class="data-table content-table"><thead><tr><th>Review</th><th>Reviewed item</th><th>Type</th><th>Rating</th><th>Status</th><th>Moderator</th><th></th></tr></thead><tbody>
 @foreach($reviews as $review)
 <tr>
 <td><div class="content-record"><span class="content-record__icon"><i data-lucide="message-square-text"></i></span><div><a href="{{ route($showRoute,$review->id) }}">{{ $review->verdict ?: \Illuminate\Support\Str::limit($review->body ?: 'Star rating only',55) }}</a><small>{{ $review->user->name ?? ($review->review_type==='editorial'?'Editorial Team':'Deleted user') }}</small></div></div></td>
-<td><span class="content-muted">{{ $review->tool->name ?? 'Deleted tool' }}</span></td>
+<td><span class="content-muted">{{ $review->model?->name ?? $review->tool?->name ?? 'Deleted item' }}</span><small class="content-muted">{{ $review->model_id ? 'AI Model' : 'AI Tool' }}</small></td>
 <td><span class="content-type-pill">{{ ucfirst($review->review_type) }}</span></td>
 <td><span class="content-rating"><i data-lucide="star"></i>{{ number_format((float)$review->rating,1) }}</span></td>
 <td><x-status-badge status="{{ ucfirst($review->status) }}" type="{{ $review->status==='published'?'pos':($review->status==='flagged'?'neg':'warn') }}" /></td>

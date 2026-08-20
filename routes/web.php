@@ -101,10 +101,17 @@ Route::get('/categories/{category:slug}', [FrontendCategoryController::class, 's
 Route::get('/benchmarks', [FrontendBenchmarkController::class, 'index'])->name('benchmarks.index');
 Route::get('/trending', [FrontendTrendingController::class, 'index'])->name('trending.index');
 Route::get('/saved/status', [FrontendSavedController::class, 'status'])->name('saved.status');
-Route::post('/saved/intent', [FrontendSavedController::class, 'intent'])->middleware('throttle:30,1')->name('saved.intent');
+Route::post('/saved/intent', [FrontendSavedController::class, 'intent'])
+    ->middleware('throttle:30,1')
+    ->name('saved.intent');
+
 Route::middleware(['auth', EnsureAccountIsActive::class])->group(function () {
-    Route::get('/saved', [FrontendSavedController::class, 'index'])->name('saved.index');
-    Route::post('/saved/toggle', [FrontendSavedController::class, 'toggle'])->name('saved.toggle');
+    Route::get('/saved', [FrontendSavedController::class, 'index'])
+        ->name('saved.index');
+
+    Route::post('/saved/toggle', [FrontendSavedController::class, 'toggle'])
+        ->middleware('throttle:60,1')
+        ->name('saved.toggle');
 });
 Route::get('/about', [FrontendPageController::class, 'about'])->name('about');
 Route::get('/methodology', [FrontendPageController::class, 'methodology'])->name('methodology');
