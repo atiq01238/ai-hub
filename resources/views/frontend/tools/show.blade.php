@@ -9,7 +9,7 @@
 
 @section('content')
 @php
-    $logo = asset($tool->logo_path ?: 'storage/ai-hub/tools/logos/chatgpt.png');
+    $logo = $tool->logo_url;
     $cover = $tool->cover_image_path ? asset($tool->cover_image_path) : null;
     $pricing = collect($tool->pricing_models ?? []);
     $priceLabel = $pricing->contains('Free') ? ($pricing->contains('Paid') ? 'Free + Paid' : 'Free') : ($pricing->first() ?: 'Pricing varies');
@@ -181,7 +181,7 @@
             <div class="detail-section-head"><div><span>Alternatives</span><h2>Similar AI tools</h2><p>Other highly rated tools in related categories or from the same company.</p></div><i data-lucide="shuffle"></i></div>
             <div class="alternative-grid">
                 @foreach($relatedTools as $related)
-                <a href="{{ route('tools.show', $related) }}" class="alternative-card"><img src="{{ asset($related->logo_path ?: 'storage/ai-hub/tools/logos/chatgpt.png') }}" alt="{{ $related->name }} logo"><div><h3>{{ $related->name }}</h3><p>{{ $related->category?->name ?: 'AI Tool' }} • {{ $related->company?->name ?: 'Independent' }}</p><span><i data-lucide="star"></i>{{ number_format((float)$related->rating,1) }} <b>{{ collect($related->pricing_models ?? [])->contains('Free') ? 'Free option' : 'Paid' }}</b></span></div><i data-lucide="arrow-up-right"></i></a>
+                <a href="{{ route('tools.show', $related) }}" class="alternative-card"><img src="{{ $related->logo_url }}" alt="{{ $related->name }} logo"><div><h3>{{ $related->name }}</h3><p>{{ $related->category?->name ?: 'AI Tool' }} • {{ $related->company?->name ?: 'Independent' }}</p><span><i data-lucide="star"></i>{{ number_format((float)$related->rating,1) }} <b>{{ collect($related->pricing_models ?? [])->contains('Free') ? 'Free option' : 'Paid' }}</b></span></div><i data-lucide="arrow-up-right"></i></a>
                 @endforeach
             </div>
         </section>
@@ -204,7 +204,7 @@
         @if($tool->company)
         <section class="sidebar-card company-card-detail">
             <div class="sidebar-title"><span>Company</span><i data-lucide="building-2"></i></div>
-            <div class="company-detail-row">@if($tool->company->logo_path)<img src="{{ asset($tool->company->logo_path) }}" alt="{{ $tool->company->name }} logo">@else<div class="company-letter">{{ strtoupper(substr($tool->company->name,0,1)) }}</div>@endif<div><h3>{{ $tool->company->name }}</h3>@if($tool->company->founded_year)<span>Founded {{ $tool->company->founded_year }}</span>@endif</div></div>
+            <div class="company-detail-row">@if($tool->company->logo_path)<img src="{{ $tool->company->logo_url }}" alt="{{ $tool->company->name }} logo">@else<div class="company-letter">{{ strtoupper(substr($tool->company->name,0,1)) }}</div>@endif<div><h3>{{ $tool->company->name }}</h3>@if($tool->company->founded_year)<span>Founded {{ $tool->company->founded_year }}</span>@endif</div></div>
             @if($tool->company->description)<p>{{ Str::limit($tool->company->description,160) }}</p>@endif
             <div class="company-mini-stats"><span><b>{{ $tool->company->tools()->where('status','published')->count() }}</b>Tools</span><span><b>{{ $tool->company->models()->whereIn('status',['active','preview'])->count() }}</b>Models</span></div>
         </section>
@@ -213,7 +213,7 @@
         @if($tool->models->isNotEmpty())
         <section class="sidebar-card">
             <div class="sidebar-title"><span>Related models</span><i data-lucide="cpu"></i></div>
-            <div class="related-model-list">@foreach($tool->models->take(4) as $model)<div><img src="{{ asset($model->logo_path ?: $tool->logo_path ?: 'storage/ai-hub/tools/logos/chatgpt.png') }}" alt="{{ $model->name }}"><span><b>{{ $model->name }}</b><small>@if($model->context_window){{ $model->context_window }} context @else{{ $model->version ?: 'AI model' }}@endif</small></span>@if($model->benchmark_score)<em>{{ number_format((float)$model->benchmark_score,1) }}</em>@endif</div>@endforeach</div>
+            <div class="related-model-list">@foreach($tool->models->take(4) as $model)<div><img src="{{ $model->logo_url }}" alt="{{ $model->name }}"><span><b>{{ $model->name }}</b><small>@if($model->context_window){{ $model->context_window }} context @else{{ $model->version ?: 'AI model' }}@endif</small></span>@if($model->benchmark_score)<em>{{ number_format((float)$model->benchmark_score,1) }}</em>@endif</div>@endforeach</div>
         </section>
         @endif
 

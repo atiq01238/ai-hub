@@ -7,6 +7,8 @@ use App\Models\AiModel;
 use App\Models\Company;
 use App\Models\NewsItem;
 use App\Models\Tool;
+use App\Services\Seo\CompanySeoService;
+use App\Services\Seo\CompanyContentService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
@@ -79,7 +81,7 @@ class CompanyController extends Controller
         return view('frontend.companies.index', compact('companies', 'stats', 'leaders'));
     }
 
-    public function show(Company $company)
+    public function show(Company $company, CompanySeoService $seoService, CompanyContentService $contentService)
     {
         abort_unless($company->status !== 'inactive', 404);
 
@@ -98,14 +100,64 @@ class CompanyController extends Controller
         $news = $company->newsItems()->where('status', 'published')->whereNull('duplicate_of_id')
             ->latest('published_at')->take(6)->get();
 
+        $articles = $company->articles()
+            ->where('status', 'published')
+            ->where('approval_status', 'approved')
+            ->latest('published_at')
+            ->take(4)
+            ->get();
+
+        $categoryIds = $company->tools()
+            ->where('status', 'published')
+            ->whereNotNull('category_id')
+            ->distinct()
+            ->pluck('category_id');
+
         $relatedCompanies = Company::query()
             ->withCount([
                 'tools as published_tools_count' => fn ($q) => $q->where('status', 'published'),
                 'models as active_models_count' => fn ($q) => $q->whereIn('status', ['active', 'preview']),
             ])
-            ->where('status', 'active')->whereKeyNot($company->id)
-            ->orderByDesc('active_models_count')->orderByDesc('published_tools_count')->take(4)->get();
+            ->when($categoryIds->isNotEmpty(), fn ($query) => $query->withCount([
+                'tools as shared_category_tools_count' => fn ($q) => $q
+                    ->where('status', 'published')
+                    ->whereIn('category_id', $categoryIds),
+            ]))
+            ->where('status', 'active')
+            ->whereKeyNot($company->id)
+            ->when(
+                $categoryIds->isNotEmpty(),
+                fn ($query) => $query
+                    ->orderByDesc('shared_category_tools_count')
+                    ->orderByDesc('active_models_count')
+                    ->orderByDesc('published_tools_count'),
+                fn ($query) => $query
+                    ->orderByDesc('active_models_count')
+                    ->orderByDesc('published_tools_count')
+            )
+            ->take(4)
+            ->get();
 
-        return view('frontend.companies.show', compact('company', 'tools', 'models', 'news', 'relatedCompanies'));
+        $lastUpdated = collect([
+            $company->updated_at,
+            $tools->max('updated_at'),
+            $models->max('updated_at'),
+            $news->max('updated_at'),
+            $articles->max('updated_at'),
+        ])->filter()->sortDesc()->first();
+
+        $contentSeo = $contentService->build($company, $tools, $models, $news, $articles);
+
+        $seo = $seoService->build(
+            $company,
+            (int) $company->published_tools_count,
+            (int) $company->active_models_count,
+            (int) $company->published_news_count,
+            $lastUpdated
+        );
+
+        return view('frontend.companies.show', compact(
+            'company', 'tools', 'models', 'news', 'articles', 'relatedCompanies', 'lastUpdated', 'seo', 'contentSeo'
+        ));
     }
 }

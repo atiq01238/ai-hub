@@ -10,6 +10,11 @@ use App\Http\Controllers\Admin\NewsController;
 use App\Http\Controllers\Admin\ToolController;
 use App\Http\Controllers\Admin\AiModelController;
 use App\Http\Controllers\Admin\CompanyController;
+use App\Http\Controllers\Admin\DataImportController;
+use App\Http\Controllers\Admin\ToolImportController;
+use App\Http\Controllers\Admin\PricingImportController;
+use App\Http\Controllers\Admin\BenchmarkImportController;
+use App\Http\Controllers\Admin\LogoImportController;
 use App\Http\Controllers\Admin\TaxonomyController;
 use App\Http\Controllers\Admin\ComparisonController;
 use App\Http\Controllers\Admin\TestlabController;
@@ -51,6 +56,7 @@ use App\Http\Controllers\Frontend\ModelController as FrontendModelController;
 use App\Http\Controllers\Frontend\NewsController as FrontendNewsController;
 use App\Http\Controllers\Frontend\ComparisonController as FrontendComparisonController;
 use App\Http\Controllers\Frontend\CompanyController as FrontendCompanyController;
+use App\Http\Controllers\Frontend\CompanySitemapController;
 use App\Http\Controllers\Frontend\ArticleController as FrontendArticleController;
 use App\Http\Controllers\Frontend\ReviewController as FrontendReviewController;
 use App\Http\Controllers\Frontend\TestLabController as FrontendTestLabController;
@@ -85,6 +91,7 @@ Route::get('/compare', [FrontendComparisonController::class, 'index'])->name('co
 Route::get('/compare/builder', [FrontendComparisonController::class, 'builder'])->name('comparisons.builder');
 Route::get('/compare/preview', [FrontendComparisonController::class, 'preview'])->name('comparisons.preview');
 Route::get('/compare/{comparison:slug}', [FrontendComparisonController::class, 'show'])->name('comparisons.show');
+Route::get('/sitemap-companies.xml', CompanySitemapController::class)->name('sitemap.companies');
 Route::get('/companies', [FrontendCompanyController::class, 'index'])->name('companies.index');
 Route::get('/companies/{company:slug}', [FrontendCompanyController::class, 'show'])->name('companies.show');
 Route::get('/articles', [FrontendArticleController::class, 'index'])->name('articles.index');
@@ -228,6 +235,38 @@ Route::middleware(['auth', EnsureAccountIsActive::class, 'admin'])
             Route::get('/{id}', 'show')->whereNumber('id')->middleware(RequirePermission::class . ':AI Models,View')->name('show');
         });
 
+
+        Route::controller(DataImportController::class)->prefix('data-import')->name('data-import.')->group(function () {
+            Route::get('/', 'index')->middleware(RequirePermission::class . ':AI Companies,View')->name('index');
+            Route::get('/companies/template', 'companyTemplate')->middleware(RequirePermission::class . ':AI Companies,View')->name('companies.template');
+            Route::get('/companies/template-xlsx', 'companyXlsxTemplate')->middleware(RequirePermission::class . ':AI Companies,View')->name('companies.template-xlsx');
+            Route::post('/companies/preview', 'previewCompanies')->middleware(RequirePermission::class . ':AI Companies,Add')->name('companies.preview');
+            Route::post('/companies/import', 'importCompanies')->middleware(RequirePermission::class . ':AI Companies,Add')->name('companies.commit');
+            Route::get('/models/template', 'modelTemplate')->middleware(RequirePermission::class . ':AI Models,View')->name('models.template');
+            Route::post('/models/preview', 'previewModels')->middleware(RequirePermission::class . ':AI Models,Add')->name('models.preview');
+            Route::post('/models/import', 'importModels')->middleware(RequirePermission::class . ':AI Models,Add')->name('models.commit');
+        });
+
+
+        Route::prefix('data-import')->name('data-import.')->group(function () {
+            Route::get('/tools/template', [ToolImportController::class, 'template'])->middleware(RequirePermission::class . ':AI Tools,View')->name('tools.template');
+            Route::post('/tools/preview', [ToolImportController::class, 'preview'])->middleware(RequirePermission::class . ':AI Tools,Add')->name('tools.preview');
+            Route::post('/tools/import', [ToolImportController::class, 'commit'])->middleware(RequirePermission::class . ':AI Tools,Add')->name('tools.commit');
+
+            Route::get('/pricing/template', [PricingImportController::class, 'template'])->middleware(RequirePermission::class . ':Pricing,View')->name('pricing.template');
+            Route::post('/pricing/preview', [PricingImportController::class, 'preview'])->middleware(RequirePermission::class . ':Pricing,Add')->name('pricing.preview');
+            Route::post('/pricing/import', [PricingImportController::class, 'commit'])->middleware(RequirePermission::class . ':Pricing,Add')->name('pricing.commit');
+
+            Route::get('/benchmarks/template', [BenchmarkImportController::class, 'template'])->middleware(RequirePermission::class . ':Benchmarks,View')->name('benchmarks.template');
+            Route::post('/benchmarks/preview', [BenchmarkImportController::class, 'preview'])->middleware(RequirePermission::class . ':Benchmarks,Add')->name('benchmarks.preview');
+            Route::post('/benchmarks/import', [BenchmarkImportController::class, 'commit'])->middleware(RequirePermission::class . ':Benchmarks,Add')->name('benchmarks.commit');
+
+            Route::get('/logos', [LogoImportController::class, 'index'])->middleware(RequirePermission::class . ':AI Companies,View')->name('logos.index');
+            Route::post('/logos/companies/{id}', [LogoImportController::class, 'saveCompany'])->whereNumber('id')->middleware(RequirePermission::class . ':AI Companies,Edit')->name('logos.company-save');
+            Route::post('/logos/tools/{id}', [LogoImportController::class, 'saveTool'])->whereNumber('id')->middleware(RequirePermission::class . ':AI Tools,Edit')->name('logos.tool-save');
+            Route::post('/logos/models/{id}/fallback', [LogoImportController::class, 'useCompanyFallback'])->whereNumber('id')->middleware(RequirePermission::class . ':AI Models,Edit')->name('logos.model-fallback');
+        });
+
         Route::controller(CompanyController::class)->prefix('companies')->name('companies.')->group(function () {
             Route::get('/', 'index')->middleware(RequirePermission::class . ':AI Companies,View')->name('index');
             Route::get('/create', 'create')->middleware(RequirePermission::class . ':AI Companies,Add')->name('create');
@@ -310,9 +349,19 @@ Route::middleware(['auth', EnsureAccountIsActive::class, 'admin'])
                 Route::get('/', 'index')->middleware(RequirePermission::class . ':Pricing,View')->name('index');
                 Route::get('/api', 'api')->middleware(RequirePermission::class . ':Pricing,View')->name('api');
                 Route::get('/history', 'history')->middleware(RequirePermission::class . ':Pricing,View')->name('history');
-                Route::get('/changes', 'history')->middleware(RequirePermission::class . ':Pricing,View')->name('changes'); // alias, same page
+                Route::get('/changes', 'changes')->middleware(RequirePermission::class . ':Pricing,View')->name('changes');
+                Route::post('/changes/{id}/approve', 'approveChange')->whereNumber('id')->middleware(RequirePermission::class . ':Pricing,Edit')->name('changes.approve');
+                Route::post('/changes/{id}/reject', 'rejectChange')->whereNumber('id')->middleware(RequirePermission::class . ':Pricing,Edit')->name('changes.reject');
+                Route::post('/scan', 'runDetection')->middleware(RequirePermission::class . ':Pricing,Edit')->name('scan');
+
                 Route::get('/create', 'create')->middleware(RequirePermission::class . ':Pricing,Add')->name('create');
                 Route::post('/', 'store')->middleware(RequirePermission::class . ':Pricing,Add')->name('store');
+
+                Route::get('/{id}/sources', 'sources')->whereNumber('id')->middleware(RequirePermission::class . ':Pricing,View')->name('sources');
+                Route::post('/{id}/sources', 'storeSource')->whereNumber('id')->middleware(RequirePermission::class . ':Pricing,Edit')->name('sources.store');
+                Route::post('/{id}/sources/{sourceId}/check', 'checkSource')->whereNumber('id')->whereNumber('sourceId')->middleware(RequirePermission::class . ':Pricing,Edit')->name('sources.check');
+                Route::delete('/{id}/sources/{sourceId}', 'destroySource')->whereNumber('id')->whereNumber('sourceId')->middleware(RequirePermission::class . ':Pricing,Edit')->name('sources.destroy');
+
                 Route::get('/{id}/edit', 'edit')->whereNumber('id')->middleware(RequirePermission::class . ':Pricing,Edit')->name('edit');
                 Route::put('/{id}', 'update')->whereNumber('id')->middleware(RequirePermission::class . ':Pricing,Edit')->name('update');
                 Route::delete('/{id}', 'destroy')->whereNumber('id')->middleware(RequirePermission::class . ':Pricing,Delete')->name('destroy');

@@ -121,7 +121,7 @@
         @foreach($featuredTools as $rank => $tool)
             <article class="featured-tool-mini">
                 <span class="rank">#{{ $rank + 1 }}</span>
-                <img src="{{ asset($tool->logo_path ?: 'storage/ai-hub/tools/logos/chatgpt.png') }}" alt="{{ $tool->name }} logo">
+                <img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo">
                 <div><h3>{{ $tool->name }}</h3><p>{{ $tool->category?->name ?? 'AI Tool' }}</p></div>
                 <span class="mini-score"><i data-lucide="star"></i>{{ number_format((float)$tool->rating, 1) }}</span>
                 @if($tool->website)<a href="{{ $tool->website }}" target="_blank" rel="noopener" aria-label="Visit {{ $tool->name }}"><i data-lucide="arrow-up-right"></i></a>@endif
@@ -254,7 +254,7 @@
                             $capabilities = collect($tool->capabilities ?? [])->take(3);
                             $cover = $tool->cover_image_path ? asset($tool->cover_image_path) : null;
                         @endphp
-                        <article class="tool-directory-card" data-tool-card data-tool-id="{{ $tool->id }}" data-tool-name="{{ $tool->name }}" data-tool-logo="{{ asset($tool->logo_path ?: 'storage/ai-hub/tools/logos/chatgpt.png') }}" data-tool-rating="{{ number_format((float)$tool->rating,1) }}" data-tool-price="{{ $priceLabel }}" data-tool-benchmark="{{ $tool->benchmark_score ? number_format((float)$tool->benchmark_score,1) : '—' }}" data-tool-category="{{ $tool->category?->name ?? 'AI Tool' }}" data-tool-company="{{ $tool->company?->name ?? 'Independent' }}">
+                        <article class="tool-directory-card" data-tool-card data-tool-id="{{ $tool->id }}" data-tool-name="{{ $tool->name }}" data-tool-logo="{{ $tool->logo_url }}" data-tool-rating="{{ number_format((float)$tool->rating,1) }}" data-tool-price="{{ $priceLabel }}" data-tool-benchmark="{{ $tool->benchmark_score ? number_format((float)$tool->benchmark_score,1) : '—' }}" data-tool-category="{{ $tool->category?->name ?? 'AI Tool' }}" data-tool-company="{{ $tool->company?->name ?? 'Independent' }}">
                             <div class="tool-card-media" @if($cover) style="--tool-cover:url('{{ $cover }}')" @endif>
                                 <div class="tool-media-shade"></div>
                                 <span class="tool-rank-badge"><i data-lucide="trending-up"></i>{{ $tool->popularity }}% popular</span>
@@ -262,7 +262,7 @@
                             </div>
                             <div class="tool-card-body">
                                 <div class="tool-card-identity">
-                                    <img src="{{ asset($tool->logo_path ?: 'storage/ai-hub/tools/logos/chatgpt.png') }}" alt="{{ $tool->name }} logo" loading="lazy">
+                                    <img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo" loading="lazy">
                                     <div><h3>{{ $tool->name }}</h3><p>{{ $tool->company?->name ?? 'Independent' }} <span>•</span> {{ $tool->category?->name ?? 'AI Tool' }}</p></div>
                                     <div class="tool-rating"><i data-lucide="star"></i><strong>{{ number_format((float)$tool->rating,1) }}</strong><small>/5</small></div>
                                 </div>

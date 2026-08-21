@@ -86,4 +86,10 @@ class Tool extends Model
         return $this->morphMany(BenchmarkResult::class, 'benchmarkable');
     }
 
+
+    public function getLogoUrlAttribute(): string
+    {
+        if ($this->logo_path) return \Illuminate\Support\Facades\Storage::disk('public')->url($this->logo_path);
+        return $this->company?->logo_url ?: asset('favicon.ico');
+    }
 }

@@ -52,4 +52,10 @@ class AiModel extends Model
     {
         return $this->hasMany(AiTestResult::class, 'ai_model_id');
     }
+
+    public function getLogoUrlAttribute(): string
+    {
+        if ($this->logo_path) return \Illuminate\Support\Facades\Storage::disk('public')->url($this->logo_path);
+        return $this->company?->logo_url ?: asset('favicon.ico');
+    }
 }

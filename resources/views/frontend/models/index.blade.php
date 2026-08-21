@@ -41,7 +41,7 @@
             @foreach($leaders->take(5) as $i => $leader)
                 <a href="{{ route('models.show',$leader) }}" class="model-trending-card">
                     <b>#{{ $i + 1 }}</b>
-                    <img src="{{ asset($leader->logo_path ?: ($leader->company?->logo_path ?: 'storage/ai-hub/companies/openai.png')) }}" alt="{{ $leader->name }} logo">
+                    <img src="{{ $leader->logo_url }}" alt="{{ $leader->name }} logo">
                     <span>
                         <strong>{{ $leader->name }}</strong>
                         <small>{{ $leader->company?->name ?: 'Independent' }}</small>
@@ -184,7 +184,7 @@
                             @endphp
                             <article class="model-directory-card">
                                 <div class="model-card-header">
-                                    <img src="{{ asset($model->logo_path ?: ($model->company?->logo_path ?: 'storage/ai-hub/companies/openai.png')) }}" alt="{{ $model->name }} logo" loading="lazy">
+                                    <img src="{{ $model->logo_url }}" alt="{{ $model->name }} logo" loading="lazy">
                                     <div class="model-card-title">
                                         <span>{{ $model->company?->name ?? 'Independent' }}</span>
                                         <h3>{{ $model->name }}</h3>

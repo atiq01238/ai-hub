@@ -813,3 +813,33 @@
     .model-spec-list > div { grid-template-columns: 1fr; gap: 4px; }
     .model-spec-list dd { text-align: left; }
 }
+/* Real model identity media: dedicated model logo -> company logo accessor -> initials on image failure. */
+.model-identity__mark,
+.model-hero__mark {
+    overflow: hidden;
+    background: color-mix(in srgb, var(--surface) 92%, white 8%);
+}
+
+.model-identity__mark img,
+.model-hero__mark img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+    background: #fff;
+}
+
+.model-identity__mark img { padding: 4px; }
+.model-hero__mark img { padding: 7px; }
+
+.model-identity__fallback,
+.model-hero__fallback {
+    width: 100%;
+    height: 100%;
+    display: none;
+    place-items: center;
+    background:
+        radial-gradient(circle at 28% 20%, rgba(255,255,255,.22), transparent 34%),
+        linear-gradient(135deg, var(--brand-1), var(--brand-2, #7c3aed));
+    color: #fff;
+}

@@ -19,6 +19,7 @@
             ['AI Tools', '/admin/tools', 'wrench', null, null, ['admin.tools.index','admin.tools.show','admin.tools.edit']],
             ['AI Models', '/admin/models', 'brain-circuit', null, null, ['admin.models.index','admin.models.show','admin.models.edit']],
             ['AI Companies', '/admin/companies', 'building-2', null, null, ['admin.companies.index','admin.companies.show','admin.companies.edit']],
+            ['Data Import', '/admin/data-import', 'file-up', null, null, ['admin.data-import.*'], 'AI Companies', 'View'],
             ['Categories', '/admin/taxonomy/categories', 'shapes'],
             ['Sub Categories', '/admin/taxonomy/subcategories', 'list-tree'],
             ['Features', '/admin/taxonomy/features', 'sparkles'],

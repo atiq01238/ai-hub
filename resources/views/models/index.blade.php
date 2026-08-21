@@ -148,8 +148,16 @@
                     <tr>
                         <td>
                             <div class="model-identity">
-                                <div class="model-identity__mark" aria-hidden="true">
-                                    {{ strtoupper(mb_substr($model->name, 0, 1)) }}
+                                <div class="model-identity__mark">
+                                    <img
+                                        src="{{ $model->logo_url }}"
+                                        alt="{{ $model->name }} logo"
+                                        loading="lazy"
+                                        onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';"
+                                    >
+                                    <span class="model-identity__fallback" aria-hidden="true">
+                                        {{ strtoupper(mb_substr($model->name, 0, 1)) }}
+                                    </span>
                                 </div>
                                 <div class="model-identity__body">
                                     <a href="{{ route('admin.models.show', $model->id) }}" class="model-identity__name">

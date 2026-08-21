@@ -41,7 +41,14 @@
 
 <section class="model-hero card">
     <div class="model-hero__identity">
-        <div class="model-hero__mark" aria-hidden="true">{{ strtoupper(mb_substr($model->name, 0, 1)) }}</div>
+        <div class="model-hero__mark">
+            <img
+                src="{{ $model->logo_url }}"
+                alt="{{ $model->name }} logo"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';"
+            >
+            <span class="model-hero__fallback" aria-hidden="true">{{ strtoupper(mb_substr($model->name, 0, 1)) }}</span>
+        </div>
         <div class="model-hero__copy">
             <div class="model-hero__eyebrow">
                 <span>{{ $model->company?->name ?? 'Independent model' }}</span>

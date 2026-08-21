@@ -1,6 +1,27 @@
 @extends('frontend.layouts.app')
 @section('title','AI Companies Directory — Leading AI Labs & Providers | AI Hub')
 @section('meta_description','Explore leading AI companies, research labs and product providers by tools, models, founding year and latest AI activity.')
+@push('head')
+<link rel="canonical" href="{{ request()->query() ? route('companies.index') : url()->current() }}">
+@if(request()->query())
+<meta name="robots" content="noindex,follow">
+@else
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
+@endif
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AI Hub">
+<meta property="og:title" content="AI Companies Directory — Leading AI Labs & Providers | AI Hub">
+<meta property="og:description" content="Explore leading AI companies, research labs and product providers by tools, models, founding year and latest AI activity.">
+<meta property="og:url" content="{{ route('companies.index') }}">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">{!! json_encode([
+    '@context' => 'https://schema.org',
+    '@type' => 'CollectionPage',
+    'name' => 'AI Companies Directory',
+    'url' => route('companies.index'),
+    'description' => 'Explore leading AI companies, research labs and product providers by tools, models, founding year and latest AI activity.',
+], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
+@endpush
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/companies.css') }}">@endpush
 @section('content')
 <section class="company-hero"><div class="company-wrap">
@@ -24,7 +45,7 @@
 
         <div class="company-results">
             @if($companies->count())<div class="company-grid">@foreach($companies as $company)
-                @php $logo=$company->logo_path && file_exists(public_path($company->logo_path)) ? asset($company->logo_path) : asset('favicon.ico'); @endphp
+                @php $logo=$company->logo_url; @endphp
                 <article class="company-card"><div class="company-card-top"><img src="{{ $logo }}" alt="{{ $company->name }} logo"><span class="company-status status-{{ $company->status }}">{{ ucfirst($company->status) }}</span></div><div class="company-card-body"><span class="company-founded">{{ $company->founded_year ? 'Founded '.$company->founded_year : 'AI company' }}</span><h3>{{ $company->name }}</h3><p>{{ \Illuminate\Support\Str::limit($company->description ?: 'AI company developing products, models and developer services.', 118) }}</p><div class="company-metrics"><div><strong>{{ $company->published_tools_count }}</strong><span>Tools</span></div><div><strong>{{ $company->active_models_count }}</strong><span>Models</span></div><div><strong>{{ $company->published_news_count }}</strong><span>News</span></div></div></div><div class="company-card-foot"><a href="{{ route('companies.show',$company) }}">View company <i data-lucide="arrow-right"></i></a><button type="button" class="save-item-btn compact" data-save-item data-save-type="company" data-save-id="{{ $company->id }}" aria-label="Save {{ $company->name }}" aria-pressed="false"><i data-lucide="bookmark"></i></button>@if($company->website)<a class="company-web" href="{{ $company->website }}" target="_blank" rel="noopener" aria-label="Visit {{ $company->name }} website"><i data-lucide="external-link"></i></a>@endif</div></article>
             @endforeach</div>
             @else<div class="company-empty"><i data-lucide="building-2"></i><h3>No companies found</h3><p>Try clearing one or more filters.</p><a href="{{ route('companies.index') }}">Reset filters</a></div>@endif
@@ -39,7 +60,7 @@
         <div class="company-leader-title"><i data-lucide="trophy"></i><div><strong>Leading AI companies</strong><small>By active models & tools</small></div></div>
         <div class="company-leader-grid">
             @foreach($leaders as $i=>$leader)
-                @php $logo=$leader->logo_path && file_exists(public_path($leader->logo_path)) ? asset($leader->logo_path) : asset('favicon.ico'); @endphp
+                @php $logo=$leader->logo_url; @endphp
                 <a href="{{ route('companies.show',$leader) }}"><span>#{{ $i+1 }}</span><img src="{{ $logo }}" alt=""><div><strong>{{ $leader->name }}</strong><small>{{ $leader->active_models_count }} models · {{ $leader->published_tools_count }} tools</small></div><i data-lucide="chevron-right"></i></a>
             @endforeach
         </div>

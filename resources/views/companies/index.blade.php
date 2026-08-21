@@ -21,6 +21,10 @@
     >
         <x-slot:actions>
             @if(auth()->user()->canAccessModule('AI Companies', 'Add'))
+                <a href="{{ route('admin.data-import.index') }}" class="btn btn-secondary">
+                    <i data-lucide="file-up"></i>
+                    Bulk Import
+                </a>
                 <a href="{{ route('admin.companies.create') }}" class="btn btn-primary">
                     <i data-lucide="plus"></i>
                     Add Company

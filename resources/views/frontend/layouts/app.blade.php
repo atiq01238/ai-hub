@@ -20,6 +20,7 @@
     <meta name="login-url" content="{{ route('login') }}">
     <title>@yield('title', 'AI Hub — Discover, Compare, Master AI')</title>
     <meta name="description" content="@yield('meta_description', 'Discover AI tools, models, news, comparisons, pricing and independent test results in one place.')">
+    @stack('head')
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">

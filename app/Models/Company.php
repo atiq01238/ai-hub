@@ -34,4 +34,9 @@ class Company extends Model
     {
         return $this->hasMany(Article::class);
     }
+
+    public function getLogoUrlAttribute(): string
+    {
+        return $this->logo_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->logo_path) : asset('favicon.ico');
+    }
 }
