@@ -8,8 +8,8 @@ use Illuminate\Support\Str;
 
 class Benchmark extends Model
 {
-    protected $fillable = ['name','slug','category','description','weight','max_score','higher_is_better','official_url','is_active'];
-    protected $casts = ['weight'=>'float','max_score'=>'float','higher_is_better'=>'boolean','is_active'=>'boolean'];
+    protected $fillable = ['name','slug','category','entity_scope','metric_type','unit','min_score','description','weight','max_score','version','variant','higher_is_better','official_url','methodology_url','is_active'];
+    protected $casts = ['weight'=>'float','min_score'=>'float','max_score'=>'float','higher_is_better'=>'boolean','is_active'=>'boolean'];
 
     protected static function booted(): void
     {

@@ -258,10 +258,12 @@ class FetchAiNews extends Command
         try {
             app(DiscoveryClassifier::class)->analyze($newsItem->loadMissing(['company', 'newsSource.company']));
         } catch (\Throwable $e) {
-            Log::warning('AI discovery analysis failed for news item ' . $newsItem->id, [
-                'error' => $e->getMessage(),
-            ]);
+            Log::warning('AI discovery analysis failed for news item ' . $newsItem->id, ['error' => $e->getMessage()]);
         }
+        try {
+            app(\App\Services\NewsEntityLinker::class)->link($newsItem);
+            app(\App\Services\NewsIntelligenceService::class)->refresh($newsItem->fresh());
+        } catch (\Throwable $e) { Log::warning('News intelligence enrichment failed for item '.$newsItem->id,['error'=>$e->getMessage()]); }
 
         return 'created';
     }

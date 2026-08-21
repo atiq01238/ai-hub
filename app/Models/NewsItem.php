@@ -33,6 +33,7 @@ class NewsItem extends Model
         'content_hash',
         'sentiment',
         'importance',
+        'trending_score',
         'verification_status',
         'verified_at',
         'verification_notes',
@@ -55,6 +56,7 @@ class NewsItem extends Model
         'related_tools' => 'array',
         'ai_tags' => 'array',
         'importance' => 'integer',
+        'trending_score' => 'float',
         'ai_confidence' => 'integer',
         'duplicate_score' => 'decimal:2',
         'published_at' => 'datetime',
@@ -135,6 +137,10 @@ class NewsItem extends Model
     {
         return $this->belongsTo(NewsSource::class);
     }
+
+    public function relatedToolTerms() { return $this->belongsToMany(Tool::class, 'news_item_tool'); }
+
+    public function relatedModelTerms() { return $this->belongsToMany(AiModel::class, 'ai_model_news_item'); }
 
     public function duplicateOf()
     {

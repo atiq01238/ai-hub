@@ -6,6 +6,8 @@
 @endpush
 
 @section('content')
+@if(session('status'))<div class="alert alert-success">{{ session('status') }}</div>@endif
+<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><form method="POST" action="{{ route('admin.news.article-draft',$item->id) }}">@csrf<button class="btn btn-primary" type="submit"><i data-lucide="file-plus-2"></i> Create Article Draft</button></form></div>
 @php
     $sentimentClass = $item->sentiment === 'positive' ? 'badge-pos' : ($item->sentiment === 'negative' ? 'badge-neg' : 'badge-neutral');
     $verificationClass = $item->verification_status === 'verified' ? 'badge-pos' : ($item->verification_status === 'unverified' ? 'badge-neg' : 'badge-warn');

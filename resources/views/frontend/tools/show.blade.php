@@ -1,7 +1,24 @@
 @extends('frontend.layouts.app')
 
-@section('title', ($tool->seo_title ?: $tool->name . ' Review, Pricing, Features & Alternatives') . ' | AI Hub')
-@section('meta_description', $tool->meta_description ?: Str::limit(strip_tags($tool->short_description ?: $tool->description), 155))
+@section('title', $seo['title'] . ' | AI Hub')
+@section('meta_description', $seo['description'])
+
+@push('head')
+<link rel="canonical" href="{{ route('tools.show', $tool) }}">
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{{ $seo['title'] }}">
+<meta property="og:description" content="{{ $seo['description'] }}">
+<meta property="og:url" content="{{ route('tools.show', $tool) }}">
+<meta property="og:image" content="{{ $tool->og_image_path ? asset($tool->og_image_path) : $tool->logo_url }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ $seo['title'] }}">
+<meta name="twitter:description" content="{{ $seo['description'] }}">
+<meta name="twitter:image" content="{{ $tool->og_image_path ? asset($tool->og_image_path) : $tool->logo_url }}">
+@foreach($seoSchemas as $schema)
+<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org'] + $schema, JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
+@endforeach
+@endpush
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/frontend/tools-show.css') }}">
@@ -122,9 +139,10 @@
                 <article class="pricing-detail-card {{ $loop->index === 1 ? 'featured' : '' }}">
                     @if($loop->index === 1)<span class="plan-badge">Popular</span>@endif
                     <small>{{ $tool->name }}</small><h3>{{ $plan->plan_name }}</h3>
-                    <div class="plan-price">@if((float)$plan->monthly_price === 0.0)<strong>Free</strong>@elseif($plan->monthly_price !== null)<strong>${{ rtrim(rtrim(number_format((float)$plan->monthly_price,2), '0'), '.') }}</strong><span>/month</span>@else<strong>Custom</strong>@endif</div>
-                    @if($plan->yearly_price)<p class="yearly-price">${{ number_format((float)$plan->yearly_price,2) }} billed yearly</p>@endif
+                    <div class="plan-price">@if((float)$plan->monthly_price === 0.0)<strong>Free</strong>@elseif($plan->monthly_price !== null)<strong>{{ strtoupper($plan->currency ?? 'USD') }} {{ rtrim(rtrim(number_format((float)$plan->monthly_price,2), '0'), '.') }}</strong><span>/month</span>@else<strong>Custom</strong>@endif</div>
+                    @if($plan->yearly_price)<p class="yearly-price">{{ strtoupper($plan->currency ?? 'USD') }} {{ number_format((float)$plan->yearly_price,2) }} billed yearly</p>@endif
                     @if($plan->api_price_label)<p class="api-price"><i data-lucide="code-2"></i>{{ $plan->api_price_label }}</p>@endif
+                    <p class="api-price"><i data-lucide="shield-check"></i>{{ ucfirst($plan->freshness) }}@if($plan->last_verified_at) · verified {{ $plan->last_verified_at->diffForHumans() }}@endif</p>
                     <ul>
                         @foreach(preg_split('/[\r\n,;]+/', (string)$plan->limits, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $limit)<li><i data-lucide="check"></i>{{ trim($limit) }}</li>@endforeach
                         @if($plan->credits)<li><i data-lucide="check"></i>{{ $plan->credits }}</li>@endif
@@ -244,6 +262,21 @@
     'aggregateRating' => (float)$tool->rating > 0 ? ['@type'=>'AggregateRating','ratingValue'=>(float)$tool->rating,'bestRating'=>5,'ratingCount'=>max(1,$reviewCount)] : null,
 ], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}
 </script>
+
+<section class="detail-panel seo-faq-panel" id="faq">
+    <div class="detail-section-head">
+        <div><span>Common questions</span><h2>{{ $tool->name }} FAQ</h2><p>Quick answers based on the information currently available in this AI Hub profile.</p></div>
+        <i data-lucide="circle-help"></i>
+    </div>
+    <div class="seo-faq-list">
+        @foreach($seo['faq'] as $item)
+            <details>
+                <summary>{{ $item['q'] }}<i data-lucide="chevron-down"></i></summary>
+                <p>{{ $item['a'] }}</p>
+            </details>
+        @endforeach
+    </div>
+</section>
 @endsection
 
 @push('scripts')

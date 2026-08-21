@@ -128,7 +128,7 @@ class NewsController extends Controller
             ->get();
 
         $trending = (clone $base)->with('company')
-            ->orderByDesc('importance')->orderByDesc('published_at')->take(6)->get();
+            ->orderByDesc('trending_score')->orderByDesc('importance')->orderByDesc('published_at')->take(6)->get();
 
         $stats = [
             'published' => (clone $base)->count(),
@@ -147,7 +147,8 @@ class NewsController extends Controller
         abort_unless($news->status === 'published', 404);
         abort_if($news->duplicate_of_id || $news->duplicate_status === 'duplicate', 404);
 
-        $news->load(['company', 'newsSource']);
+        $news->load(['company', 'newsSource', 'relatedToolTerms.company', 'relatedModelTerms.company']);
+        app(\App\Services\NewsIntelligenceService::class)->refresh($news);
 
         $relatedNews = NewsItem::query()
             ->with(['company', 'newsSource'])
@@ -175,12 +176,14 @@ class NewsController extends Controller
         }
 
         $toolNames = collect($news->related_tools ?? [])->filter()->values();
-        $relatedTools = $this->resolveTools($toolNames);
+        $relatedTools = $news->relatedToolTerms->merge($this->resolveTools($toolNames))->unique('id')->take(6)->values();
 
-        $relatedModels = AiModel::query()->with('company')
-            ->whereIn('status', ['active', 'preview'])
-            ->when($news->company_id, fn (Builder $query) => $query->where('company_id', $news->company_id))
-            ->orderByDesc('benchmark_score')->take(3)->get();
+        $relatedModels = $news->relatedModelTerms;
+        if ($relatedModels->isEmpty()) {
+            $relatedModels = AiModel::query()->with('company')->whereIn('status', ['active', 'preview'])
+                ->when($news->company_id, fn (Builder $query) => $query->where('company_id', $news->company_id))
+                ->orderByDesc('benchmark_score')->take(3)->get();
+        }
 
         $previous = NewsItem::query()->where('status', 'published')->whereNull('duplicate_of_id')
             ->where('published_at', '<', $news->published_at ?? $news->created_at)

@@ -43,6 +43,14 @@ class NewsSourceController extends Controller
         return redirect()->route('admin.system.news-sources')->with('status', 'Source added.');
     }
 
+
+    public function authority(Request $request, int $id)
+    {
+        $data=$request->validate(['authority_type'=>['required','in:official,research,major_publication,specialist,publication,aggregator'],'authority_score'=>['required','integer','min:0','max:100']]);
+        NewsSource::findOrFail($id)->update($data);
+        return back()->with('status','Source authority updated.');
+    }
+
     public function toggle(int $id)
     {
         $source = NewsSource::findOrFail($id);

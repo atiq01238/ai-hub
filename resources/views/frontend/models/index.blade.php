@@ -1,6 +1,11 @@
 @extends('frontend.layouts.app')
 @section('title','AI Models Directory — Compare Leading AI Models | AI Hub')
 @section('meta_description','Explore and compare leading AI models by provider, context window, API pricing, capabilities and benchmark score.')
+
+@push('head')
+<link rel="canonical" href="{{ route('models.index') }}">
+<meta name="robots" content="{{ request()->query() ? 'noindex,follow' : 'index,follow,max-image-preview:large' }}">
+@endpush
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/models.css') }}">@endpush
 @section('content')
 <section class="model-hero model-hero-wave">

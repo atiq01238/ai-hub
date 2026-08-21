@@ -3,6 +3,14 @@
 @section('title', $news->headline . ' | AI Hub News')
 @section('meta_description', Str::limit(strip_tags($news->ai_summary ?: $news->summary ?: $news->headline), 155, ''))
 
+@push('head')
+<link rel="canonical" href="{{ route('news.show',$news) }}">
+<meta property="og:type" content="article"><meta property="og:title" content="{{ $news->headline }}"><meta property="og:description" content="{{ Str::limit(strip_tags($news->ai_summary ?: $news->summary ?: $news->headline),155,'') }}"><meta property="og:url" content="{{ route('news.show',$news) }}">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="{{ $news->headline }}">
+<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'NewsArticle','headline'=>$news->headline,'description'=>Str::limit(strip_tags($news->ai_summary ?: $news->summary ?: ''),300,''),'datePublished'=>optional($news->published_at)->toIso8601String(),'dateModified'=>optional($news->updated_at)->toIso8601String(),'mainEntityOfPage'=>route('news.show',$news),'publisher'=>['@type'=>'Organization','name'=>'AI Hub','url'=>route('home')],'isBasedOn'=>$news->canonical_url ?: $news->source_url], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
+<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'BreadcrumbList','itemListElement'=>[['@type'=>'ListItem','position'=>1,'name'=>'Home','item'=>route('home')],['@type'=>'ListItem','position'=>2,'name'=>'AI News','item'=>route('news.index')],['@type'=>'ListItem','position'=>3,'name'=>$news->headline,'item'=>route('news.show',$news)]]],JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
+@endpush
+
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/news.css') }}">@endpush
 
 @php

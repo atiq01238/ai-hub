@@ -20,6 +20,7 @@
         :breadcrumb="['Pricing', $onlyApi ? 'API Pricing' : 'Pricing Plans']"
     >
         <x-slot:actions>
+            <a class="btn btn-secondary" href="{{ route('admin.pricing.models.index') }}"><i data-lucide="cpu"></i> Model API Pricing</a>
             <a href="{{ route('admin.pricing.changes') }}" class="btn btn-secondary">
                 <i data-lucide="radar"></i>
                 Review Changes

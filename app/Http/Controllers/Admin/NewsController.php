@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Company;
+use App\Models\Article;
 use App\Models\NewsBookmark;
 use App\Models\NewsItem;
 use Illuminate\Database\Eloquent\Builder;
@@ -236,6 +237,30 @@ class NewsController extends Controller
         if ($companyId = $request->query('company_id')) {
             $query->where('company_id', $companyId);
         }
+    }
+
+
+    public function createArticleDraft(int $id)
+    {
+        $item = NewsItem::with(['relatedToolTerms','relatedModelTerms'])->findOrFail($id);
+        $existing = Article::where('origin_news_item_id',$item->id)->first();
+        if ($existing) return redirect()->route('admin.content.articles.editor.edit',$existing->id)->with('status','An article draft already exists for this news item.');
+        $article = DB::transaction(function() use ($item) {
+            $article=Article::create([
+                'user_id'=>Auth::id(),'company_id'=>$item->company_id,'origin_news_item_id'=>$item->id,
+                'title'=>$item->headline,'slug'=>Str::slug($item->headline).'-'.Str::lower(Str::random(6)),
+                'summary'=>$item->ai_summary ?: $item->summary,
+                'content'=>trim(($item->summary ?: '')."\n\nWhy it matters\n".($item->ai_why_it_matters ?: $item->why_it_matters ?: '')),
+                'category'=>$item->category,'tags'=>$item->ai_tags ?: $item->tags ?: [],
+                'status'=>'draft','approval_status'=>'draft',
+                'seo_title'=>Str::limit($item->headline,60,''),
+                'meta_description'=>Str::limit($item->ai_summary ?: $item->summary ?: $item->headline,155,''),
+            ]);
+            $article->relatedToolTerms()->sync($item->relatedToolTerms->pluck('id'));
+            $article->relatedModelTerms()->sync($item->relatedModelTerms->pluck('id'));
+            return $article;
+        });
+        return redirect()->route('admin.content.articles.editor.edit',$article->id)->with('status','Article draft created from News Intelligence. Review and expand it before publishing.');
     }
 
     private function fromRequest(Request $request, ?NewsItem $item = null): array

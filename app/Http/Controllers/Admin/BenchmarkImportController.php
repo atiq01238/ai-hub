@@ -8,6 +8,7 @@ use App\Models\BenchmarkResult;
 use App\Models\Tool;
 use App\Services\Imports\ImportPreviewStore;
 use App\Services\Imports\SpreadsheetReader;
+use App\Services\BenchmarkScoringService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -22,10 +23,58 @@ class BenchmarkImportController extends Controller
             if(!$errors&&!$definitionOnly){$entity=$n['entity_type']==='model'?AiModel::where('name',$n['entity_name'])->first():Tool::where('name',$n['entity_name'])->first();if(!$entity)$errors[]='Entity not found: '.$n['entity_name'];}
             $preview[]=$n+['definition_only'=>$definitionOnly,'entity_id'=>$entity?->id,'entity_class'=>$entity ? $entity::class : null,'errors'=>$errors,'state'=>$errors?'invalid':'ready'];}
         $token=$store->put('benchmarks',$request->user()->id,$preview);$stats=['total'=>count($preview),'ready'=>collect($preview)->where('state','ready')->count(),'existing'=>0,'invalid'=>collect($preview)->where('state','invalid')->count()];return view('data-import.benchmarks-preview',compact('preview','stats','token'));}
-    public function commit(Request$request,ImportPreviewStore$store){$d=$request->validate(['token'=>['required','string','size:40']]);$payload=$store->get($d['token'],$request->user()->id,'benchmarks');$created=$invalid=0;DB::transaction(function()use($payload,&$created,&$invalid){foreach($payload['rows']??[]as$r){if(($r['state']??'')!=='ready'||!empty($r['errors'])){$invalid++;continue;}$benchmark=Benchmark::firstOrCreate(['name'=>$r['benchmark_name']],['slug'=>$this->uniqueSlug($r['benchmark_name']),'category'=>$r['category']?:'General','description'=>$r['description']?:null,'weight'=>$r['weight']??1,'max_score'=>$r['max_score']??100,'higher_is_better'=>$r['higher_is_better'],'official_url'=>$r['benchmark_url']?:null,'is_active'=>true]);
-            if(!empty($r['definition_only'])){$created++;continue;}
-            BenchmarkResult::create(['benchmark_id'=>$benchmark->id,'benchmarkable_type'=>$r['entity_class'],'benchmarkable_id'=>$r['entity_id'],'score'=>$r['score'],'tested_at'=>$r['tested_at']?:null,'source_name'=>$r['source_name']?:null,'source_url'=>$r['source_url']?:null,'notes'=>$r['notes']?:null,'verified'=>$r['verified']]);$item=$r['entity_class']===AiModel::class?AiModel::find($r['entity_id']):Tool::find($r['entity_id']);if($item){$b=$item->benchmarks??[];$b[$benchmark->name]=(float)$r['score'];$item->benchmarks=$b;$item->benchmark_score=$this->composite($item);$item->save();}$created++;}});$store->forget($d['token']);return redirect()->route('admin.benchmarks.results')->with('status',"Benchmark import complete: {$created} results imported, {$invalid} invalid skipped.");}
-    private function normalize(array$r):array{$num=fn($v,$d=null)=>trim((string)$v)===''?$d:(float)$v;$bool=fn($v,$d=false)=>in_array(strtolower(trim((string)$v)),['1','true','yes','y'],true)?true:(trim((string)$v)===''?$d:false);return['row_number'=>(int)($r['row_number']??0),'entity_type'=>strtolower(trim((string)($r['entity_type']??''))),'entity_name'=>trim((string)($r['entity_name']??'')),'benchmark_name'=>trim((string)($r['benchmark_name']??'')),'category'=>trim((string)($r['category']??'')),'description'=>trim((string)($r['description']??'')),'weight'=>$num($r['weight']??'',1),'max_score'=>$num($r['max_score']??'',100),'higher_is_better'=>$bool($r['higher_is_better']??'yes',true),'benchmark_url'=>trim((string)($r['benchmark_url']??'')),'score'=>$num($r['score']??'',null),'tested_at'=>trim((string)($r['tested_at']??'')),'source_name'=>trim((string)($r['source_name']??'')),'source_url'=>trim((string)($r['source_url']??'')),'notes'=>trim((string)($r['notes']??'')),'verified'=>$bool($r['verified']??'no',false)];}
+    public function commit(Request $request, ImportPreviewStore $store, BenchmarkScoringService $scoring)
+    {
+        $d=$request->validate(['token'=>['required','string','size:40']]);
+        $payload=$store->get($d['token'],$request->user()->id,'benchmarks'); $created=$invalid=$duplicates=0; $touched=[];
+        DB::transaction(function() use($payload,$request,$scoring,&$created,&$invalid,&$duplicates,&$touched){
+            foreach($payload['rows']??[] as $r){
+                if(($r['state']??'')!=='ready'||!empty($r['errors'])){$invalid++;continue;}
+                $benchmark=Benchmark::updateOrCreate(['name'=>$r['benchmark_name']],[
+                    'slug'=>Benchmark::where('name',$r['benchmark_name'])->value('slug') ?: $this->uniqueSlug($r['benchmark_name']),
+                    'category'=>$r['category']?:'General','entity_scope'=>$r['entity_scope']?:($r['entity_type']?:'model'),
+                    'metric_type'=>$r['metric_type']?:'percentage','unit'=>$r['unit']?:'%','min_score'=>$r['min_score']??0,
+                    'description'=>$r['description']?:null,'weight'=>$r['weight']??1,'max_score'=>$r['max_score']??100,
+                    'version'=>$r['version']?:null,'variant'=>$r['variant']?:null,'higher_is_better'=>$r['higher_is_better'],
+                    'official_url'=>$r['benchmark_url']?:null,'methodology_url'=>$r['methodology_url']?:null,'is_active'=>true,
+                ]);
+                if(!empty($r['definition_only'])){$created++;continue;}
+                $fp=$scoring->fingerprint($benchmark->id,$r['entity_class'],$r['entity_id'],$r['tested_at']?:null,$r['source_url']?:null,(float)$r['score']);
+                if(BenchmarkResult::where('fingerprint',$fp)->exists()){$duplicates++;continue;}
+                $verified=(bool)$r['verified'];
+                BenchmarkResult::create([
+                    'benchmark_id'=>$benchmark->id,'benchmarkable_type'=>$r['entity_class'],'benchmarkable_id'=>$r['entity_id'],
+                    'score'=>$r['score'],'model_version'=>$r['model_version']?:null,'tested_at'=>$r['tested_at']?:null,
+                    'source_type'=>$r['source_type']?:'independent','source_name'=>$r['source_name']?:null,'source_url'=>$r['source_url']?:null,
+                    'notes'=>$r['notes']?:null,'verified'=>$verified,'status'=>$verified?'verified':'pending',
+                    'verified_by'=>$verified?$request->user()?->id:null,'verified_at'=>$verified?now():null,'fingerprint'=>$fp,
+                ]);
+                $item=$r['entity_class']===AiModel::class?AiModel::find($r['entity_id']):Tool::find($r['entity_id']);
+                if($item)$touched[$r['entity_class'].':'.$r['entity_id']]=$item; $created++;
+            }
+            foreach($touched as $item)$scoring->sync($item);
+        });
+        $store->forget($d['token']);
+        return redirect()->route('admin.benchmarks.results')->with('status',"Benchmark import complete: {$created} imported, {$duplicates} duplicates skipped, {$invalid} invalid skipped.");
+    }
+
+    private function normalize(array $r): array
+    {
+        $num=fn($v,$d=null)=>trim((string)$v)===''?$d:(float)$v;
+        $bool=fn($v,$d=false)=>in_array(strtolower(trim((string)$v)),['1','true','yes','y'],true)?true:(trim((string)$v)===''?$d:false);
+        return [
+            'row_number'=>(int)($r['row_number']??0),'entity_type'=>strtolower(trim((string)($r['entity_type']??''))),
+            'entity_name'=>trim((string)($r['entity_name']??'')),'benchmark_name'=>trim((string)($r['benchmark_name']??'')),
+            'category'=>trim((string)($r['category']??'')),'entity_scope'=>strtolower(trim((string)($r['entity_scope']??''))),
+            'metric_type'=>trim((string)($r['metric_type']??'percentage')),'unit'=>trim((string)($r['unit']??'%')),
+            'min_score'=>$num($r['min_score']??'',0),'description'=>trim((string)($r['description']??'')),'weight'=>$num($r['weight']??'',1),
+            'max_score'=>$num($r['max_score']??'',100),'version'=>trim((string)($r['version']??'')),'variant'=>trim((string)($r['variant']??'')),
+            'higher_is_better'=>$bool($r['higher_is_better']??'yes',true),'benchmark_url'=>trim((string)($r['benchmark_url']??'')),
+            'methodology_url'=>trim((string)($r['methodology_url']??'')),'score'=>$num($r['score']??'',null),
+            'model_version'=>trim((string)($r['model_version']??'')),'tested_at'=>trim((string)($r['tested_at']??'')),
+            'source_type'=>trim((string)($r['source_type']??'independent')),'source_name'=>trim((string)($r['source_name']??'')),
+            'source_url'=>trim((string)($r['source_url']??'')),'notes'=>trim((string)($r['notes']??'')),'verified'=>$bool($r['verified']??'no',false),
+        ];
+    }
     private function uniqueSlug(string$name):string{$base=Str::slug($name)?:'benchmark';$s=$base;$i=2;while(Benchmark::where('slug',$s)->exists())$s=$base.'-'.$i++;return$s;}
-    private function composite($item):float{$latest=BenchmarkResult::with('benchmark')->where('benchmarkable_type',$item::class)->where('benchmarkable_id',$item->id)->orderByDesc('tested_at')->orderByDesc('id')->get()->unique('benchmark_id');if($latest->isEmpty())return 0;$weighted=$weights=0;foreach($latest as$result){$w=max((float)($result->benchmark->weight??1),.01);$max=max((float)($result->benchmark->max_score??100),.01);$weighted+=min(100,max(0,((float)$result->score/$max)*100))*$w;$weights+=$w;}return round($weighted/$weights,1);}
 }

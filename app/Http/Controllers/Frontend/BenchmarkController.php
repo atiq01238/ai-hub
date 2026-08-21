@@ -39,7 +39,7 @@ class BenchmarkController extends Controller
         $toolLeaderboard = $this->toolLeaderboard($benchmarks);
 
         $displayBenchmarks = $benchmarks->map(function (Benchmark $benchmark) use ($type) {
-            $results = $benchmark->results
+            $results = $benchmark->results->sortByDesc(fn ($r) => ($r->tested_at?->timestamp ?? 0) * 100000 + $r->id)->unique(fn ($r) => $r->benchmarkable_type.'|'.$r->benchmarkable_id)
                 ->filter(function (BenchmarkResult $result) use ($type) {
                     if (!$result->benchmarkable) {
                         return false;
@@ -90,6 +90,15 @@ class BenchmarkController extends Controller
                 'latest_tested_at' => $latestTestedAt,
             ],
         ]);
+    }
+
+    public function show(Benchmark $benchmark)
+    {
+        abort_unless($benchmark->is_active, 404);
+        $results = BenchmarkResult::with('benchmarkable')->where('benchmark_id',$benchmark->id)->where('verified',true)->where('status','verified')->orderByDesc('tested_at')->orderByDesc('id')->get()->unique(fn($r)=>$r->benchmarkable_type.'|'.$r->benchmarkable_id)->sortBy(fn($r)=>$benchmark->higher_is_better ? -(float)$r->score : (float)$r->score)->values();
+        $title=$benchmark->name.' AI Benchmark Leaderboard'.($benchmark->version?' '.$benchmark->version:'').' (2026)';
+        $description='Explore verified '.$benchmark->name.' AI benchmark results, rankings, methodology, sources and tested models on AI Hub.';
+        return view('frontend.benchmarks.show',compact('benchmark','results','title','description'));
     }
 
     private function modelLeaderboard(Collection $benchmarks): Collection

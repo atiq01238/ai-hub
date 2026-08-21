@@ -267,11 +267,15 @@ class PricingController extends Controller
         return $request->validate([
             'tool_id' => ['required', 'exists:tools,id'],
             'plan_name' => ['required', 'string', 'max:100'],
+            'currency' => ['required', 'string', 'max:10'],
+            'billing_type' => ['required', 'in:subscription,per_seat,usage,one_time,custom'],
+            'billing_unit' => ['nullable', 'string', 'max:80'],
             'monthly_price' => ['nullable', 'numeric', 'min:0'],
             'yearly_price' => ['nullable', 'numeric', 'min:0'],
             'api_price_label' => ['nullable', 'string', 'max:120'],
             'credits' => ['nullable', 'string', 'max:100'],
             'limits' => ['nullable', 'string', 'max:100'],
+            'last_verified_at' => ['nullable', 'date'],
         ]);
     }
 

@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\ComparisonController;
 use App\Http\Controllers\Admin\TestlabController;
 use App\Http\Controllers\Admin\BenchmarkController;
 use App\Http\Controllers\Admin\PricingController;
+use App\Http\Controllers\Admin\ModelPricingController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\MediaController;
@@ -57,6 +58,7 @@ use App\Http\Controllers\Frontend\NewsController as FrontendNewsController;
 use App\Http\Controllers\Frontend\ComparisonController as FrontendComparisonController;
 use App\Http\Controllers\Frontend\CompanyController as FrontendCompanyController;
 use App\Http\Controllers\Frontend\CompanySitemapController;
+use App\Http\Controllers\Frontend\SeoSitemapController;
 use App\Http\Controllers\Frontend\ArticleController as FrontendArticleController;
 use App\Http\Controllers\Frontend\ReviewController as FrontendReviewController;
 use App\Http\Controllers\Frontend\TestLabController as FrontendTestLabController;
@@ -92,6 +94,10 @@ Route::get('/compare/builder', [FrontendComparisonController::class, 'builder'])
 Route::get('/compare/preview', [FrontendComparisonController::class, 'preview'])->name('comparisons.preview');
 Route::get('/compare/{comparison:slug}', [FrontendComparisonController::class, 'show'])->name('comparisons.show');
 Route::get('/sitemap-companies.xml', CompanySitemapController::class)->name('sitemap.companies');
+Route::get('/sitemap-tools.xml', [SeoSitemapController::class, 'tools'])->name('sitemap.tools');
+Route::get('/sitemap-models.xml', [SeoSitemapController::class, 'models'])->name('sitemap.models');
+Route::get('/sitemap-news.xml', [SeoSitemapController::class, 'news'])->name('sitemap.news');
+Route::get('/sitemap-articles.xml', [SeoSitemapController::class, 'articles'])->name('sitemap.articles');
 Route::get('/companies', [FrontendCompanyController::class, 'index'])->name('companies.index');
 Route::get('/companies/{company:slug}', [FrontendCompanyController::class, 'show'])->name('companies.show');
 Route::get('/articles', [FrontendArticleController::class, 'index'])->name('articles.index');
@@ -106,6 +112,7 @@ Route::get('/search', [FrontendSearchController::class, 'index'])->name('search.
 Route::get('/categories', [FrontendCategoryController::class, 'index'])->name('categories.index');
 Route::get('/categories/{category:slug}', [FrontendCategoryController::class, 'show'])->name('categories.show');
 Route::get('/benchmarks', [FrontendBenchmarkController::class, 'index'])->name('benchmarks.index');
+Route::get('/benchmarks/{benchmark:slug}', [FrontendBenchmarkController::class, 'show'])->name('benchmarks.show');
 Route::get('/trending', [FrontendTrendingController::class, 'index'])->name('trending.index');
 Route::get('/saved/status', [FrontendSavedController::class, 'status'])->name('saved.status');
 Route::post('/saved/intent', [FrontendSavedController::class, 'intent'])
@@ -200,6 +207,7 @@ Route::middleware(['auth', EnsureAccountIsActive::class, 'admin'])
                 Route::get('/create', 'create')->middleware(RequirePermission::class . ':AI News,Add')->name('create');
                 Route::get('/duplicates', 'duplicates')->middleware(RequirePermission::class . ':AI News,View')->name('duplicates');
                 Route::post('/fetch-now', 'fetchNow')->middleware(RequirePermission::class . ':AI News,Add')->name('fetch-now');
+                Route::post('/{id}/article-draft', 'createArticleDraft')->whereNumber('id')->middleware(RequirePermission::class . ':Content,Add')->name('article-draft');
                 Route::get('/{id}/edit', 'edit')->whereNumber('id')->middleware(RequirePermission::class . ':AI News,Edit')->name('edit');
                 Route::post('/', 'store')->middleware(RequirePermission::class . ':AI News,Add')->name('store');
                 Route::put('/{id}', 'update')->whereNumber('id')->middleware(RequirePermission::class . ':AI News,Edit')->name('update');
@@ -342,6 +350,18 @@ Route::middleware(['auth', EnsureAccountIsActive::class, 'admin'])
         | Pricing
         |----------------------------------------------------------------
         */
+        Route::controller(ModelPricingController::class)
+            ->prefix('pricing/models')
+            ->name('pricing.models.')
+            ->group(function () {
+                Route::get('/', 'index')->middleware(RequirePermission::class . ':Pricing,View')->name('index');
+                Route::get('/{model}/sources', 'sources')->middleware(RequirePermission::class . ':Pricing,View')->name('sources');
+                Route::post('/{model}/sources', 'storeSource')->middleware(RequirePermission::class . ':Pricing,Edit')->name('sources.store');
+                Route::post('/{model}/sources/{source}/verify', 'verify')->middleware(RequirePermission::class . ':Pricing,Edit')->name('sources.verify');
+                Route::post('/{model}/sources/{source}/approve', 'approve')->middleware(RequirePermission::class . ':Pricing,Edit')->name('sources.approve');
+                Route::delete('/{model}/sources/{source}', 'destroySource')->middleware(RequirePermission::class . ':Pricing,Edit')->name('sources.destroy');
+            });
+
         Route::controller(PricingController::class)
             ->prefix('pricing')
             ->name('pricing.')
@@ -603,6 +623,7 @@ Route::middleware(['auth', EnsureAccountIsActive::class, 'admin'])
             ->group(function () {
                 Route::post('/', 'store')->middleware(RequirePermission::class . ':AI News,Add')->name('store');
                 Route::post('/{id}/toggle', 'toggle')->whereNumber('id')->middleware(RequirePermission::class . ':AI News,Edit')->name('toggle');
+                Route::post('/{id}/authority', 'authority')->whereNumber('id')->middleware(RequirePermission::class . ':AI News,Edit')->name('authority');
                 Route::delete('/{id}', 'destroy')->whereNumber('id')->middleware(RequirePermission::class . ':AI News,Delete')->name('destroy');
             });
 

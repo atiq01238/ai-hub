@@ -10,6 +10,7 @@ use App\Models\Tool;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use App\Services\BenchmarkScoringService;
 
 class BenchmarkController extends Controller
 {
@@ -46,13 +47,13 @@ class BenchmarkController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, BenchmarkScoringService $scoring)
     {
         $data = $request->validate([
             'type'=>['required','in:model,tool'], 'item_id'=>['required','integer'],
-            'benchmark_name'=>['required','string','max:100'], 'score'=>['required','numeric','min:0','max:100'],
+            'benchmark_name'=>['required','string','max:100'], 'score'=>['required','numeric'],
             'tested_at'=>['nullable','date'], 'source_name'=>['nullable','string','max:150'],
-            'source_url'=>['nullable','url','max:500'], 'notes'=>['nullable','string','max:2000'],
+            'source_url'=>['nullable','url','max:500'], 'notes'=>['nullable','string','max:2000'], 'source_type'=>['nullable','in:official,benchmark_org,research_paper,independent,ai_hub,community'], 'model_version'=>['nullable','string','max:150'],
             'verified'=>['nullable','boolean'],
         ]);
         $item = $data['type'] === 'tool' ? Tool::findOrFail($data['item_id']) : AiModel::findOrFail($data['item_id']);
@@ -69,16 +70,13 @@ class BenchmarkController extends Controller
             'tested_at'=>$data['tested_at'] ?? now()->toDateString(),
             'source_name'=>$data['source_name'] ?? null,
             'source_url'=>$data['source_url'] ?? null,
-            'notes'=>$data['notes'] ?? null,
-            'verified'=>$request->boolean('verified'),
+            'notes'=>$data['notes'] ?? null, 'source_type'=>$data['source_type'] ?? 'independent', 'model_version'=>$data['model_version'] ?? null,
+            'verified'=>$request->boolean('verified'), 'status'=>$request->boolean('verified') ? 'verified' : 'pending', 'verified_by'=>$request->boolean('verified') ? $request->user()?->id : null, 'verified_at'=>$request->boolean('verified') ? now() : null,
+            'fingerprint'=>$scoring->fingerprint($benchmark->id,$item::class,$item->id,$data['tested_at'] ?? now()->toDateString(),$data['source_url'] ?? null,(float)$data['score']),
         ]);
 
-        // Keep legacy JSON in sync so existing model/tool pages continue to work.
-        $breakdown = $item->benchmarks ?? [];
-        $breakdown[$benchmark->name] = (float) $data['score'];
-        $item->benchmarks = $breakdown;
-        $item->benchmark_score = $this->weightedComposite($item);
-        $item->save();
+        // Verified benchmark_results are the source of truth; legacy fields are compatibility mirrors.
+        $scoring->sync($item);
 
         return redirect()->route('admin.benchmarks.index', ['benchmark'=>$benchmark->name,'type'=>$data['type']])
             ->with('status','Benchmark result saved with history.');
@@ -97,10 +95,11 @@ class BenchmarkController extends Controller
         return view('benchmarks.results', compact('results','benchmarks'));
     }
 
-    public function destroyResult(int $resultId)
+    public function destroyResult(int $resultId, BenchmarkScoringService $scoring)
     {
-        $result = BenchmarkResult::findOrFail($resultId);
-        $result->delete();
+        $result = BenchmarkResult::with('benchmarkable')->findOrFail($resultId);
+        $item = $result->benchmarkable; $result->delete();
+        if ($item) $scoring->sync($item);
         return back()->with('status','Benchmark history record deleted.');
     }
 

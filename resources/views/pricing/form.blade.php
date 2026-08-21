@@ -14,7 +14,9 @@
 <div class="pricing-page pricing-editor">
     <form action="{{ $plan ? route('admin.pricing.update', $plan->id) : route('admin.pricing.store') }}" method="POST">
         @csrf
-        @if($plan) @method('PUT') @endif
+        @if($plan)
+            @method('PUT')
+        @endif
 
         <x-page-header
             :title="$plan ? 'Edit Pricing Plan' : 'Add Pricing Plan'"
@@ -76,6 +78,26 @@
                             <span>Plan name <b>*</b></span>
                             <input class="input" name="plan_name" value="{{ $value('plan_name') }}" placeholder="Plus, Pro, Team..." required>
                         </label>
+                        <label class="pricing-field">
+                            <span>Currency <b>*</b></span>
+                            <input class="input" name="currency" value="{{ $value('currency','USD') }}" maxlength="10" placeholder="USD" required>
+                        </label>
+                        <label class="pricing-field">
+                            <span>Billing type <b>*</b></span>
+                            <select class="select" name="billing_type" required>
+                                @foreach(['subscription'=>'Subscription','per_seat'=>'Per seat','usage'=>'Usage based','one_time'=>'One-time','custom'=>'Custom / Enterprise'] as $key=>$label)
+                                    <option value="{{ $key }}" @selected($value('billing_type','subscription')===$key)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <label class="pricing-field">
+                            <span>Billing unit</span>
+                            <input class="input" name="billing_unit" value="{{ $value('billing_unit') }}" placeholder="per user / month">
+                        </label>
+                        <label class="pricing-field">
+                            <span>Last verified</span>
+                            <input class="input" type="datetime-local" name="last_verified_at" value="{{ old('last_verified_at', $plan?->last_verified_at?->format('Y-m-d\TH:i')) }}">
+                        </label>
                     </div>
                 </section>
 
@@ -93,7 +115,7 @@
                         <label class="pricing-field">
                             <span>Monthly price</span>
                             <div class="pricing-input-prefix">
-                                <span>$</span>
+                                <span>{{ $value('currency','USD') }}</span>
                                 <input class="input" type="number" min="0" step="0.01" name="monthly_price" value="{{ $value('monthly_price') }}" placeholder="20.00">
                             </div>
                         </label>
@@ -101,7 +123,7 @@
                         <label class="pricing-field">
                             <span>Yearly price</span>
                             <div class="pricing-input-prefix">
-                                <span>$</span>
+                                <span>{{ $value('currency','USD') }}</span>
                                 <input class="input" type="number" min="0" step="0.01" name="yearly_price" value="{{ $value('yearly_price') }}" placeholder="204.00">
                             </div>
                         </label>

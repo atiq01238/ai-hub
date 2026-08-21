@@ -1,7 +1,10 @@
 @extends('frontend.layouts.app')
 
-@section('title', $title . ' — AI Comparison | AI Hub')
-@section('meta_description', 'Compare '.$items->pluck('name')->join(', ').' side by side across benchmarks, pricing, capabilities and product details.')
+@section('title', $title . ' — Benchmarks, Pricing & Features | AI Hub')
+@section('meta_description', $comparison?->summary ?: ('Compare '.$items->pluck('name')->join(', ').' side by side across verified benchmarks, pricing, capabilities and product details.'))
+@if(!$isPreview)
+@push('head')<link rel="canonical" href="{{ route('comparisons.show',$comparison) }}"><meta name="robots" content="index,follow,max-image-preview:large"><meta property="og:type" content="website"><meta property="og:title" content="{{ $title }}"><meta property="og:description" content="{{ $comparison->summary }}"><meta property="og:url" content="{{ route('comparisons.show',$comparison) }}">@endpush
+@endif
 
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/comparisons.css') }}">@endpush
 
@@ -36,6 +39,12 @@
     </div>
 </section>
 
+@if(!$isPreview)
+@push('head')
+<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'WebPage','name'=>$title,'description'=>$comparison->summary,'dateModified'=>optional($comparison->last_verified_at)->toAtomString(),'breadcrumb'=>['@type'=>'BreadcrumbList','itemListElement'=>[['@type'=>'ListItem','position'=>1,'name'=>'Comparisons','item'=>route('comparisons.index')],['@type'=>'ListItem','position'=>2,'name'=>$title,'item'=>route('comparisons.show',$comparison)]]]], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
+@if($comparison->seo_faq)<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'FAQPage','mainEntity'=>collect($comparison->seo_faq)->map(fn($f)=>['@type'=>'Question','name'=>$f['question'],'acceptedAnswer'=>['@type'=>'Answer','text'=>$f['answer']]])->values()], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>@endif
+@endpush
+@endif
 <section class="comparison-detail-body">
 <div class="compare-container">
     <div class="comparison-verdict">
@@ -72,6 +81,16 @@
         </div>
     </div>
 
+    @if(!empty($intelligence['benchmarkMatrix']))
+    <div class="comparison-table-card">
+      <div class="table-title"><span><i data-lucide="gauge"></i></span><div><h2>Verified benchmark intelligence</h2><p>Latest verified results shared by at least one compared item. Different benchmark variants should be interpreted with their source methodology.</p></div></div>
+      <div class="comparison-table-scroll"><table class="comparison-table"><thead><tr><th>Benchmark</th>@foreach($items as $item)<th>{{ $item->name }}</th>@endforeach</tr></thead><tbody>
+      @foreach($intelligence['benchmarkMatrix'] as $key=>$scores)@php($b=$intelligence['benchmarkMeta'][$key])<tr><th>{{ $b->name }} @if($b->version)<small>{{ $b->version }}</small>@endif</th>@foreach($items as $item)@php($r=$scores[$item->id]??null)<td>@if($r)<strong>{{ number_format((float)$r->score,2) }}{{ $b->unit==='%'?'%':' '.$b->unit }}</strong><br><small>Verified{{ $r->tested_at?' · '.$r->tested_at->format('M Y'):'' }}</small>@else—@endif</td>@endforeach</tr>@endforeach
+      </tbody></table></div>
+    </div>
+    @endif
+    @if($intelligence['valueWinner'])<div class="comparison-verdict"><div class="verdict-icon"><i data-lucide="badge-dollar-sign"></i></div><div><span>VALUE SIGNAL</span><h2>{{ $intelligence['valueWinner']->name }}</h2><p>Best current value signal from available benchmark score and structured pricing. Treat this as data guidance, not a universal winner.</p></div></div>@endif
+
     <div class="capability-comparison">
         <div class="table-title"><span><i data-lucide="sparkles"></i></span><div><h2>Capabilities</h2><p>What each product is designed to do.</p></div></div>
         <div class="capability-columns cols-{{ min($items->count(),4) }}">
@@ -91,6 +110,10 @@
             @endforeach
         </div>
     </div>
+    @endif
+
+    @if(!$isPreview && $comparison->seo_faq)
+    <div class="capability-comparison"><div class="table-title"><span><i data-lucide="circle-help"></i></span><div><h2>Comparison FAQ</h2><p>Quick answers about this comparison.</p></div></div><div class="decision-grid">@foreach($comparison->seo_faq as $faq)<div class="decision-card"><div><h3>{{ $faq['question'] }}</h3><p>{{ $faq['answer'] }}</p></div></div>@endforeach</div></div>
     @endif
 
     @if(!$isPreview && $relatedComparisons->isNotEmpty())

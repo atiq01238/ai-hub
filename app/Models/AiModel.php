@@ -58,4 +58,15 @@ class AiModel extends Model
         if ($this->logo_path) return \Illuminate\Support\Facades\Storage::disk('public')->url($this->logo_path);
         return $this->company?->logo_url ?: asset('favicon.ico');
     }
+    public function pricingSources()
+    {
+        return $this->hasMany(ModelPricingSource::class, 'ai_model_id');
+    }
+
+    public function pricingHistory()
+    {
+        return $this->hasMany(ModelPricingHistory::class, 'ai_model_id');
+    }
+
+
 }

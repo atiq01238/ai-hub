@@ -15,6 +15,8 @@ class NewsSource extends Model
         'url',
         'company_id',
         'default_category',
+        'authority_type',
+        'authority_score',
         'status',
         'last_fetched_at',
         'last_started_at',

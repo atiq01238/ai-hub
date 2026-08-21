@@ -89,7 +89,7 @@
                 @foreach($benchmarks as $row)
                     @php($benchmark=$row['benchmark'])
                     <article class="benchmark-card">
-                        <div class="benchmark-card-head"><div><small>{{ $benchmark->category }}</small><h3>{{ $benchmark->name }}</h3></div><span>{{ $benchmark->higher_is_better ? 'Higher is better' : 'Lower is better' }}</span></div>
+                        <div class="benchmark-card-head"><div><small>{{ $benchmark->category }}</small><h3><a href="{{ route('benchmarks.show',$benchmark) }}">{{ $benchmark->name }}</a></h3></div><span>{{ $benchmark->higher_is_better ? 'Higher is better' : 'Lower is better' }}</span></div>
                         <p>{{ $benchmark->description ?: 'Structured performance benchmark tracked by AI Hub.' }}</p>
                         <div class="mini-ranking">
                             @foreach($row['results']->take(5) as $rank=>$result)

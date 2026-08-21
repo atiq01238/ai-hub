@@ -10,7 +10,7 @@ class Article extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id', 'reviewer_id', 'company_id', 'category_id', 'title', 'slug', 'featured_image_path',
+        'user_id', 'reviewer_id', 'company_id', 'category_id', 'origin_news_item_id', 'title', 'slug', 'featured_image_path',
         'content', 'summary', 'category', 'tags', 'related_tools', 'related_models',
         'seo_title', 'meta_description', 'status', 'approval_status', 'published_at',
         'submitted_for_review_at', 'approved_at',
@@ -24,6 +24,8 @@ class Article extends Model
         'submitted_for_review_at' => 'datetime',
         'approved_at'             => 'datetime',
     ];
+
+    public function originNews() { return $this->belongsTo(NewsItem::class, 'origin_news_item_id'); }
 
     public function author()
     {

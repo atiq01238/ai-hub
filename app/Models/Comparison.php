@@ -10,12 +10,15 @@ class Comparison extends Model
     use HasFactory;
 
     protected $fillable = [
-        'title', 'slug', 'comparable_type', 'item_ids', 'views', 'status',
+        'title', 'slug', 'comparable_type', 'item_ids', 'views', 'status', 'comparison_version', 'summary', 'primary_intent', 'last_verified_at', 'auto_generated', 'seo_faq',
     ];
 
     protected $casts = [
         'item_ids' => 'array',
         'views'    => 'integer',
+        'last_verified_at' => 'datetime',
+        'auto_generated' => 'boolean',
+        'seo_faq' => 'array',
     ];
 
     /**

@@ -8,6 +8,7 @@ use App\Models\Company;
 use App\Models\NewsItem;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use App\Services\Seo\EntitySeoService;
 
 class ModelController extends Controller
 {
@@ -59,10 +60,10 @@ class ModelController extends Controller
         return view('frontend.models.index', compact('models','companies','capabilities','stats','leaders'));
     }
 
-    public function show(AiModel $model)
+    public function show(AiModel $model, EntitySeoService $seoService)
     {
         abort_unless(in_array($model->status, ['active','preview'], true), 404);
-        $model->load(['company','tool','benchmarkResults' => fn ($q) => $q->with('benchmark')->where('verified',true)->latest('tested_at')]);
+        $model->load(['company','tool','pricingSources','benchmarkResults' => fn ($q) => $q->with('benchmark')->where('verified',true)->latest('tested_at')]);
 
         $relatedModels = AiModel::with(['company','tool'])->whereIn('status',['active','preview'])->whereKeyNot($model->id)
             ->when($model->company_id, fn (Builder $q) => $q->where('company_id',$model->company_id))
@@ -80,6 +81,9 @@ class ModelController extends Controller
 
         $benchmarks = collect($model->benchmarks ?? [])->map(fn ($score,$name) => ['name'=>$name,'score'=>(float)$score]);
         $capabilities = collect($model->capabilities ?? [])->filter()->values();
-        return view('frontend.models.show', compact('model','relatedModels','latestNews','benchmarks','capabilities'));
+        $seo = $seoService->model($model);
+        $seoSchemas = $seoService->schemas('model', $model, $seo);
+
+        return view('frontend.models.show', compact('model','relatedModels','latestNews','benchmarks','capabilities','seo','seoSchemas'));
     }
 }

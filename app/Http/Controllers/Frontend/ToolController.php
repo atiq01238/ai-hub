@@ -11,6 +11,7 @@ use App\Models\PricingPlan;
 use App\Models\Tool;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use App\Services\Seo\EntitySeoService;
 
 class ToolController extends Controller
 {
@@ -85,7 +86,7 @@ class ToolController extends Controller
         ));
     }
 
-    public function show(Tool $tool)
+    public function show(Tool $tool, EntitySeoService $seoService)
     {
         abort_unless($tool->status === 'published', 404);
 
@@ -179,6 +180,9 @@ class ToolController extends Controller
             ->unique()
             ->values();
 
+        $seo = $seoService->tool($tool);
+        $seoSchemas = $seoService->schemas('tool', $tool, $seo);
+
         return view('frontend.tools.show', compact(
             'tool',
             'pricingPlans',
@@ -189,6 +193,8 @@ class ToolController extends Controller
             'capabilities',
             'platforms',
             'tags',
+            'seo',
+            'seoSchemas',
         ));
     }
 

@@ -7,13 +7,14 @@ use App\Models\AiModel;
 use App\Models\Comparison;
 use App\Models\Tool;
 use App\Services\Frontend\ComparisonHistoryService;
+use App\Services\ComparisonIntelligenceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 
 class ComparisonController extends Controller
 {
-    public function __construct(private readonly ComparisonHistoryService $userHistory)
+    public function __construct(private readonly ComparisonHistoryService $userHistory, private readonly ComparisonIntelligenceService $intelligence)
     {
     }
     public function index(Request $request)
@@ -101,9 +102,9 @@ class ComparisonController extends Controller
         abort_if($items->count() < 2, 404);
 
         $items->each(function ($item) use ($data) {
-            $item->loadMissing('company');
+            $item->loadMissing(['company','benchmarkResults.benchmark']);
             if ($data['type'] === 'tool') {
-                $item->loadMissing(['category', 'featureTerms']);
+                $item->loadMissing(['category', 'featureTerms', 'pricingPlans']);
             }
         });
 
@@ -113,6 +114,7 @@ class ComparisonController extends Controller
         $title = $items->pluck('name')->join(' vs ');
         $relatedComparisons = collect();
         $isPreview = true;
+        $intelligence = $this->intelligence->build($items, $comparisonType);
 
         if ($request->user()) {
             $this->userHistory->fromPreview(
@@ -125,7 +127,7 @@ class ComparisonController extends Controller
         }
 
         return view('frontend.comparisons.show', compact(
-            'comparison', 'comparisonType', 'items', 'winner', 'title', 'relatedComparisons', 'isPreview'
+            'comparison', 'comparisonType', 'items', 'winner', 'title', 'relatedComparisons', 'isPreview', 'intelligence'
         ));
     }
 
@@ -140,9 +142,9 @@ class ComparisonController extends Controller
         abort_if($items->count() < 2, 404);
 
         $items->each(function ($item) use ($comparison) {
-            $item->loadMissing('company');
+            $item->loadMissing(['company','benchmarkResults.benchmark']);
             if ($comparison->comparable_type === 'tool') {
-                $item->loadMissing(['category', 'featureTerms']);
+                $item->loadMissing(['category', 'featureTerms', 'pricingPlans']);
             }
         });
 
@@ -150,6 +152,7 @@ class ComparisonController extends Controller
         $winner = $this->winner($items);
         $title = $comparison->title;
         $isPreview = false;
+        $intelligence = $this->intelligence->build($items, $comparisonType);
 
         if ($request->user()) {
             $this->userHistory->fromPublished($request->user(), $comparison, false);
@@ -165,7 +168,7 @@ class ComparisonController extends Controller
         $relatedComparisons->each(fn (Comparison $item) => $item->setRelation('resolved_items', $item->items()));
 
         return view('frontend.comparisons.show', compact(
-            'comparison', 'comparisonType', 'items', 'winner', 'title', 'relatedComparisons', 'isPreview'
+            'comparison', 'comparisonType', 'items', 'winner', 'title', 'relatedComparisons', 'isPreview', 'intelligence'
         ));
     }
 

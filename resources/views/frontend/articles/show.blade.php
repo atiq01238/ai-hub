@@ -1,6 +1,14 @@
 @extends('frontend.layouts.app')
 @section('title',($article->seo_title ?: $article->title.' | AI Hub'))
 @section('meta_description',$article->meta_description ?: $article->summary ?: 'AI Hub article')
+@push('head')
+<link rel="canonical" href="{{ route('articles.show',$article) }}">
+<meta property="og:type" content="article"><meta property="og:title" content="{{ $article->seo_title ?: $article->title }}"><meta property="og:description" content="{{ $article->meta_description ?: $article->summary }}"><meta property="og:url" content="{{ route('articles.show',$article) }}">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'Article','headline'=>$article->title,'description'=>$article->meta_description ?: $article->summary,'datePublished'=>optional($article->published_at)->toIso8601String(),'dateModified'=>optional($article->updated_at)->toIso8601String(),'author'=>['@type'=>'Person','name'=>$article->author?->name ?? 'AI Hub Editorial'],'publisher'=>['@type'=>'Organization','name'=>'AI Hub','url'=>route('home')],'mainEntityOfPage'=>route('articles.show',$article)],JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
+<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'BreadcrumbList','itemListElement'=>[['@type'=>'ListItem','position'=>1,'name'=>'Home','item'=>route('home')],['@type'=>'ListItem','position'=>2,'name'=>'Articles','item'=>route('articles.index')],['@type'=>'ListItem','position'=>3,'name'=>$article->title,'item'=>route('articles.show',$article)]]],JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
+@endpush
+
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/content.css') }}">@endpush
 @section('content')
 @php

@@ -7,14 +7,25 @@ use Illuminate\Database\Eloquent\Model;
 class PricingPlan extends Model
 {
     protected $fillable = [
-        'tool_id', 'plan_name', 'monthly_price', 'yearly_price',
-        'api_price_label', 'credits', 'limits',
+        'tool_id', 'plan_name', 'currency', 'billing_type', 'billing_unit',
+        'monthly_price', 'yearly_price', 'api_price_label', 'credits', 'limits', 'last_verified_at',
     ];
 
     protected $casts = [
         'monthly_price' => 'decimal:2',
         'yearly_price' => 'decimal:2',
+        'last_verified_at' => 'datetime',
     ];
+
+    public function getFreshnessAttribute(): string
+    {
+        $verified = $this->last_verified_at ?: $this->sources()->max('last_checked_at');
+        if (! $verified) return 'unverified';
+        $date = $verified instanceof \Carbon\CarbonInterface ? $verified : \Carbon\Carbon::parse($verified);
+        if ($date->gte(now()->subDays(14))) return 'fresh';
+        if ($date->gte(now()->subDays(45))) return 'review';
+        return 'stale';
+    }
 
     public function tool()
     {
