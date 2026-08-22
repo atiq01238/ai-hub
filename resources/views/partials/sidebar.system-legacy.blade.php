@@ -21,7 +21,9 @@
             ['Categories', '/admin/taxonomy/categories', 'shapes'],
             ['Sub Categories', '/admin/taxonomy/subcategories', 'list-tree'],
             ['Features', '/admin/taxonomy/features', 'sparkles'],
+            ['Use Cases', '/admin/taxonomy/use-cases', 'target'],
             ['Tags', '/admin/taxonomy/tags', 'hash'],
+            ['Content Topics', '/admin/taxonomy/content-topics', 'library-big'],
         ],
         'Comparison & Benchmarks' => [
             ['Comparisons', '/admin/comparisons', 'columns-3'],

@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class ArticleController extends Controller
 {
@@ -31,8 +32,8 @@ class ArticleController extends Controller
 
     public function guides(Request $request)
     {
-        $guide = Category::where('slug', 'guide')->orWhere('name', 'Guide')->first();
-        $request->merge($guide ? ['category_id' => $guide->id] : ['category' => 'Guide']);
+        $guide = Category::content()->active()->where('slug', 'guides-tutorials')->first();
+        $request->merge($guide ? ['category_id' => $guide->id] : ['category' => 'Guides & Tutorials']);
         return $this->filteredIndex($request, 'Guides');
     }
 
@@ -44,8 +45,8 @@ class ArticleController extends Controller
             'article' => $article,
             'companies' => Company::orderBy('name')->get(),
             'authors' => User::orderBy('name')->get(),
-            'categories' => Category::orderBy('name')->get(),
-            'tags' => Tag::orderBy('name')->get(),
+            'categories' => Category::content()->active()->orderBy('sort_order')->orderBy('name')->get(),
+            'tags' => Tag::active()->orderBy('sort_order')->orderBy('name')->get(),
             'tools' => Tool::orderBy('name')->get(),
             'models' => AiModel::orderBy('name')->get(),
         ]);
@@ -135,7 +136,7 @@ class ArticleController extends Controller
 
         return view('content.articles.index', [
             'articles' => $query->latest()->paginate(20)->withQueryString(),
-            'categories' => Category::orderBy('name')->get(),
+            'categories' => Category::content()->active()->orderBy('sort_order')->orderBy('name')->get(),
             'pageTitle' => $pageTitle,
         ]);
     }
@@ -146,7 +147,7 @@ class ArticleController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'user_id' => ['required', 'exists:users,id'],
             'company_id' => ['nullable', 'exists:companies,id'],
-            'category_id' => ['nullable', 'exists:categories,id'],
+            'category_id' => ['nullable', Rule::exists('categories','id')->where(fn($q)=>$q->where('type','content')->where('is_active',true))],
             'content' => ['nullable', 'string'],
             'summary' => ['nullable', 'string', 'max:1000'],
             'tag_ids' => ['nullable', 'array'],

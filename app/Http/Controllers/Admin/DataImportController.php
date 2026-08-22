@@ -10,6 +10,7 @@ use App\Models\PricingPlan;
 use App\Models\BenchmarkResult;
 use App\Services\Imports\CompanySpreadsheetReader;
 use App\Services\Imports\SpreadsheetReader;
+use App\Services\Taxonomy\TaxonomyNormalizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -179,7 +180,7 @@ class DataImportController extends Controller
         return response()->download($path, 'ai-hub-150-models-import.csv');
     }
 
-    public function previewModels(Request $request, SpreadsheetReader $reader)
+    public function previewModels(Request $request, SpreadsheetReader $reader, TaxonomyNormalizer $taxonomy)
     {
         $request->validate(['file' => ['required', 'file', 'mimes:csv,txt,xlsx', 'max:10240']]);
 
@@ -197,7 +198,11 @@ class DataImportController extends Controller
 
         foreach ($rows as $row) {
             $normalized = $this->normalizeModelRow($row);
+            $normalized['capabilities'] = $taxonomy->canonicalFeatureNames($normalized['capabilities']);
             $errors = $this->validateModelRow($normalized);
+            foreach ($taxonomy->unknownFeatureNames($normalized['capabilities']) as $unknown) {
+                $errors[] = 'Unknown Taxonomy v2 capability: '.$unknown;
+            }
             $company = $companies->get(mb_strtolower($normalized['company']));
             if (! $company) $errors[] = 'Missing company in database: '.$normalized['company'];
 
@@ -238,7 +243,7 @@ class DataImportController extends Controller
         return view('data-import.models-preview', compact('preview','stats','token'));
     }
 
-    public function importModels(Request $request)
+    public function importModels(Request $request, TaxonomyNormalizer $taxonomy)
     {
         $data = $request->validate([
             'token' => ['required','string','size:40'],
@@ -252,7 +257,7 @@ class DataImportController extends Controller
 
         $created=$updated=$skipped=$invalid=0;
 
-        DB::transaction(function () use ($payload,$data,&$created,&$updated,&$skipped,&$invalid) {
+        DB::transaction(function () use ($payload,$data,$taxonomy,&$created,&$updated,&$skipped,&$invalid) {
             foreach ($payload['rows'] ?? [] as $row) {
                 if (($row['state'] ?? '') === 'invalid' || !empty($row['errors']) || empty($row['company_id'])) { $invalid++; continue; }
 
@@ -266,7 +271,7 @@ class DataImportController extends Controller
                     'output_price_per_million' => $row['output_price_per_million'] === null ? null : $row['output_price_per_million'],
                     'capabilities' => $row['capabilities'],
                     'capability_notes' => $row['capability_notes'] ?: null,
-                    'benchmark_score' => $row['benchmark_score'] ?? 0,
+                    'benchmark_score' => $row['benchmark_score'],
                     'status' => $row['status'],
                 ];
 
@@ -276,11 +281,17 @@ class DataImportController extends Controller
                 if ($existing) {
                     if ($data['existing_action']==='skip') { $skipped++; continue; }
                     $modelData['slug'] = $existing->slug ?: $this->uniqueModelSlug($row['name'],$row['version'],$existing->id);
-                    $existing->update($modelData); $updated++; continue;
+                    $existing->update($modelData);
+                    $model = $existing;
+                    $updated++;
+                } else {
+                    $modelData['slug'] = $this->uniqueModelSlug($row['name'],$row['version']);
+                    $model = AiModel::create($modelData);
+                    $created++;
                 }
 
-                $modelData['slug'] = $this->uniqueModelSlug($row['name'],$row['version']);
-                AiModel::create($modelData); $created++;
+                $model->featureTerms()->sync($taxonomy->featureIds($row['capabilities']));
+                $model->useCaseTerms()->sync($taxonomy->inferredUseCaseIds($row['capabilities']));
             }
         });
 
@@ -306,7 +317,7 @@ class DataImportController extends Controller
             'output_price_per_million' => $number($row['output_price_per_million'] ?? ''),
             'capabilities' => $capabilities,
             'capability_notes' => trim((string)($row['capability_notes'] ?? '')),
-            'benchmark_score' => $number($row['benchmark_score'] ?? '') ?? 0,
+            'benchmark_score' => $number($row['benchmark_score'] ?? ''),
             'status' => strtolower(trim((string)($row['status'] ?? 'active'))) ?: 'active',
             'source_url' => trim((string)($row['source_url'] ?? '')),
         ];
@@ -322,10 +333,8 @@ class DataImportController extends Controller
         if ($row['release_date']!=='' && !preg_match('/^\d{4}-\d{2}-\d{2}$/',$row['release_date'])) $errors[]='Release date must use YYYY-MM-DD.';
         if ($row['context_window']!=='' && mb_strlen($row['context_window'])>50) $errors[]='Context window is too long.';
         foreach (['input_price_per_million','output_price_per_million'] as $field) if ($row[$field]!==null && $row[$field]<0) $errors[]='Pricing cannot be negative.';
-        if ($row['benchmark_score']<0 || $row['benchmark_score']>100) $errors[]='Benchmark score must be between 0 and 100.';
+        if ($row['benchmark_score'] !== null && ($row['benchmark_score'] < 0 || $row['benchmark_score'] > 100)) $errors[]='Benchmark score must be between 0 and 100.';
         if (!in_array($row['status'],['active','deprecated','preview'],true)) $errors[]='Status must be active, deprecated or preview.';
-        $allowed=['API Support','Reasoning','Vision','Audio','Image','Video'];
-        foreach ($row['capabilities'] as $cap) if (!in_array($cap,$allowed,true)) $errors[]='Unknown capability: '.$cap;
         return $errors;
     }
 

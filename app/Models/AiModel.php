@@ -43,6 +43,21 @@ class AiModel extends Model
     {
         return $this->belongsTo(Tool::class);
     }
+
+    public function featureTerms()
+    {
+        return $this->belongsToMany(Feature::class, 'ai_model_feature')->withTimestamps();
+    }
+
+    public function useCaseTerms()
+    {
+        return $this->belongsToMany(UseCase::class, 'ai_model_use_case')->withTimestamps();
+    }
+
+    public function tagTerms()
+    {
+        return $this->belongsToMany(Tag::class, 'ai_model_tag')->withTimestamps();
+    }
     public function benchmarkResults()
     {
         return $this->morphMany(BenchmarkResult::class, 'benchmarkable');

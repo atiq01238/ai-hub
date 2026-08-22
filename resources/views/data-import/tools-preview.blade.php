@@ -79,9 +79,11 @@
                                 <small>{{ $row['website'] }}</small>
                             </td>
                             <td>
-                                {{ $row['category'] ?: '—' }}
-                                @if($row['category_will_create'])
-                                    <small>Will create category</small>
+                                <strong>{{ $row['category_match'] ?: ($row['category'] ?: '—') }}</strong>
+                                @if(!empty($row['subcategory_match']))
+                                    <small>{{ $row['subcategory_match'] }}</small>
+                                @elseif(!empty($row['subcategory']))
+                                    <small>{{ $row['subcategory'] }}</small>
                                 @endif
                             </td>
                             <td>{{ implode(', ', $row['pricing_models']) ?: '—' }}</td>

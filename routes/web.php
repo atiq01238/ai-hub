@@ -65,6 +65,7 @@ use App\Http\Controllers\Frontend\TestLabController as FrontendTestLabController
 use App\Http\Controllers\Frontend\PricingIntelligenceController as FrontendPricingIntelligenceController;
 use App\Http\Controllers\Frontend\SearchController as FrontendSearchController;
 use App\Http\Controllers\Frontend\CategoryController as FrontendCategoryController;
+use App\Http\Controllers\Frontend\TaxonomyDiscoveryController;
 use App\Http\Controllers\Frontend\BenchmarkController as FrontendBenchmarkController;
 use App\Http\Controllers\Frontend\TrendingController as FrontendTrendingController;
 use App\Http\Controllers\Frontend\SavedController as FrontendSavedController;
@@ -102,11 +103,13 @@ Route::middleware(['auth', EnsureAccountIsActive::class])->group(function () {
     Route::get('/compare/preview', [FrontendComparisonController::class, 'preview'])->name('comparisons.preview');
 });
 Route::get('/compare/{comparison:slug}', [FrontendComparisonController::class, 'show'])->name('comparisons.show');
+Route::get('/sitemap.xml', [SeoSitemapController::class, 'index'])->name('sitemap.index');
 Route::get('/sitemap-companies.xml', CompanySitemapController::class)->name('sitemap.companies');
 Route::get('/sitemap-tools.xml', [SeoSitemapController::class, 'tools'])->name('sitemap.tools');
 Route::get('/sitemap-models.xml', [SeoSitemapController::class, 'models'])->name('sitemap.models');
 Route::get('/sitemap-news.xml', [SeoSitemapController::class, 'news'])->name('sitemap.news');
 Route::get('/sitemap-articles.xml', [SeoSitemapController::class, 'articles'])->name('sitemap.articles');
+Route::get('/sitemap-taxonomy.xml', [SeoSitemapController::class, 'taxonomy'])->name('sitemap.taxonomy');
 Route::get('/companies', [FrontendCompanyController::class, 'index'])->name('companies.index');
 Route::get('/companies/{company:slug}', [FrontendCompanyController::class, 'show'])->name('companies.show');
 Route::get('/articles', [FrontendArticleController::class, 'index'])->name('articles.index');
@@ -119,7 +122,19 @@ Route::get('/pricing-intelligence', [FrontendPricingIntelligenceController::clas
 Route::get('/pricing-intelligence/{tool:slug}', [FrontendPricingIntelligenceController::class, 'show'])->name('pricing.show');
 Route::get('/search', [FrontendSearchController::class, 'index'])->name('search.index');
 Route::get('/categories', [FrontendCategoryController::class, 'index'])->name('categories.index');
+Route::get('/categories/{legacySlug}', [FrontendCategoryController::class, 'legacy'])
+    ->whereIn('legacySlug', collect(config('taxonomy_v2.product_categories', []))
+        ->flatMap(fn ($definition) => collect($definition['legacy'] ?? [])->map(fn ($name) => \Illuminate\Support\Str::slug($name)))
+        ->filter()->unique()->values()->all())
+    ->name('categories.legacy');
+Route::get('/categories/{category:slug}/{subcategory:slug}', [FrontendCategoryController::class, 'subcategory'])->name('categories.subcategories.show');
 Route::get('/categories/{category:slug}', [FrontendCategoryController::class, 'show'])->name('categories.show');
+Route::get('/features', [TaxonomyDiscoveryController::class, 'features'])->name('features.index');
+Route::get('/features/{feature:slug}', [TaxonomyDiscoveryController::class, 'feature'])->name('features.show');
+Route::get('/use-cases', [TaxonomyDiscoveryController::class, 'useCases'])->name('use-cases.index');
+Route::get('/use-cases/{useCase:slug}', [TaxonomyDiscoveryController::class, 'useCase'])->name('use-cases.show');
+Route::get('/topics', [TaxonomyDiscoveryController::class, 'topics'])->name('topics.index');
+Route::get('/topics/{category:slug}', [TaxonomyDiscoveryController::class, 'topic'])->name('topics.show');
 Route::get('/benchmarks', [FrontendBenchmarkController::class, 'index'])->name('benchmarks.index');
 Route::get('/benchmarks/{benchmark:slug}', [FrontendBenchmarkController::class, 'show'])->name('benchmarks.show');
 Route::get('/trending', [FrontendTrendingController::class, 'index'])->name('trending.index');
@@ -301,7 +316,9 @@ Route::middleware(['auth', EnsureAccountIsActive::class, 'admin'])
                 Route::get('/categories', 'categories')->middleware(RequirePermission::class . ':Taxonomy,View')->name('categories');
                 Route::get('/subcategories', 'subcategories')->middleware(RequirePermission::class . ':Taxonomy,View')->name('subcategories');
                 Route::get('/features', 'features')->middleware(RequirePermission::class . ':Taxonomy,View')->name('features');
+                Route::get('/use-cases', 'useCases')->middleware(RequirePermission::class . ':Taxonomy,View')->name('use-cases');
                 Route::get('/tags', 'tags')->middleware(RequirePermission::class . ':Taxonomy,View')->name('tags');
+                Route::get('/content-topics', 'contentTopics')->middleware(RequirePermission::class . ':Taxonomy,View')->name('content-topics');
                 Route::post('/{type}', 'store')->middleware(RequirePermission::class . ':Taxonomy,Add')->name('store');
                 Route::put('/{type}/{id}', 'update')->middleware(RequirePermission::class . ':Taxonomy,Edit')->name('update');
                 Route::delete('/{type}/{id}', 'destroy')->middleware(RequirePermission::class . ':Taxonomy,Delete')->name('destroy');

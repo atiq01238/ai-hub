@@ -37,7 +37,7 @@ class SearchController extends Controller {
        'session_key'=>$sessionFingerprint,
    ]);
   }
-  $popularCategories=Category::withCount(['tools'=>fn($q)=>$q->where('status','published')])->orderByDesc('tools_count')->take(8)->get();
+  $popularCategories=Category::product()->active()->withCount(['tools'=>fn($q)=>$q->where('status','published')])->orderByDesc('tools_count')->take(8)->get();
   $trendingTools=Tool::with('company')->where('status','published')->orderByDesc('popularity')->orderByDesc('rating')->take(6)->get();
   $recentSearches=$request->user()? SearchEvent::where('user_id',$request->user()->id)->latest()->pluck('query')->unique()->take(6):collect();
   $savedSearches=$request->user()? SavedSearch::where('user_id',$request->user()->id)->latest()->take(8)->get():collect();

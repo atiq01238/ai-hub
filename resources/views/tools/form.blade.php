@@ -11,6 +11,7 @@
     $old = fn($key, $default = null) => old($key, $tool->{$key} ?? $default);
     $selectedFeatures = collect(old('feature_ids', $tool?->featureTerms?->pluck('id')->all() ?? []))->map(fn($id)=>(int)$id)->all();
     $selectedTags = collect(old('tag_ids', $tool?->tagTerms?->pluck('id')->all() ?? []))->map(fn($id)=>(int)$id)->all();
+    $selectedUseCases = collect(old('use_case_ids', $tool?->useCaseTerms?->pluck('id')->all() ?? []))->map(fn($id)=>(int)$id)->all();
     $pricingModels = (array) $old('pricing_models', []);
     $platforms = (array) $old('platforms', []);
 @endphp
@@ -44,7 +45,7 @@
                     <div class="form-field"><label for="tool-company">Company</label><select id="tool-company" class="select" name="company_id"><option value="">Independent / No company</option>@foreach($companies as $company)<option value="{{ $company->id }}" @selected((string)$old('company_id') === (string)$company->id)>{{ $company->name }}</option>@endforeach</select></div>
                     <div class="form-field"><label for="tool-website">Website</label><input id="tool-website" class="input" type="url" name="website" value="{{ $old('website') }}" placeholder="https://example.com"></div>
                     <div class="form-field"><label for="tool-category">Category</label><select id="tool-category" class="select" name="category_id"><option value="">No category</option>@foreach($categories as $category)<option value="{{ $category->id }}" @selected((string)$old('category_id') === (string)$category->id)>{{ $category->name }}</option>@endforeach</select></div>
-                    <div class="form-field"><label for="tool-subcategory">Subcategory</label><select id="tool-subcategory" class="select" name="subcategory_id"><option value="">No subcategory</option>@foreach($subcategories as $subcategory)<option value="{{ $subcategory->id }}" @selected((string)$old('subcategory_id') === (string)$subcategory->id)>{{ $subcategory->name }}</option>@endforeach</select></div>
+                    <div class="form-field"><label for="tool-subcategory">Subcategory</label><select id="tool-subcategory" class="select" name="subcategory_id"><option value="">No subcategory</option>@foreach($subcategories as $subcategory)<option value="{{ $subcategory->id }}" data-category="{{ $subcategory->category_id }}" @selected((string)$old('subcategory_id') === (string)$subcategory->id)>{{ $subcategory->name }}</option>@endforeach</select></div>
                     <div class="form-field"><label for="tool-launch">Launch Date</label><input id="tool-launch" class="input" type="date" name="launch_date" value="{{ $old('launch_date') ? \Illuminate\Support\Carbon::parse($old('launch_date'))->format('Y-m-d') : '' }}"></div>
                     <div class="form-field tool-form-grid__wide"><label for="tool-short-description">Short Description</label><input id="tool-short-description" class="input" name="short_description" maxlength="255" value="{{ $old('short_description') }}" placeholder="One concise sentence describing the product"></div>
                 </div>
@@ -61,6 +62,20 @@
                         </label>
                     @empty
                         <div class="tool-inline-empty"><i data-lucide="info"></i> No features yet. Add them from AI Management → Features.</div>
+                    @endforelse
+                </div>
+            </section>
+
+            <section class="card tool-form-card">
+                <div class="tool-form-heading"><span class="tool-form-icon"><i data-lucide="target"></i></span><div><h3>Use Cases</h3><p>Describe what people use this product to accomplish. These power discovery and SEO landing pages.</p></div></div>
+                <div class="tool-check-grid tool-check-grid--tags">
+                    @forelse($useCases as $useCase)
+                        <label class="tool-check-card {{ in_array((int)$useCase->id, $selectedUseCases, true) ? 'is-selected' : '' }}">
+                            <input type="checkbox" name="use_case_ids[]" value="{{ $useCase->id }}" @checked(in_array((int)$useCase->id, $selectedUseCases, true))>
+                            <span><i data-lucide="check"></i></span><strong>{{ $useCase->name }}</strong>
+                        </label>
+                    @empty
+                        <div class="tool-inline-empty"><i data-lucide="info"></i> No use cases yet. Run Taxonomy v2 sync or add them from AI Management → Use Cases.</div>
                     @endforelse
                 </div>
             </section>
@@ -113,5 +128,23 @@ document.addEventListener('change', function (event) {
     const input = event.target.closest('.tool-check-card input[type="checkbox"]');
     if (input) input.closest('.tool-check-card').classList.toggle('is-selected', input.checked);
 });
+
+(function () {
+    const category = document.getElementById('tool-category');
+    const subcategory = document.getElementById('tool-subcategory');
+    if (!category || !subcategory) return;
+
+    function filterSubcategories() {
+        const categoryId = category.value;
+        [...subcategory.options].forEach((option, index) => {
+            if (index === 0) return option.hidden = false;
+            option.hidden = !categoryId || option.dataset.category !== categoryId;
+        });
+        if (subcategory.selectedOptions[0]?.hidden) subcategory.value = '';
+    }
+
+    category.addEventListener('change', filterSubcategories);
+    filterSubcategories();
+})();
 </script>
 @endpush

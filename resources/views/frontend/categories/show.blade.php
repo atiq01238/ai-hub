@@ -1,15 +1,21 @@
 @extends('frontend.layouts.app')
-@section('title',$category->name.' AI Tools, Models & Guides — AI Hub')
-@section('meta_description','Explore the best '.$category->name.' AI tools, models, news and practical guides on AI Hub.')
+@section('title',$category->meta_title ?: $category->name.' AI Tools & Models — AI Hub')
+@section('meta_description',$category->meta_description ?: $category->short_description)
+@push('head')<link rel="canonical" href="{{ route('categories.show',$category) }}"><meta name="robots" content="{{ ($stats['tools'] + $stats['models'] + $stats['articles'] + $stats['news']) > 0 ? 'index,follow,max-image-preview:large' : 'noindex,follow' }}"><script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'CollectionPage','name'=>$category->name,'description'=>$category->description ?: $category->short_description,'url'=>route('categories.show',$category)], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>@endpush
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/discovery.css') }}">@endpush
 @section('content')
 <section class="category-detail-hero">
     <div class="category-detail-inner">
-        <div class="category-hero-main"><a class="breadcrumb-link" href="{{ route('categories.index') }}"><i data-lucide="arrow-left"></i> All Categories</a><span class="eyebrow"><i data-lucide="sparkles"></i> AI Category</span><h1>{{ $category->name }}</h1><p>Compare leading {{ strtolower($category->name) }} products and explore related models, research, news and practical resources.</p><div class="category-hero-actions"><a class="primary-action" href="#category-tools">Explore tools <i data-lucide="arrow-down"></i></a><a class="secondary-action" href="{{ route('search.index',['q'=>$category->name]) }}">Search this topic <i data-lucide="search"></i></a></div></div>
+        <div class="category-hero-main"><a class="breadcrumb-link" href="{{ route('categories.index') }}"><i data-lucide="arrow-left"></i> All Categories</a><span class="eyebrow"><i data-lucide="sparkles"></i> AI Category</span><h1>{{ $category->name }}</h1><p>{{ $category->description ?: $category->short_description }}</p><div class="category-hero-actions"><a class="primary-action" href="#category-tools">Explore tools <i data-lucide="arrow-down"></i></a><a class="secondary-action" href="{{ route('search.index',['q'=>$category->name]) }}">Search this topic <i data-lucide="search"></i></a></div></div>
         <div class="category-stat-board"><span><strong>{{ number_format($stats['tools']) }}</strong><small>Published tools</small></span><span><strong>{{ number_format($stats['models']) }}</strong><small>Related models</small></span><span><strong>{{ number_format($stats['articles']) }}</strong><small>Guides</small></span><span><strong>{{ number_format($stats['news']) }}</strong><small>News stories</small></span></div>
     </div>
 </section>
 <div class="discovery-page category-detail-page">
+
+    @if($subcategories->isNotEmpty())
+    <section class="related-category-strip"><div><span class="eyebrow"><i data-lucide="git-branch"></i> Browse deeper</span><h2>{{ $category->name }} subcategories</h2></div><div class="related-category-links">@foreach($subcategories as $subcategory)<a href="{{ route('categories.subcategories.show',[$category,$subcategory]) }}"><span>{{ $subcategory->name }}</span><small>{{ $subcategory->tools_count }} tools</small><i data-lucide="arrow-up-right"></i></a>@endforeach</div></section>
+    @endif
+
     <section id="category-tools" class="result-section">
         <div class="section-bar category-tools-bar"><div><span class="section-icon"><i data-lucide="bot"></i></span><h2>Top {{ $category->name }} Tools</h2><small>{{ number_format($tools->total()) }} published products</small></div><form method="get" class="sort-form"><label for="category-sort">Sort</label><select id="category-sort" name="sort" onchange="this.form.submit()"><option value="top" @selected($sort==='top')>Top rated</option><option value="popular" @selected($sort==='popular')>Most popular</option><option value="newest" @selected($sort==='newest')>Newest</option></select></form></div>
         @if($tools->isEmpty())
@@ -40,7 +46,7 @@
     @endif
 
     <div class="category-content-split">
-        @if($articles->isNotEmpty())<section class="result-section"><div class="section-bar"><div><span class="section-icon gold"><i data-lucide="newspaper"></i></span><h2>Guides & Articles</h2></div><a href="{{ route('articles.index',['category'=>$category->slug]) }}">All articles <i data-lucide="arrow-right"></i></a></div><div class="mini-story-list">@foreach($articles as $article)<a href="{{ route('articles.show',$article) }}"><img src="{{ $article->featured_image_url ?: '/images/frontend/content-placeholder.svg' }}" alt="{{ $article->title }}"><div><small>{{ optional($article->published_at)->format('M j, Y') }}</small><h3>{{ $article->title }}</h3><p>{{ \Illuminate\Support\Str::limit($article->summary,85) }}</p></div></a>@endforeach</div></section>@endif
+        @if($articles->isNotEmpty())<section class="result-section"><div class="section-bar"><div><span class="section-icon gold"><i data-lucide="newspaper"></i></span><h2>Guides & Articles</h2></div><a href="{{ route('articles.index',['q'=>$category->name]) }}">All articles <i data-lucide="arrow-right"></i></a></div><div class="mini-story-list">@foreach($articles as $article)<a href="{{ route('articles.show',$article) }}"><img src="{{ $article->featured_image_url ?: '/images/frontend/content-placeholder.svg' }}" alt="{{ $article->title }}"><div><small>{{ optional($article->published_at)->format('M j, Y') }}</small><h3>{{ $article->title }}</h3><p>{{ \Illuminate\Support\Str::limit($article->summary,85) }}</p></div></a>@endforeach</div></section>@endif
         @if($news->isNotEmpty())<section class="result-section"><div class="section-bar"><div><span class="section-icon red"><i data-lucide="radio"></i></span><h2>Latest {{ $category->name }} News</h2></div><a href="{{ route('news.index',['q'=>$category->name]) }}">All news <i data-lucide="arrow-right"></i></a></div><div class="mini-story-list">@foreach($news as $item)<a href="{{ route('news.show',$item) }}"><img src="{{ $item->image_url ?: '/images/frontend/content-placeholder.svg' }}" alt="{{ $item->headline }}"><div><small>{{ $item->source ?? $item->company?->name }} · {{ optional($item->published_at)->diffForHumans() }}</small><h3>{{ $item->headline }}</h3><p>{{ \Illuminate\Support\Str::limit($item->summary ?: $item->ai_summary,85) }}</p></div></a>@endforeach</div></section>@endif
     </div>
 

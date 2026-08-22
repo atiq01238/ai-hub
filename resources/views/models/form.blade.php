@@ -9,15 +9,9 @@
 @php
     $model ??= null;
     $field = fn ($key, $default = null) => old($key, $model->{$key} ?? $default);
-    $selectedCapabilities = collect($field('capabilities', []))->filter()->values()->all();
-    $capabilityOptions = [
-        'API Support' => ['code-2', 'API accessible'],
-        'Reasoning' => ['brain-circuit', 'Multi-step reasoning'],
-        'Vision' => ['eye', 'Image understanding'],
-        'Audio' => ['audio-lines', 'Audio processing'],
-        'Image' => ['image', 'Image generation'],
-        'Video' => ['video', 'Video generation'],
-    ];
+    $selectedFeatureIds = collect(old('feature_ids', $model?->featureTerms?->pluck('id')->all() ?? []))->map(fn($id)=>(int)$id)->all();
+    $selectedUseCaseIds = collect(old('use_case_ids', $model?->useCaseTerms?->pluck('id')->all() ?? []))->map(fn($id)=>(int)$id)->all();
+    $selectedTagIds = collect(old('tag_ids', $model?->tagTerms?->pluck('id')->all() ?? []))->map(fn($id)=>(int)$id)->all();
 @endphp
 
 <form
@@ -148,43 +142,62 @@
                 <div class="model-panel__header">
                     <div class="model-panel__icon"><i data-lucide="sparkles"></i></div>
                     <div>
-                        <span class="eyebrow">CAPABILITIES</span>
-                        <h2>Capability profile</h2>
-                        <p>Classify the modalities and interfaces this model supports.</p>
+                        <span class="eyebrow">NORMALIZED CAPABILITIES</span>
+                        <h2>Features & capabilities</h2>
+                        <p>Models and tools now share the same controlled capability vocabulary.</p>
                     </div>
                 </div>
 
-                <div class="model-capability-picker">
-                    @foreach($capabilityOptions as $capability => [$icon, $description])
-                        <label class="model-capability-option">
-                            <input
-                                type="checkbox"
-                                name="capabilities[]"
-                                value="{{ $capability }}"
-                                @checked(in_array($capability, $selectedCapabilities, true))
-                            >
-                            <span class="model-capability-option__visual">
-                                <i data-lucide="{{ $icon }}"></i>
-                                <span>
-                                    <strong>{{ $capability }}</strong>
-                                    <small>{{ $description }}</small>
+                @foreach($features->groupBy(fn($feature) => $feature->group ?: 'Other') as $groupName => $groupFeatures)
+                    <div class="model-notes-field"><strong>{{ $groupName }}</strong></div>
+                    <div class="model-capability-picker">
+                        @foreach($groupFeatures as $feature)
+                            <label class="model-capability-option">
+                                <input type="checkbox" name="feature_ids[]" value="{{ $feature->id }}" @checked(in_array((int)$feature->id, $selectedFeatureIds, true))>
+                                <span class="model-capability-option__visual">
+                                    <i data-lucide="{{ $feature->icon ?: 'sparkles' }}"></i>
+                                    <span><strong>{{ $feature->name }}</strong><small>{{ $feature->description ?: 'Normalized AI capability' }}</small></span>
+                                    <i class="model-capability-option__check" data-lucide="check"></i>
                                 </span>
-                                <i class="model-capability-option__check" data-lucide="check"></i>
-                            </span>
-                        </label>
-                    @endforeach
-                </div>
+                            </label>
+                        @endforeach
+                    </div>
+                @endforeach
 
                 <div class="form-field model-notes-field">
                     <label for="capability_notes">Capability notes</label>
-                    <textarea
-                        id="capability_notes"
-                        class="input"
-                        rows="5"
-                        name="capability_notes"
-                        placeholder="Add important limitations, modality details, API behavior or operational notes..."
-                    >{{ $field('capability_notes') }}</textarea>
+                    <textarea id="capability_notes" class="input" rows="5" name="capability_notes" placeholder="Add important limitations, modality details, API behavior or operational notes...">{{ $field('capability_notes') }}</textarea>
                     @error('capability_notes')<small class="field-error">{{ $message }}</small>@enderror
+                </div>
+            </section>
+
+            <section class="card model-panel">
+                <div class="model-panel__header">
+                    <div class="model-panel__icon"><i data-lucide="target"></i></div>
+                    <div><span class="eyebrow">DISCOVERY</span><h2>Use cases</h2><p>Connect the model to the tasks it can help users accomplish.</p></div>
+                </div>
+                <div class="model-capability-picker">
+                    @foreach($useCases as $useCase)
+                        <label class="model-capability-option">
+                            <input type="checkbox" name="use_case_ids[]" value="{{ $useCase->id }}" @checked(in_array((int)$useCase->id, $selectedUseCaseIds, true))>
+                            <span class="model-capability-option__visual"><i data-lucide="{{ $useCase->icon ?: 'target' }}"></i><span><strong>{{ $useCase->name }}</strong><small>{{ $useCase->short_description }}</small></span><i class="model-capability-option__check" data-lucide="check"></i></span>
+                        </label>
+                    @endforeach
+                </div>
+            </section>
+
+            <section class="card model-panel">
+                <div class="model-panel__header">
+                    <div class="model-panel__icon"><i data-lucide="tags"></i></div>
+                    <div><span class="eyebrow">DISCOVERY LABELS</span><h2>Tags</h2><p>Add only controlled discovery labels; pricing and capability data stay in their own fields.</p></div>
+                </div>
+                <div class="model-capability-picker">
+                    @foreach($tags as $tag)
+                        <label class="model-capability-option">
+                            <input type="checkbox" name="tag_ids[]" value="{{ $tag->id }}" @checked(in_array((int)$tag->id, $selectedTagIds, true))>
+                            <span class="model-capability-option__visual"><i data-lucide="tag"></i><span><strong>{{ $tag->name }}</strong><small>{{ $tag->description }}</small></span><i class="model-capability-option__check" data-lucide="check"></i></span>
+                        </label>
+                    @endforeach
                 </div>
             </section>
         </main>

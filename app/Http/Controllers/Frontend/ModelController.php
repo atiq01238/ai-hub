@@ -5,14 +5,16 @@ namespace App\Http\Controllers\Frontend;
 use App\Http\Controllers\Controller;
 use App\Models\AiModel;
 use App\Models\Company;
+use App\Models\Feature;
 use App\Models\NewsItem;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use App\Services\Seo\EntitySeoService;
+use App\Services\Taxonomy\TaxonomyNormalizer;
 
 class ModelController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, TaxonomyNormalizer $taxonomy)
     {
         $filters = $request->validate([
             'q' => ['nullable','string','max:100'], 'company' => ['nullable','string','max:100'],
@@ -21,7 +23,7 @@ class ModelController extends Controller
             'sort' => ['nullable','in:benchmark,newest,price_low,name'], 'view' => ['nullable','in:grid,list'],
         ]);
 
-        $query = AiModel::query()->with(['company','tool'])->whereIn('status',['active','preview']);
+        $query = AiModel::query()->with(['company','tool','featureTerms'])->whereIn('status',['active','preview']);
 
         if ($q = trim($filters['q'] ?? '')) {
             $query->where(function (Builder $builder) use ($q) {
@@ -32,7 +34,19 @@ class ModelController extends Controller
         }
         if (!empty($filters['company'])) $query->whereHas('company', fn (Builder $q) => $q->where('slug',$filters['company']));
         if (!empty($filters['status'])) $query->where('status',$filters['status']);
-        if (!empty($filters['capability'])) $query->whereJsonContains('capabilities',$filters['capability']);
+        if (!empty($filters['capability'])) {
+            $capability = $filters['capability'];
+            $canonical = $taxonomy->canonicalFeatureNames([$capability])[0] ?? $capability;
+            $feature = Feature::active()->where(fn (Builder $q) => $q->where('slug', $capability)->orWhere('name', $canonical))->first();
+            $query->where(function (Builder $builder) use ($feature, $capability) {
+                if ($feature) {
+                    $builder->whereHas('featureTerms', fn (Builder $q) => $q->whereKey($feature->id))
+                        ->orWhereJsonContains('capabilities', $feature->name);
+                } else {
+                    $builder->whereJsonContains('capabilities', $capability);
+                }
+            });
+        }
         if (!empty($filters['context'])) $query->where('context_window', strtoupper($filters['context']));
         if (($filters['price'] ?? null) === 'free') $query->where('input_price_per_million', 0);
         if (($filters['price'] ?? null) === 'under1') $query->where('input_price_per_million','<',1);
@@ -48,7 +62,10 @@ class ModelController extends Controller
         $models = $query->paginate(12)->withQueryString();
         $companies = Company::query()->withCount(['models' => fn ($q) => $q->whereIn('status',['active','preview'])])
             ->whereHas('models', fn ($q) => $q->whereIn('status',['active','preview']))->orderByDesc('models_count')->get();
-        $capabilities = AiModel::whereIn('status',['active','preview'])->get(['capabilities'])->flatMap(fn ($m) => $m->capabilities ?? [])->filter()->unique()->sort()->values();
+        $capabilities = Feature::active()
+            ->whereHas('models', fn (Builder $q) => $q->whereIn('status', ['active','preview']))
+            ->withCount(['models' => fn (Builder $q) => $q->whereIn('status', ['active','preview'])])
+            ->orderByDesc('models_count')->orderBy('name')->get();
         $stats = [
             'models' => AiModel::whereIn('status',['active','preview'])->count(),
             'providers' => $companies->count(),
@@ -63,7 +80,7 @@ class ModelController extends Controller
     public function show(AiModel $model, EntitySeoService $seoService)
     {
         abort_unless(in_array($model->status, ['active','preview'], true), 404);
-        $model->load(['company','tool','pricingSources','benchmarkResults' => fn ($q) => $q->with('benchmark')->where('verified',true)->latest('tested_at')]);
+        $model->load(['company','tool','featureTerms','useCaseTerms','tagTerms','pricingSources','benchmarkResults' => fn ($q) => $q->with('benchmark')->where('verified',true)->latest('tested_at')]);
 
         $relatedModels = AiModel::with(['company','tool'])->whereIn('status',['active','preview'])->whereKeyNot($model->id)
             ->when($model->company_id, fn (Builder $q) => $q->where('company_id',$model->company_id))

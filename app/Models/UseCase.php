@@ -5,12 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Category extends Model
+class UseCase extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'name', 'slug', 'type', 'short_description', 'description',
+        'name', 'slug', 'short_description', 'description', 'icon',
         'meta_title', 'meta_description', 'is_active', 'is_indexable', 'sort_order',
     ];
 
@@ -22,27 +22,12 @@ class Category extends Model
 
     public function tools()
     {
-        return $this->hasMany(Tool::class);
+        return $this->belongsToMany(Tool::class, 'tool_use_case')->withTimestamps();
     }
 
-    public function articles()
+    public function models()
     {
-        return $this->hasMany(Article::class);
-    }
-
-    public function subcategories()
-    {
-        return $this->hasMany(Subcategory::class)->orderBy('sort_order')->orderBy('name');
-    }
-
-    public function scopeProduct($query)
-    {
-        return $query->where('type', 'product');
-    }
-
-    public function scopeContent($query)
-    {
-        return $query->where('type', 'content');
+        return $this->belongsToMany(AiModel::class, 'ai_model_use_case')->withTimestamps();
     }
 
     public function scopeActive($query)

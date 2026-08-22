@@ -61,6 +61,11 @@ class Tool extends Model
         return $this->belongsToMany(Tag::class, 'tag_tool')->withTimestamps();
     }
 
+    public function useCaseTerms()
+    {
+        return $this->belongsToMany(UseCase::class, 'tool_use_case')->withTimestamps();
+    }
+
     public function models()
     {
         return $this->hasMany(AiModel::class);

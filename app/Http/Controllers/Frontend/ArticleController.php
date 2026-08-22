@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AiModel;
 use App\Models\Article;
 use App\Models\Company;
+use App\Models\Category;
 use App\Models\Tool;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -73,9 +74,12 @@ class ArticleController extends Controller
             ->orderBy('name')
             ->get(['id', 'name']);
 
+        $guideTopicId = Category::content()->active()->where('slug', 'guides-tutorials')->value('id');
         $stats = [
             'articles' => Article::where('status', 'published')->where('approval_status', 'approved')->count(),
-            'guides' => Article::where('status', 'published')->where('approval_status', 'approved')->where('category', 'Guide')->count(),
+            'guides' => Article::where('status', 'published')->where('approval_status', 'approved')
+                ->when($guideTopicId, fn ($q, $id) => $q->where('category_id', $id), fn ($q) => $q->whereIn('category', ['Guide', 'Guides & Tutorials']))
+                ->count(),
             'companies' => Company::whereHas('articles', fn ($q) => $q->where('status', 'published')->where('approval_status', 'approved'))->count(),
         ];
 

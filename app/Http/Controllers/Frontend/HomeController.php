@@ -20,8 +20,10 @@ class HomeController extends Controller
     public function index()
     {
         $categories = Category::query()
+            ->product()->active()
             ->withCount(['tools' => fn ($q) => $q->where('status', 'published')])
             ->orderByDesc('tools_count')
+            ->orderBy('sort_order')
             ->orderBy('name')
             ->take(8)
             ->get();

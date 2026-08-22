@@ -23,7 +23,9 @@
             ['Categories', '/admin/taxonomy/categories', 'shapes'],
             ['Sub Categories', '/admin/taxonomy/subcategories', 'list-tree'],
             ['Features', '/admin/taxonomy/features', 'sparkles'],
+            ['Use Cases', '/admin/taxonomy/use-cases', 'target'],
             ['Tags', '/admin/taxonomy/tags', 'hash'],
+            ['Content Topics', '/admin/taxonomy/content-topics', 'library-big'],
         ],
         'Comparison & Benchmarks' => [
             ['Comparisons', '/admin/comparisons', 'columns-3'],
@@ -90,7 +92,7 @@
         '/admin' => ['Dashboard','View'],
         '/admin/news' => ['AI News','View'], '/admin/discovery' => ['AI News','View'], '/admin/news/breaking' => ['AI News','View'], '/admin/news/trending' => ['AI News','View'], '/admin/news/updates' => ['AI News','View'], '/admin/news/saved' => ['AI News','View'],
         '/admin/tools' => ['AI Tools','View'], '/admin/models' => ['AI Models','View'], '/admin/companies' => ['AI Companies','View'],
-        '/admin/taxonomy/categories' => ['Taxonomy','View'], '/admin/taxonomy/subcategories' => ['Taxonomy','View'], '/admin/taxonomy/features' => ['Taxonomy','View'], '/admin/taxonomy/tags' => ['Taxonomy','View'],
+        '/admin/taxonomy/categories' => ['Taxonomy','View'], '/admin/taxonomy/subcategories' => ['Taxonomy','View'], '/admin/taxonomy/features' => ['Taxonomy','View'], '/admin/taxonomy/use-cases' => ['Taxonomy','View'], '/admin/taxonomy/tags' => ['Taxonomy','View'], '/admin/taxonomy/content-topics' => ['Taxonomy','View'],
         '/admin/comparisons' => ['Comparisons','View'], '/admin/comparisons/builder' => ['Comparisons','Add'], '/admin/comparisons/metrics' => ['Comparisons','View'],
         '/admin/testlab' => ['AI Test Lab','View'], '/admin/testlab/results' => ['AI Test Lab','View'], '/admin/benchmarks' => ['Benchmarks','View'], '/admin/benchmarks/results' => ['Benchmarks','View'],
         '/admin/pricing' => ['Pricing','View'], '/admin/pricing/api' => ['Pricing','View'], '/admin/pricing/history' => ['Pricing','View'], '/admin/pricing/changes' => ['Pricing','View'],

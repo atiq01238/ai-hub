@@ -39,6 +39,7 @@ class ToolController extends Controller
         $tools = $query->paginate(12)->withQueryString();
 
         $categories = Category::query()
+            ->product()->active()
             ->withCount(['tools' => fn (Builder $q) => $q->where('status', 'published')])
             ->having('tools_count', '>', 0)
             ->orderByDesc('tools_count')
@@ -54,6 +55,7 @@ class ToolController extends Controller
             ->get();
 
         $features = Feature::query()
+            ->active()
             ->withCount(['tools' => fn (Builder $q) => $q->where('status', 'published')])
             ->having('tools_count', '>', 0)
             ->orderByDesc('tools_count')
@@ -95,6 +97,7 @@ class ToolController extends Controller
             'category',
             'subcategoryTerm',
             'featureTerms',
+            'useCaseTerms',
             'tagTerms',
             'models' => fn ($query) => $query
                 ->whereIn('status', ['active', 'preview'])

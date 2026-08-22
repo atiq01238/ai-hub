@@ -18,10 +18,10 @@
 <p>Compare the most advanced AI models across reasoning, coding, multimodality, context length, pricing and benchmark performance.</p>
 <form class="model-search" method="GET" action="{{ route('models.index') }}"><i data-lucide="search"></i><input name="q" value="{{ request('q') }}" placeholder="Search AI models, companies, capabilities..."><button>Search</button></form>
 <div class="model-hero-chips">
-<a href="{{ route('models.index',['capability'=>'Reasoning']) }}"><i data-lucide="brain-circuit"></i> Reasoning</a>
-<a href="{{ route('models.index',['capability'=>'Multimodal']) }}"><i data-lucide="layout-grid"></i> Multimodal</a>
-<a href="{{ route('models.index',['capability'=>'Coding']) }}"><i data-lucide="code-2"></i> Coding</a>
-<a href="{{ route('models.index',['capability'=>'Vision']) }}"><i data-lucide="eye"></i> Vision</a>
+<a href="{{ route('models.index',['capability'=>'reasoning']) }}"><i data-lucide="brain-circuit"></i> Reasoning</a>
+<a href="{{ route('models.index',['capability'=>'multimodal']) }}"><i data-lucide="layout-grid"></i> Multimodal</a>
+<a href="{{ route('models.index',['capability'=>'code-generation']) }}"><i data-lucide="code-2"></i> Coding</a>
+<a href="{{ route('models.index',['capability'=>'image-understanding']) }}"><i data-lucide="eye"></i> Vision</a>
 <a href="{{ route('models.index',['context'=>'1m']) }}"><i data-lucide="infinity"></i> Long Context</a>
 <a href="#model-directory"><i data-lucide="sliders-horizontal"></i> More Filters</a>
 </div></div>
@@ -151,7 +151,7 @@
                         <h3>Capability</h3>
                         <div class="mf-options">
                             @foreach($capabilities->take(10) as $cap)
-                                <label><span><input type="radio" name="capability" value="{{ $cap }}" @checked(request('capability')===$cap)><i></i>{{ $cap }}</span></label>
+                                <label><span><input type="radio" name="capability" value="{{ $cap->slug }}" @checked(request('capability')===$cap->slug)><i></i>{{ $cap->name }}</span><small>{{ $cap->models_count }}</small></label>
                             @endforeach
                         </div>
                     </div>

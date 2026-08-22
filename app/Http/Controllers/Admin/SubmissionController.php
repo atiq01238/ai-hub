@@ -7,6 +7,7 @@ use App\Mail\SubmissionStatusMail;
 use App\Models\Category;
 use App\Models\Submission;
 use App\Models\Tool;
+use App\Services\Taxonomy\TaxonomyNormalizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -152,7 +153,7 @@ class SubmissionController extends Controller
         }
 
         $categoryId = $submission->category
-            ? Category::whereRaw('LOWER(name) = ?', [Str::lower($submission->category)])->value('id')
+            ? app(TaxonomyNormalizer::class)->productCategoryByName($submission->category)?->id
             : null;
 
         return Tool::create([

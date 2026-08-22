@@ -122,6 +122,12 @@
                     @forelse($tool->featureTerms as $feature)<article><span><i data-lucide="check"></i></span><div><h3>{{ $feature->name }}</h3><p>{{ $feature->description ?? 'Supported capability.' }}</p></div></article>@empty<p class="detail-empty">Capability details have not been published yet.</p>@endforelse
                 @endforelse
             </div>
+            @if($tool->featureTerms->isNotEmpty())
+            <div class="taxonomy-link-row"><strong>Explore capabilities</strong><div>@foreach($tool->featureTerms->take(10) as $feature)<a href="{{ route('features.show',$feature) }}"><i data-lucide="{{ $feature->icon ?: 'sparkles' }}"></i>{{ $feature->name }}</a>@endforeach</div></div>
+            @endif
+            @if($tool->useCaseTerms->isNotEmpty())
+            <div class="taxonomy-link-row use-cases"><strong>Best use cases</strong><div>@foreach($tool->useCaseTerms->take(10) as $useCase)<a href="{{ route('use-cases.show',$useCase) }}"><i data-lucide="target"></i>{{ $useCase->name }}</a>@endforeach</div></div>
+            @endif
             @if($platforms->isNotEmpty() || $tags->isNotEmpty())
             <div class="platform-tag-row">
                 @foreach($platforms as $platform)<span><i data-lucide="monitor"></i>{{ $platform }}</span>@endforeach
