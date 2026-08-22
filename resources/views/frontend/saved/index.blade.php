@@ -123,7 +123,7 @@
                     <a class="saved-rec-card" href="{{ route('tools.show',$tool) }}"><img src="{{ $tool->logo_url }}" alt=""><div><small>AI TOOL</small><strong>{{ $tool->name }}</strong><span>{{ $tool->company?->name ?? 'Independent' }} · ★ {{ number_format((float)$tool->rating,1) }}</span></div><i data-lucide="arrow-up-right"></i></a>
                 @endforeach
                 @foreach($recommendations['models'] as $model)
-                    <a class="saved-rec-card" href="{{ route('models.show',$model) }}"><img src="{{ $model->logo_url }}" alt=""><div><small>AI MODEL</small><strong>{{ $model->name }}</strong><span>{{ $model->company?->name ?? 'Independent' }} · {{ number_format((float)$model->benchmark_score,1) }}/100</span></div><i data-lucide="arrow-up-right"></i></a>
+                    <a class="saved-rec-card" href="{{ route('models.show',$model) }}"><img src="{{ $model->logo_url }}" alt=""><div><small>AI MODEL</small><strong>{{ $model->name }}</strong><span>{{ $model->company?->name ?? 'Independent' }} · {{ $model->benchmark_score !== null ? number_format((float)$model->benchmark_score,1).'/100' : 'Benchmark N/A' }}</span></div><i data-lucide="arrow-up-right"></i></a>
                 @endforeach
             </div>
         </section>

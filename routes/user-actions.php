@@ -27,17 +27,19 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/user/interactions/status', [UserInteractionController::class, 'status'])
+    ->middleware(EnsureAccountIsActive::class)
     ->name('user.interactions.status');
 
 Route::post('/user/interactions/intent', [UserInteractionController::class, 'intent'])
-    ->middleware('throttle:30,1')
+    ->middleware([EnsureAccountIsActive::class, 'throttle:30,1'])
     ->name('user.interactions.intent');
 
 Route::get('/user/comparisons/status', [UserComparisonController::class, 'status'])
+    ->middleware(EnsureAccountIsActive::class)
     ->name('user.comparisons.status');
 
 Route::post('/user/comparisons/intent', [UserComparisonController::class, 'intent'])
-    ->middleware('throttle:30,1')
+    ->middleware([EnsureAccountIsActive::class, 'throttle:30,1'])
     ->name('user.comparisons.intent');
 
 /*

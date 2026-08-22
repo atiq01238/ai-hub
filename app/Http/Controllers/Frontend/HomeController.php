@@ -98,8 +98,12 @@ class HomeController extends Controller
             ->get();
 
         $latestReviews = Review::query()
-            ->with(['tool.company', 'user'])
+            ->with(['tool.company', 'model.company', 'user'])
             ->published()
+            ->where(function ($query) {
+                $query->whereHas('tool', fn ($tool) => $tool->where('status', 'published'))
+                    ->orWhereHas('model', fn ($model) => $model->whereIn('status', ['active', 'preview']));
+            })
             ->orderByDesc('rating')
             ->orderByDesc('created_at')
             ->take(4)

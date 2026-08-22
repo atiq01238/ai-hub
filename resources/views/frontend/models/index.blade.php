@@ -28,7 +28,7 @@
 <div class="model-stats">
 <div><span class="model-stat-icon"><i data-lucide="box"></i></span><span><strong>{{ number_format($stats['models']) }}+</strong><small>AI Models</small></span></div>
 <div><span class="model-stat-icon"><i data-lucide="building-2"></i></span><span><strong>{{ number_format($stats['providers']) }}+</strong><small>Providers</small></span></div>
-<div><span class="model-stat-icon"><i data-lucide="trophy"></i></span><span><strong>{{ number_format((float)$stats['topScore'],1) }}</strong><small>Top Benchmark</small></span></div>
+<div><span class="model-stat-icon"><i data-lucide="trophy"></i></span><span><strong>{{ $stats['topScore'] !== null ? number_format((float)$stats['topScore'],1) : '—' }}</strong><small>Top Benchmark</small></span></div>
 <div><span class="model-stat-icon"><i data-lucide="activity"></i></span><span><strong>Updated</strong><small>Fresh Model Data</small></span></div>
 </div></div></section>
 
@@ -206,10 +206,10 @@
                                 <div class="model-benchmark-panel">
                                     <div class="model-benchmark-head">
                                         <span><i data-lucide="gauge"></i> AI Hub Benchmark</span>
-                                        <strong>{{ number_format((float)$model->benchmark_score,1) }}<small>/100</small></strong>
+                                        <strong>{{ $model->benchmark_score !== null ? number_format((float)$model->benchmark_score,1) : '—' }}<small>{{ $model->benchmark_score !== null ? '/100' : 'Not verified' }}</small></strong>
                                     </div>
-                                    <div class="model-benchmark-track" role="progressbar" aria-label="{{ $model->name }} benchmark score" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ min(100,(float)$model->benchmark_score) }}">
-                                        <i style="width:{{ min(100,(float)$model->benchmark_score) }}%"></i>
+                                    <div class="model-benchmark-track" role="progressbar" aria-label="{{ $model->name }} benchmark score" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ $model->benchmark_score !== null ? min(100,(float)$model->benchmark_score) : 0 }}">
+                                        <i style="width:{{ $model->benchmark_score !== null ? min(100,(float)$model->benchmark_score) : 0 }}%"></i>
                                     </div>
                                     <div class="model-benchmark-scale"><span>0</span><span>Performance score</span><span>100</span></div>
                                 </div>

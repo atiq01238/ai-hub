@@ -30,7 +30,7 @@
                     @foreach($tools as $tool)
                         <button type="button" class="builder-product-card" data-builder-item data-type="tool" data-id="{{ $tool->id }}" data-search="{{ strtolower($tool->name.' '.($tool->company->name ?? '').' '.($tool->short_description ?? '')) }}">
                             <span class="builder-product-logo"><img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo"></span>
-                            <span class="builder-product-copy"><small>{{ $tool->company->name ?? 'Independent' }}</small><strong>{{ $tool->name }}</strong><em>★ {{ number_format((float)$tool->rating,1) }} · Benchmark {{ number_format((float)$tool->benchmark_score,1) }}</em></span>
+                            <span class="builder-product-copy"><small>{{ $tool->company->name ?? 'Independent' }}</small><strong>{{ $tool->name }}</strong><em>★ {{ number_format((float)$tool->rating,1) }} · Benchmark {{ $tool->benchmark_score !== null ? number_format((float)$tool->benchmark_score,1) : '—' }}</em></span>
                             <span class="select-indicator"><i data-lucide="plus"></i></span>
                         </button>
                     @endforeach
@@ -40,7 +40,7 @@
                     @foreach($models as $model)
                         <button type="button" class="builder-product-card" data-builder-item data-type="model" data-id="{{ $model->id }}" data-search="{{ strtolower($model->name.' '.($model->company->name ?? '').' '.($model->version ?? '')) }}">
                             <span class="builder-product-logo"><img src="{{ $model->logo_url }}" alt="{{ $model->name }} logo"></span>
-                            <span class="builder-product-copy"><small>{{ $model->company->name ?? 'Independent' }}</small><strong>{{ $model->name }}</strong><em>{{ $model->context_window ?: 'Context N/A' }} · Benchmark {{ number_format((float)$model->benchmark_score,1) }}</em></span>
+                            <span class="builder-product-copy"><small>{{ $model->company->name ?? 'Independent' }}</small><strong>{{ $model->name }}</strong><em>{{ $model->context_window ?: 'Context N/A' }} · Benchmark {{ $model->benchmark_score !== null ? number_format((float)$model->benchmark_score,1) : '—' }}</em></span>
                             <span class="select-indicator"><i data-lucide="plus"></i></span>
                         </button>
                     @endforeach

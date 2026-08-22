@@ -208,7 +208,7 @@
                                 <a href="{{ route('models.show', $model) }}">
                                     <img src="{{ $model->logo_url }}" alt="{{ $model->name }} model logo">
                                     <div><small>{{ strtoupper($model->status) }}</small><strong>{{ $model->name }}</strong><span>{{ $model->context_window ?: '—' }} context · {{ $model->version ?: 'Current version' }}</span></div>
-                                    <b>{{ number_format((float) $model->benchmark_score, 1) }}</b>
+                                    <b>{{ $model->benchmark_score !== null ? number_format((float) $model->benchmark_score, 1) : '—' }}</b>
                                 </a>
                             @endforeach
                         </div>

@@ -34,7 +34,7 @@ class ModelController extends Controller
         if (!empty($filters['status'])) $query->where('status',$filters['status']);
         if (!empty($filters['capability'])) $query->whereJsonContains('capabilities',$filters['capability']);
         if (!empty($filters['context'])) $query->where('context_window', strtoupper($filters['context']));
-        if (($filters['price'] ?? null) === 'free') $query->where(fn (Builder $q) => $q->whereNull('input_price_per_million')->orWhere('input_price_per_million',0));
+        if (($filters['price'] ?? null) === 'free') $query->where('input_price_per_million', 0);
         if (($filters['price'] ?? null) === 'under1') $query->where('input_price_per_million','<',1);
         if (($filters['price'] ?? null) === 'under5') $query->where('input_price_per_million','<',5);
 
@@ -52,10 +52,10 @@ class ModelController extends Controller
         $stats = [
             'models' => AiModel::whereIn('status',['active','preview'])->count(),
             'providers' => $companies->count(),
-            'topScore' => (float) AiModel::whereIn('status',['active','preview'])->max('benchmark_score'),
+            'topScore' => AiModel::whereIn('status',['active','preview'])->max('benchmark_score'),
             'latest' => AiModel::whereIn('status',['active','preview'])->whereNotNull('release_date')->orderByDesc('release_date')->value('release_date'),
         ];
-        $leaders = AiModel::with('company')->whereIn('status',['active','preview'])->orderByDesc('benchmark_score')->take(5)->get();
+        $leaders = AiModel::with('company')->whereIn('status',['active','preview'])->whereNotNull('benchmark_score')->orderByDesc('benchmark_score')->take(5)->get();
 
         return view('frontend.models.index', compact('models','companies','capabilities','stats','leaders'));
     }

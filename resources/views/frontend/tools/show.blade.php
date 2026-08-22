@@ -82,7 +82,7 @@
             </div>
             <div class="tool-hero-actions">
                 <button type="button" class="detail-secondary-btn" data-save-item data-save-type="tool" data-save-id="{{ $tool->id }}" aria-pressed="false"><i data-lucide="bookmark"></i><span data-save-label data-default-label="Save">Save</span></button>
-                <a href="{{ route('tools.index', ['compare'=>$tool->slug]) }}" class="detail-secondary-btn"><i data-lucide="scale"></i><span>Compare</span></a>
+                <a href="{{ route('comparisons.builder', ['type' => 'tool', 'item' => $tool->id]) }}" class="detail-secondary-btn"><i data-lucide="scale"></i><span>Compare</span></a>
                 @if($tool->website)<a href="{{ $tool->website }}" target="_blank" rel="noopener noreferrer nofollow" class="detail-primary-btn">Visit Website<i data-lucide="arrow-up-right"></i></a>@endif
             </div>
         </div>
@@ -185,7 +185,7 @@
             @if($publishedReviews->isNotEmpty())
             <div class="review-detail-list">
                 @foreach($publishedReviews->take(4) as $review)
-                <article><div class="review-detail-head"><div class="review-avatar">{{ strtoupper(substr($review->user?->name ?: ($review->review_type === 'editor' ? 'AI Hub' : 'R'),0,1)) }}</div><div><h3>{{ $review->user?->name ?: ($review->review_type === 'editor' ? 'AI Hub Editorial' : 'Verified reviewer') }}</h3><span>{{ ucfirst($review->review_type) }} review • {{ $review->created_at?->format('M j, Y') }}</span></div><b><i data-lucide="star"></i>{{ number_format((float)$review->rating,1) }}</b></div>@if($review->verdict)<h4>{{ $review->verdict }}</h4>@endif<p>{{ $review->body }}</p></article>
+                <article><div class="review-detail-head"><div class="review-avatar">{{ strtoupper(substr($review->user?->name ?: ($review->review_type === 'editorial' ? 'AI Hub' : 'R'),0,1)) }}</div><div><h3>{{ $review->user?->name ?: ($review->review_type === 'editorial' ? 'AI Hub Editorial' : 'Verified reviewer') }}</h3><span>{{ ucfirst($review->review_type) }} review • {{ $review->created_at?->format('M j, Y') }}</span></div><b><i data-lucide="star"></i>{{ number_format((float)$review->rating,1) }}</b></div>@if($review->verdict)<h4>{{ $review->verdict }}</h4>@endif<p>{{ $review->body }}</p></article>
                 @endforeach
             </div>
             @else

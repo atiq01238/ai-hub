@@ -91,9 +91,9 @@
                                     <a class="entity-top" href="{{ route('models.show',$model) }}">
                                         <img src="{{ $model->logo_url }}" alt="{{ $model->name }} logo">
                                         <div><small>{{ $model->company?->name ?? 'AI Model' }}</small><h3>{{ $model->name }}</h3><span>{{ $model->version ?: 'Current model' }}</span></div>
-                                        <b>{{ number_format((float)$model->benchmark_score,1) }}</b>
+                                        <b>{{ $model->benchmark_score !== null ? number_format((float)$model->benchmark_score,1) : '—' }}</b>
                                     </a>
-                                    <div class="model-stat-row"><span>Context <strong>{{ $model->context_window ?: '—' }}</strong></span><span>Input <strong>${{ number_format((float)$model->input_price_per_million,2) }}</strong></span><span>Status <strong>{{ ucfirst($model->status) }}</strong></span></div>
+                                    <div class="model-stat-row"><span>Context <strong>{{ $model->context_window ?: '—' }}</strong></span><span>Input <strong>{{ $model->input_price_per_million !== null ? '$'.number_format((float)$model->input_price_per_million,2) : 'Not verified' }}</strong></span><span>Status <strong>{{ ucfirst($model->status) }}</strong></span></div>
                                 </article>
                             @endforeach
                         </div>

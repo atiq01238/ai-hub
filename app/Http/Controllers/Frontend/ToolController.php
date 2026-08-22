@@ -168,7 +168,7 @@ class ToolController extends Controller
             ->get();
 
         $editorReview = $tool->reviews
-            ->first(fn ($review) => $review->review_type === 'editor')
+            ->first(fn ($review) => $review->review_type === 'editorial')
             ?? $tool->reviews->first();
 
         $ratingBreakdown = collect($tool->rating_breakdown ?? []);

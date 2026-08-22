@@ -33,6 +33,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const launch = document.querySelector('[data-compare-launch]');
     const count = document.querySelector('[data-compare-count]');
     const selected = new Map();
+    const isAuthenticated = document.querySelector('meta[name="auth-status"]')?.content === '1';
+    const loginUrl = document.querySelector('meta[name="login-url"]')?.content || '/auth/login';
+    const requireCompareAuth = () => {
+        if (isAuthenticated) return true;
+        window.location.assign(loginUrl);
+        return false;
+    };
 
     const renderCompare = () => {
         if (!selectedWrap || !tray || !launch || !count) return;
@@ -57,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelectorAll('[data-compare-tool]').forEach(button => {
         button.addEventListener('click', () => {
+            if (!requireCompareAuth()) return;
             const card = button.closest('[data-tool-card]');
             if (!card) return;
             const id = card.dataset.toolId;
@@ -91,6 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     launch?.addEventListener('click', () => {
+        if (!requireCompareAuth()) return;
         if (selected.size < 2 || !compareModal || !compareTable) return;
         const tools = [...selected.values()];
         const columns = tools.map(tool => `

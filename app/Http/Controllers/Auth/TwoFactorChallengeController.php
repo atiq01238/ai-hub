@@ -27,6 +27,7 @@ class TwoFactorChallengeController extends Controller
         abort_unless($userId, 400);
 
         $user = User::findOrFail($userId);
+        $user->restoreIfSuspensionExpired();
 
         if ($user->status !== 'active') {
             $request->session()->forget(['2fa_user_id', '2fa_remember']);
@@ -81,7 +82,9 @@ class TwoFactorChallengeController extends Controller
 
         $destination = $user->role === 'admin'
             ? route('admin.dashboard')
-            : route('home');
+            : (($user->preference?->onboarding_completed)
+                ? route('home')
+                : route('account.onboarding'));
 
         return redirect()->intended($destination);
     }

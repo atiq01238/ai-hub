@@ -18,6 +18,7 @@
     <meta name="saved-intent-url" content="{{ route('saved.intent') }}">
     <meta name="saved-status-url" content="{{ route('saved.status') }}">
     <meta name="login-url" content="{{ route('login') }}">
+    <meta name="auth-status" content="{{ auth()->check() ? '1' : '0' }}">
     <title>@yield('title', 'AI Hub — Discover, Compare, Master AI')</title>
     <meta name="description" content="@yield('meta_description', 'Discover AI tools, models, news, comparisons, pricing and independent test results in one place.')">
     @stack('head')

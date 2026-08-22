@@ -93,9 +93,14 @@ Route::get('/ai-models', [FrontendModelController::class, 'index'])->name('model
 Route::get('/ai-models/{model:slug}', [FrontendModelController::class, 'show'])->name('models.show');
 Route::get('/ai-news', [FrontendNewsController::class, 'index'])->name('news.index');
 Route::get('/ai-news/{news:slug}', [FrontendNewsController::class, 'show'])->name('news.show');
+// Published comparisons remain public for discovery/SEO. Creating a custom
+// comparison is an authenticated user action. Keep static routes before the
+// dynamic slug route so /compare/builder cannot be captured as a slug.
 Route::get('/compare', [FrontendComparisonController::class, 'index'])->name('comparisons.index');
-Route::get('/compare/builder', [FrontendComparisonController::class, 'builder'])->name('comparisons.builder');
-Route::get('/compare/preview', [FrontendComparisonController::class, 'preview'])->name('comparisons.preview');
+Route::middleware(['auth', EnsureAccountIsActive::class])->group(function () {
+    Route::get('/compare/builder', [FrontendComparisonController::class, 'builder'])->name('comparisons.builder');
+    Route::get('/compare/preview', [FrontendComparisonController::class, 'preview'])->name('comparisons.preview');
+});
 Route::get('/compare/{comparison:slug}', [FrontendComparisonController::class, 'show'])->name('comparisons.show');
 Route::get('/sitemap-companies.xml', CompanySitemapController::class)->name('sitemap.companies');
 Route::get('/sitemap-tools.xml', [SeoSitemapController::class, 'tools'])->name('sitemap.tools');
@@ -118,9 +123,9 @@ Route::get('/categories/{category:slug}', [FrontendCategoryController::class, 's
 Route::get('/benchmarks', [FrontendBenchmarkController::class, 'index'])->name('benchmarks.index');
 Route::get('/benchmarks/{benchmark:slug}', [FrontendBenchmarkController::class, 'show'])->name('benchmarks.show');
 Route::get('/trending', [FrontendTrendingController::class, 'index'])->name('trending.index');
-Route::get('/saved/status', [FrontendSavedController::class, 'status'])->name('saved.status');
+Route::get('/saved/status', [FrontendSavedController::class, 'status'])->middleware(EnsureAccountIsActive::class)->name('saved.status');
 Route::post('/saved/intent', [FrontendSavedController::class, 'intent'])
-    ->middleware('throttle:30,1')
+    ->middleware([EnsureAccountIsActive::class, 'throttle:30,1'])
     ->name('saved.intent');
 
 Route::middleware(['auth', EnsureAccountIsActive::class])->group(function () {
@@ -150,10 +155,10 @@ Route::post('/contact', [FrontendPageController::class, 'storeContact'])->middle
 
 Route::middleware('guest')->group(function () {
     Route::get('/auth/signup', [SignupController::class, 'index'])->name('signup');
-    Route::post('/auth/signup', [SignupController::class, 'store'])->name('signup.store');
+    Route::post('/auth/signup', [SignupController::class, 'store'])->middleware('throttle:5,10')->name('signup.store');
 
     Route::get('/auth/login', [LoginController::class, 'index'])->name('login');
-    Route::post('/auth/login', [LoginController::class, 'authenticate'])->name('login.authenticate');
+    Route::post('/auth/login', [LoginController::class, 'authenticate'])->middleware('throttle:10,1')->name('login.authenticate');
 });
 
 Route::post('/logout', [LoginController::class, 'logout'])
@@ -648,5 +653,5 @@ Route::middleware(['auth', EnsureAccountIsActive::class])->group(function () {
 
 Route::middleware('guest')->group(function () {
     Route::get('/login/2fa', [TwoFactorChallengeController::class, 'show'])->name('login.2fa');
-    Route::post('/login/2fa', [TwoFactorChallengeController::class, 'verify'])->name('login.2fa.verify');
+    Route::post('/login/2fa', [TwoFactorChallengeController::class, 'verify'])->middleware('throttle:10,1')->name('login.2fa.verify');
 });

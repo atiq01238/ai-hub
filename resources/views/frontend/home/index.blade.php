@@ -91,7 +91,7 @@
                             <div class="tool-rating"><span>★ {{ number_format((float)$tool->rating,1) }}/5</span></div>
                         </div>
                         <div class="tool-card-meta-line">
-                            <span class="score">★ {{ number_format((float)$tool->benchmark_score,1) }}/10</span>
+                            <span class="score">@if($tool->benchmark_score !== null)★ {{ number_format((float)$tool->benchmark_score,1) }}/100 @else Benchmark N/A @endif</span>
                             <span class="badge">{{ implode(' + ', array_slice($tool->pricing_models ?? [],0,2)) ?: 'Explore' }}</span>
                         </div>
                         <p>{{ $tool->short_description }}</p>
@@ -152,7 +152,7 @@
                 <div class="section-heading row-heading"><div class="heading-left"><div class="heading-icon cyan"><i data-lucide="cpu"></i></div><div><h2>Top AI Models</h2><p>Benchmark-ready model records with dedicated artwork</p></div></div><a class="text-link" href="{{ route('models.index') }}">View All <i data-lucide="arrow-right"></i></a></div>
                 <div class="model-strip">
                     @foreach($featuredModels as $model)
-                        <a class="model-card" href="{{ route('models.show', $model) }}"><img src="{{ $model->logo_url }}" alt="{{ $model->name }}"><div><h3>{{ $model->name }}</h3><span>{{ $model->company?->name }} · {{ $model->context_window }}</span></div><b>{{ number_format((float)$model->benchmark_score,1) }}</b></a>
+                        <a class="model-card" href="{{ route('models.show', $model) }}"><img src="{{ $model->logo_url }}" alt="{{ $model->name }}"><div><h3>{{ $model->name }}</h3><span>{{ $model->company?->name }} · {{ $model->context_window ?: 'Context N/A' }}</span></div><b>{{ $model->benchmark_score !== null ? number_format((float)$model->benchmark_score,1) : '—' }}</b></a>
                     @endforeach
                 </div>
             </section>
@@ -181,7 +181,7 @@
             <section class="panel side-panel model-leaderboard">
                 <div class="side-title"><h2><i data-lucide="sparkles"></i> Model Leaderboard</h2></div>
                 @foreach($featuredModels->take(4) as $model)
-                    <a class="mini-model" href="{{ route('models.show', $model) }}"><img src="{{ $model->logo_url }}" alt="{{ $model->name }}"><div><strong>{{ $model->name }}</strong><small>{{ $model->company?->name }}</small></div><b>{{ number_format((float)$model->benchmark_score,1) }}</b></a>
+                    <a class="mini-model" href="{{ route('models.show', $model) }}"><img src="{{ $model->logo_url }}" alt="{{ $model->name }}"><div><strong>{{ $model->name }}</strong><small>{{ $model->company?->name }}</small></div><b>{{ $model->benchmark_score !== null ? number_format((float)$model->benchmark_score,1) : '—' }}</b></a>
                 @endforeach
             </section>
         </aside>
@@ -198,7 +198,7 @@
                     <a class="release-card model-release" href="{{ route('models.show', $model) }}">
                         <div class="release-top"><span class="release-label">NEW MODEL</span><span>{{ optional($model->release_date)->diffForHumans() }}</span></div>
                         <div class="release-main"><img src="{{ $model->logo_url }}" alt="{{ $model->name }}"><div><h3>{{ $model->name }}</h3><p>{{ $model->company?->name }} · {{ $model->context_window }} context</p></div></div>
-                        <div class="release-stats"><span><i data-lucide="gauge"></i>{{ number_format((float)$model->benchmark_score,1) }} score</span><span><i data-lucide="calendar-days"></i>{{ optional($model->release_date)->format('M j') }}</span></div>
+                        <div class="release-stats"><span><i data-lucide="gauge"></i>{{ $model->benchmark_score !== null ? number_format((float)$model->benchmark_score,1).' score' : 'Benchmark N/A' }}</span><span><i data-lucide="calendar-days"></i>{{ optional($model->release_date)->format('M j') }}</span></div>
                     </a>
                 @endforeach
                 @foreach($recentTools->take(3) as $tool)
@@ -287,13 +287,14 @@
 
         <div class="content-grid-wide">
             <section class="panel expansion-panel reviews-panel" id="reviews">
-                <div class="section-heading row-heading"><div class="heading-left"><div class="heading-icon gold"><i data-lucide="star"></i></div><div><h2>Latest Reviews</h2><p>Editorial verdicts from the AI Hub review layer</p></div></div><a class="text-link" href="{{ route('reviews.index') }}">All Reviews <i data-lucide="arrow-right"></i></a></div>
+                <div class="section-heading row-heading"><div class="heading-left"><div class="heading-icon gold"><i data-lucide="star"></i></div><div><h2>Latest Reviews</h2><p>Editorial and moderated community reviews across AI tools and models</p></div></div><a class="text-link" href="{{ route('reviews.index') }}">All Reviews <i data-lucide="arrow-right"></i></a></div>
                 <div class="review-grid">
                     @foreach($latestReviews as $review)
+                        @php($reviewedItem = $review->model ?: $review->tool)
                         <article class="review-card">
-                            <div class="review-head"><img src="{{ $review->tool?->logo_url }}" alt="{{ $review->tool?->name }}"><div><h3>{{ $review->tool?->name }}</h3><span>{{ $review->tool?->company?->name }}</span></div><b>★ {{ number_format((float)$review->rating,1) }}</b></div>
-                            <h4>{{ $review->verdict }}</h4><p>{{ $review->body }}</p>
-                            <div class="review-foot"><span><i data-lucide="badge-check"></i>{{ ucfirst($review->review_type ?? 'editorial') }}</span><a href="{{ route('reviews.show', $review) }}">Read review</a></div>
+                            <div class="review-head"><img src="{{ $reviewedItem?->logo_url }}" alt="{{ $reviewedItem?->name }}"><div><h3>{{ $reviewedItem?->name }}</h3><span>{{ $reviewedItem?->company?->name }} · {{ $review->model ? 'Model' : 'Tool' }}</span></div><b>★ {{ number_format((float)$review->rating,1) }}</b></div>
+                            <h4>{{ $review->verdict ?: $reviewedItem?->name.' review' }}</h4><p>{{ $review->body ?: 'Published AI Hub review.' }}</p>
+                            <div class="review-foot"><span><i data-lucide="badge-check"></i>{{ $review->review_type === 'editorial' ? 'Editorial' : 'Community' }}</span><a href="{{ route('reviews.show', $review) }}">Read review</a></div>
                         </article>
                     @endforeach
                 </div>

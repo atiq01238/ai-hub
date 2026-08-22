@@ -195,7 +195,7 @@ class AccountController extends Controller
             });
 
         Review::query()
-            ->with('tool')
+            ->with(['tool', 'model'])
             ->where('user_id', $userId)
             ->where('review_type', 'user')
             ->latest()
@@ -207,12 +207,12 @@ class AccountController extends Controller
                     'icon' => 'star',
                     'title' => 'Rated ' . ($review->model?->name ?? $review->tool?->name ?? 'an AI item'),
                     'subtitle' => number_format((float) $review->rating, 1) . '/5 · ' . ucfirst($review->status),
-                    'url' => $review->status === 'published' && $review->tool
+                    'url' => $review->status === 'published' && ($review->model || $review->tool)
                         ? route('reviews.show', $review)
                         : ($review->model
-                            ? url('/models/' . $review->model->getRouteKey() . '/review')
+                            ? route('reviews.models.create', $review->model)
                             : ($review->tool
-                                ? url('/tools/' . $review->tool->getRouteKey() . '/review')
+                                ? route('reviews.create', $review->tool)
                                 : route('account.reviews'))),
                     'at' => $review->updated_at,
                 ]);

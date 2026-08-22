@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
+use App\Models\AiModel;
 use App\Models\Review;
 use App\Models\Tool;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class ReviewController extends Controller
 {
@@ -20,24 +20,23 @@ class ReviewController extends Controller
             'sort' => ['nullable', 'in:newest,rating,oldest'],
         ]);
 
-        $query = Review::query()
-            ->with(['tool.company', 'user'])
-            ->published()
-            ->whereHas('tool', fn ($q) => $q->where('status', 'published'));
+        $query = $this->publicReviews()
+            ->with(['tool.company', 'model.company', 'user']);
 
         if ($q = trim($filters['q'] ?? '')) {
             $query->where(function (Builder $builder) use ($q) {
                 $builder->where('verdict', 'like', "%{$q}%")
                     ->orWhere('body', 'like', "%{$q}%")
-                    ->orWhereHas('tool', fn ($toolQuery) => $toolQuery->where('name', 'like', "%{$q}%"));
+                    ->orWhereHas('tool', fn (Builder $tool) => $tool->where('name', 'like', "%{$q}%"))
+                    ->orWhereHas('model', fn (Builder $model) => $model->where('name', 'like', "%{$q}%"));
             });
         }
 
-        if (!empty($filters['type'])) {
+        if (! empty($filters['type'])) {
             $query->where('review_type', $filters['type']);
         }
 
-        if (!empty($filters['rating'])) {
+        if (! empty($filters['rating'])) {
             $query->where('rating', '>=', (float) $filters['rating']);
         }
 
@@ -48,12 +47,13 @@ class ReviewController extends Controller
         };
 
         $reviews = $query->paginate(12)->withQueryString();
+        $statsQuery = $this->publicReviews();
 
         $stats = [
-            'reviews' => Review::published()->count(),
-            'editorial' => Review::published()->where('review_type', 'editorial')->count(),
-            'community' => Review::published()->where('review_type', 'user')->count(),
-            'average' => (float) (Review::published()->avg('rating') ?? 0),
+            'reviews' => (clone $statsQuery)->count(),
+            'editorial' => (clone $statsQuery)->where('review_type', 'editorial')->count(),
+            'community' => (clone $statsQuery)->where('review_type', 'user')->count(),
+            'average' => (float) ((clone $statsQuery)->avg('rating') ?? 0),
         ];
 
         $topTools = Tool::query()
@@ -80,26 +80,56 @@ class ReviewController extends Controller
     {
         abort_unless($review->status === 'published', 404);
 
-        $review->load(['tool.company', 'tool.category', 'user']);
-        abort_unless($review->tool && $review->tool->status === 'published', 404);
+        $review->load(['tool.company', 'tool.category', 'model.company', 'user']);
+        $item = $review->model ?: $review->tool;
+        abort_unless($item, 404);
 
-        $toolReviewStats = Review::published()
-            ->where('tool_id', $review->tool_id)
-            ->selectRaw('COUNT(*) as total, AVG(rating) as average')
-            ->first();
+        $itemType = $review->model ? 'model' : 'tool';
+        if ($itemType === 'model') {
+            abort_unless(in_array($item->status, ['active', 'preview'], true), 404);
+            $itemReviewStats = Review::published()
+                ->where('model_id', $review->model_id)
+                ->selectRaw('COUNT(*) as total, AVG(rating) as average')
+                ->first();
 
-        $relatedReviews = Review::query()
-            ->with(['tool.company', 'user'])
+            $relatedReviews = $this->publicReviews()
+                ->with(['model.company', 'user'])
+                ->where('id', '!=', $review->id)
+                ->where('model_id', $review->model_id)
+                ->latest()
+                ->take(4)
+                ->get();
+        } else {
+            abort_unless($item->status === 'published', 404);
+            $itemReviewStats = Review::published()
+                ->where('tool_id', $review->tool_id)
+                ->selectRaw('COUNT(*) as total, AVG(rating) as average')
+                ->first();
+
+            $relatedReviews = $this->publicReviews()
+                ->with(['tool.company', 'user'])
+                ->where('id', '!=', $review->id)
+                ->where(function (Builder $query) use ($review) {
+                    $query->where('tool_id', $review->tool_id)
+                        ->orWhereHas('tool', fn (Builder $tool) => $tool->where('category_id', $review->tool?->category_id));
+                })
+                ->latest()
+                ->take(4)
+                ->get();
+        }
+
+        return view('frontend.reviews.show', compact(
+            'review', 'item', 'itemType', 'itemReviewStats', 'relatedReviews'
+        ));
+    }
+
+    private function publicReviews(): Builder
+    {
+        return Review::query()
             ->published()
-            ->whereKeyNot($review->id)
-            ->where(function (Builder $query) use ($review) {
-                $query->where('tool_id', $review->tool_id)
-                    ->orWhereHas('tool', fn ($toolQuery) => $toolQuery->where('category_id', $review->tool?->category_id));
-            })
-            ->latest()
-            ->take(4)
-            ->get();
-
-        return view('frontend.reviews.show', compact('review', 'toolReviewStats', 'relatedReviews'));
+            ->where(function (Builder $query) {
+                $query->whereHas('tool', fn (Builder $tool) => $tool->where('status', 'published'))
+                    ->orWhereHas('model', fn (Builder $model) => $model->whereIn('status', ['active', 'preview']));
+            });
     }
 }

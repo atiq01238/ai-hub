@@ -36,7 +36,7 @@
     </section>
 
     @if($models->isNotEmpty())
-    <section class="result-section"><div class="section-bar"><div><span class="section-icon cyan"><i data-lucide="cpu"></i></span><h2>Related AI Models</h2><small>Models powering products in this category</small></div><a href="{{ route('models.index') }}">Models directory <i data-lucide="arrow-right"></i></a></div><div class="category-model-grid">@foreach($models as $model)<a class="category-model-card" href="{{ route('models.show',$model) }}"><img src="{{ $model->logo_url }}" alt="{{ $model->name }}"><div><small>{{ $model->company?->name }}</small><h3>{{ $model->name }}</h3><span>{{ $model->context_window ?: '—' }} context</span></div><b>{{ number_format((float)$model->benchmark_score,1) }}</b></a>@endforeach</div></section>
+    <section class="result-section"><div class="section-bar"><div><span class="section-icon cyan"><i data-lucide="cpu"></i></span><h2>Related AI Models</h2><small>Models powering products in this category</small></div><a href="{{ route('models.index') }}">Models directory <i data-lucide="arrow-right"></i></a></div><div class="category-model-grid">@foreach($models as $model)<a class="category-model-card" href="{{ route('models.show',$model) }}"><img src="{{ $model->logo_url }}" alt="{{ $model->name }}"><div><small>{{ $model->company?->name }}</small><h3>{{ $model->name }}</h3><span>{{ $model->context_window ?: '—' }} context</span></div><b>{{ $model->benchmark_score !== null ? number_format((float)$model->benchmark_score,1) : '—' }}</b></a>@endforeach</div></section>
     @endif
 
     <div class="category-content-split">
