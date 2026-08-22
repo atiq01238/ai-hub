@@ -7,6 +7,7 @@ use App\Models\AiModel;
 use App\Models\Company;
 use App\Models\Tool;
 use App\Services\ModelFamilyResolver;
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -243,7 +244,8 @@ class LogoImportController extends Controller
             || AiModel::where('logo_path', $oldPath)->exists();
 
         if (! $stillUsed) {
-            Storage::disk('public')->delete($oldPath);
+            $diskPath = MediaUrl::diskPath($oldPath);
+            if ($diskPath) Storage::disk('public')->delete($diskPath);
         }
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Model;
 
 class SocialPost extends Model
@@ -15,6 +16,11 @@ class SocialPost extends Model
         'scheduled_at' => 'datetime',
         'published_at' => 'datetime',
     ];
+
+    public function getImageUrlAttribute(): ?string
+    {
+        return MediaUrl::resolve($this->image_path);
+    }
 
     public function newsItem()
     {

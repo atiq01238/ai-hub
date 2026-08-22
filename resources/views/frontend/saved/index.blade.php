@@ -73,9 +73,12 @@
                                 default => 'AI Hub',
                             };
                             $description = $item->short_description ?? $item->ai_summary ?? $item->summary ?? $item->description ?? '';
-                            $imagePath = $item->logo_path ?? $item->image_path ?? $item->featured_image_path ?? null;
-                            if ($itemType === 'model' && !$imagePath) $imagePath = $item->company?->logo_path;
-                            $image = $imagePath && file_exists(public_path($imagePath)) ? asset($imagePath) : asset('favicon.ico');
+                            $image = match($itemType) {
+                                'tool', 'model', 'company' => $item->logo_url,
+                                'news' => $item->image_url ?? \App\Support\MediaUrl::placeholder(),
+                                'article' => \App\Support\MediaUrl::resolve($item->featured_image_path) ?? \App\Support\MediaUrl::placeholder(),
+                                default => \App\Support\MediaUrl::placeholder(),
+                            };
                             $url = match($itemType) {
                                 'tool' => route('tools.show',$item),
                                 'model' => route('models.show',$item),
@@ -117,10 +120,10 @@
             <div class="saved-section-head"><div><span class="saved-kicker">KEEP DISCOVERING</span><h2>Popular intelligence to explore</h2></div><a href="{{ route('trending.index') }}">View trending <i data-lucide="arrow-right"></i></a></div>
             <div class="saved-rec-grid">
                 @foreach($recommendations['tools'] as $tool)
-                    <a class="saved-rec-card" href="{{ route('tools.show',$tool) }}"><img src="{{ asset($tool->logo_path ?: 'favicon.ico') }}" alt=""><div><small>AI TOOL</small><strong>{{ $tool->name }}</strong><span>{{ $tool->company?->name ?? 'Independent' }} · ★ {{ number_format((float)$tool->rating,1) }}</span></div><i data-lucide="arrow-up-right"></i></a>
+                    <a class="saved-rec-card" href="{{ route('tools.show',$tool) }}"><img src="{{ $tool->logo_url }}" alt=""><div><small>AI TOOL</small><strong>{{ $tool->name }}</strong><span>{{ $tool->company?->name ?? 'Independent' }} · ★ {{ number_format((float)$tool->rating,1) }}</span></div><i data-lucide="arrow-up-right"></i></a>
                 @endforeach
                 @foreach($recommendations['models'] as $model)
-                    <a class="saved-rec-card" href="{{ route('models.show',$model) }}"><img src="{{ asset($model->logo_path ?: ($model->company?->logo_path ?: 'favicon.ico')) }}" alt=""><div><small>AI MODEL</small><strong>{{ $model->name }}</strong><span>{{ $model->company?->name ?? 'Independent' }} · {{ number_format((float)$model->benchmark_score,1) }}/100</span></div><i data-lucide="arrow-up-right"></i></a>
+                    <a class="saved-rec-card" href="{{ route('models.show',$model) }}"><img src="{{ $model->logo_url }}" alt=""><div><small>AI MODEL</small><strong>{{ $model->name }}</strong><span>{{ $model->company?->name ?? 'Independent' }} · {{ number_format((float)$model->benchmark_score,1) }}/100</span></div><i data-lucide="arrow-up-right"></i></a>
                 @endforeach
             </div>
         </section>

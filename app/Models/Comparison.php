@@ -28,8 +28,13 @@ class Comparison extends Model
     public function items()
     {
         $modelClass = $this->comparable_type === 'tool' ? Tool::class : AiModel::class;
+        $query = $modelClass::query()->with('company');
 
-        $rows = $modelClass::whereIn('id', $this->item_ids)->get()->keyBy('id');
+        if ($this->comparable_type === 'model') {
+            $query->with('tool.company');
+        }
+
+        $rows = $query->whereIn('id', $this->item_ids)->get()->keyBy('id');
 
         // Re-order to match item_ids, since whereIn() doesn't guarantee order.
         return collect($this->item_ids)->map(fn ($id) => $rows->get($id))->filter()->values();

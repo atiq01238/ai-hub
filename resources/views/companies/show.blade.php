@@ -47,7 +47,7 @@
         <div class="company-profile__identity">
             <div class="company-profile__logo">
                 @if($company->logo_path)
-                    <img src="{{ \Illuminate\Support\Facades\Storage::url($company->logo_path) }}" alt="{{ $company->name }} logo">
+                    <img src="{{ $company->logo_url }}" alt="{{ $company->name }} logo">
                 @else
                     <span>{{ $initials ?: 'AI' }}</span>
                 @endif

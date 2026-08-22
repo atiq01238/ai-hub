@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class NewsController extends Controller
@@ -279,6 +280,8 @@ class NewsController extends Controller
             'tags_input' => ['nullable', 'string'],
             'related_tools_input' => ['nullable', 'string'],
             'status' => ['required', 'in:draft,published,archived'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'remove_image' => ['nullable', 'boolean'],
         ]);
 
         foreach (['tags' => 'tags_input', 'related_tools' => 'related_tools_input'] as $column => $input) {
@@ -295,10 +298,38 @@ class NewsController extends Controller
             $data['slug'] = $slug;
         }
 
+        if ($request->boolean('remove_image')) {
+            if ($item?->image_path) {
+                $this->deleteNewsImage($item->image_path);
+            }
+            $data['image_path'] = null;
+        }
+
+        if ($request->hasFile('image')) {
+            if ($item?->image_path) {
+                $this->deleteNewsImage($item->image_path);
+            }
+            $data['image_path'] = $request->file('image')->store('news', 'public');
+        }
+
+        unset($data['image'], $data['remove_image']);
+
         if ($data['status'] === 'published' && ! ($item?->published_at)) {
             $data['published_at'] = now();
         }
 
         return $data;
+    }
+
+    private function deleteNewsImage(?string $path): void
+    {
+        $path = ltrim((string) $path, '/');
+        if ($path === '') return;
+
+        if (str_starts_with($path, 'storage/')) {
+            $path = substr($path, strlen('storage/'));
+        }
+
+        Storage::disk('public')->delete($path);
     }
 }

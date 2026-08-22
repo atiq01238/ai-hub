@@ -37,7 +37,7 @@
 <div class="content-article__layout">
 <main class="content-article__main">
     <section class="card content-article__body">
-        @if($article->featured_image_path)<img src="{{ \Illuminate\Support\Facades\Storage::url($article->featured_image_path) }}" alt="{{ $article->title }}">@endif
+        @if($article->featured_image_path)<img src="{{ $article->featured_image_url }}" alt="{{ $article->title }}">@endif
         <div>{{ $article->content ?: 'No article body added yet.' }}</div>
     </section>
 

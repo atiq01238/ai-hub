@@ -63,11 +63,7 @@
                         <div class="pi-card-head">
                             <div class="pi-tool">
                                 <div class="pi-logo">
-                                    @if ($tool->logo_path)
-                                        <img src="{{ asset($tool->logo_path) }}" alt="{{ $tool->name }} logo">
-                                    @else
-                                        <span>{{ strtoupper(substr($tool->name, 0, 2)) }}</span>
-                                    @endif
+                                    <img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo">
                                 </div>
                                 <div>
                                     <h3>{{ $tool->name }}</h3>

@@ -29,7 +29,7 @@
         <div class="section-bar"><div><span class="section-icon"><i data-lucide="award"></i></span><h2>Top Rated Across Categories</h2><small>Strong products from across the directory</small></div><a href="{{ route('tools.index') }}">Full tools directory <i data-lucide="arrow-right"></i></a></div>
         <div class="entity-grid entity-grid-tools">
             @foreach($featuredTools as $tool)
-                <article class="search-entity-card"><a class="entity-top" href="{{ route('tools.show',$tool) }}"><img src="{{ asset($tool->logo_path ?: 'storage/ai-hub/tools/logos/chatgpt.png') }}" alt="{{ $tool->name }} logo"><div><small>{{ $tool->category?->name ?? 'AI Tool' }}</small><h3>{{ $tool->name }}</h3><span>{{ $tool->company?->name ?? 'Independent' }}</span></div><b>{{ number_format((float)$tool->rating,1) }}</b></a><p>{{ \Illuminate\Support\Str::limit($tool->short_description,105) }}</p></article>
+                <article class="search-entity-card"><a class="entity-top" href="{{ route('tools.show',$tool) }}"><img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo"><div><small>{{ $tool->category?->name ?? 'AI Tool' }}</small><h3>{{ $tool->name }}</h3><span>{{ $tool->company?->name ?? 'Independent' }}</span></div><b>{{ number_format((float)$tool->rating,1) }}</b></a><p>{{ \Illuminate\Support\Str::limit($tool->short_description,105) }}</p></article>
             @endforeach
         </div>
     </section>

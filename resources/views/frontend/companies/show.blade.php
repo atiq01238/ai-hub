@@ -226,7 +226,7 @@
                         <div class="company-news-grid">
                             @foreach($news as $item)
                                 @php
-                                    $nimg = $item->image_path && file_exists(public_path($item->image_path)) ? asset($item->image_path) : $logo;
+                                    $nimg = $item->image_url ?: $logo;
                                 @endphp
                                 <a href="{{ route('news.show', $item) }}">
                                     <img src="{{ $nimg }}" alt="{{ $item->headline }}">

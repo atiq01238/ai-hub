@@ -9,6 +9,7 @@ use App\Models\Feature;
 use App\Models\Subcategory;
 use App\Models\Tag;
 use App\Models\Tool;
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -93,7 +94,10 @@ class ToolController extends Controller
     {
         $tool = Tool::withCount('models')->findOrFail($id);
         foreach (['logo_path', 'cover_image_path', 'og_image_path'] as $column) {
-            if ($tool->{$column}) Storage::disk('public')->delete($tool->{$column});
+            if ($tool->{$column}) {
+                $path = MediaUrl::diskPath($tool->{$column});
+                if ($path) Storage::disk('public')->delete($path);
+            }
         }
         $tool->delete();
 
@@ -169,7 +173,10 @@ class ToolController extends Controller
 
         foreach (['logo' => 'logo_path', 'cover_image' => 'cover_image_path', 'og_image' => 'og_image_path'] as $input => $column) {
             if ($request->hasFile($input)) {
-                if ($tool?->{$column}) Storage::disk('public')->delete($tool->{$column});
+                if ($tool?->{$column}) {
+                    $path = MediaUrl::diskPath($tool->{$column});
+                    if ($path) Storage::disk('public')->delete($path);
+                }
                 $data[$column] = $request->file($input)->store('tools', 'public');
             }
             unset($data[$input]);

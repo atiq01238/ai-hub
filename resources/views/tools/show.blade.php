@@ -27,11 +27,11 @@
 
 <section class="tool-profile-hero card">
     @if($tool->cover_image_path)
-        <div class="tool-profile-cover"><img src="{{ asset('storage/'.$tool->cover_image_path) }}" alt="{{ $tool->name }} cover"></div>
+        <div class="tool-profile-cover"><img src="{{ $tool->cover_image_url }}" alt="{{ $tool->name }} cover"></div>
     @endif
     <div class="tool-profile-main">
         <div class="tool-profile-logo">
-            @if($tool->logo_path)<img src="{{ asset('storage/'.$tool->logo_path) }}" alt="{{ $tool->name }} logo">@else<span>{{ Str::upper(Str::substr($tool->name, 0, 2)) }}</span>@endif
+            @if($tool->logo_path)<img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo">@else<span>{{ Str::upper(Str::substr($tool->name, 0, 2)) }}</span>@endif
         </div>
         <div class="tool-profile-copy">
             <div class="tool-profile-badges"><x-status-badge status="{{ ucfirst($tool->status) }}" type="{{ $statusType }}" />@if($tool->category)<span class="badge badge-violet">{{ $tool->category->name }}</span>@endif</div>

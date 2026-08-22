@@ -13,7 +13,7 @@
 @endphp
 
 <div class="news-shell news-editor">
-    <form action="{{ $item ? route('admin.news.update', $item->id) : route('admin.news.store') }}" method="POST">
+    <form action="{{ $item ? route('admin.news.update', $item->id) : route('admin.news.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
         @if ($item) @method('PUT') @endif
 
@@ -139,6 +139,18 @@
                             <label for="source_url">Source URL</label>
                             <input id="source_url" class="input" type="url" name="source_url" value="{{ $old('source_url') }}" placeholder="https://…">
                         </div>
+
+                        <div class="form-field">
+                            <label for="news_image">Story image</label>
+                            <input id="news_image" class="input" type="file" name="image" accept="image/png,image/jpeg,image/webp">
+                            <div class="news-help">Optional. If no image is provided, the public story will show a neutral no-image state instead of an unrelated stock image.</div>
+                        </div>
+                        @if($item?->image_url)
+                            <div class="news-editor__image-preview">
+                                <img src="{{ $item->image_url }}" alt="Current story image">
+                                <label><input type="checkbox" name="remove_image" value="1"> Remove current image</label>
+                            </div>
+                        @endif
 
                         <div class="news-editor__status">
                             <div class="news-editor__status-row"><span>Mode</span><strong>{{ $item ? 'Editing' : 'Creating' }}</strong></div>

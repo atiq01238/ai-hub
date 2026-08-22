@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use App\Support\MediaUrl;
 
 class NewsItem extends Model
 {
@@ -121,6 +122,11 @@ class NewsItem extends Model
         $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
 
         return trim($value);
+    }
+
+    public function getImageUrlAttribute(): ?string
+    {
+        return MediaUrl::resolve($this->image_path);
     }
 
     public function bookmarks()

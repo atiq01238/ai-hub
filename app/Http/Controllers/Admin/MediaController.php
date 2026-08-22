@@ -7,6 +7,7 @@ use App\Models\Article;
 use App\Models\Company;
 use App\Models\SocialPost;
 use App\Models\Tool;
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -32,7 +33,7 @@ class MediaController extends Controller
                 return [
                     'path' => $path,
                     'name' => basename($path),
-                    'url' => $disk->url($path),
+                    'url' => MediaUrl::resolve($path) ?: MediaUrl::placeholder(),
                     'size' => $disk->size($path),
                     'usage_count' => $usage['count'],
                     'used_by' => $usage['labels'],
@@ -66,10 +67,15 @@ class MediaController extends Controller
     private function usageFor(string $path): array
     {
         $labels = [];
-        $articleCount = Article::where('featured_image_path', $path)->count();
-        $socialCount = SocialPost::where('image_path', $path)->count();
-        $toolCount = Tool::where('logo_path', $path)->orWhere('cover_image_path', $path)->orWhere('og_image_path', $path)->count();
-        $companyCount = Company::where('logo_path', $path)->count();
+        $variants = MediaUrl::databaseVariants($path);
+        $articleCount = Article::whereIn('featured_image_path', $variants)->count();
+        $socialCount = SocialPost::whereIn('image_path', $variants)->count();
+        $toolCount = Tool::where(function ($query) use ($variants) {
+            $query->whereIn('logo_path', $variants)
+                ->orWhereIn('cover_image_path', $variants)
+                ->orWhereIn('og_image_path', $variants);
+        })->count();
+        $companyCount = Company::whereIn('logo_path', $variants)->count();
 
         if ($articleCount) $labels[] = "{$articleCount} article(s)";
         if ($socialCount) $labels[] = "{$socialCount} social post(s)";

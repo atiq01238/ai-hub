@@ -42,7 +42,7 @@
                         @foreach($resolved->take(3) as $idx => $item)
                             @if($idx > 0)<span class="vs-dot">VS</span>@endif
                             <span class="compare-logo-wrap">
-                                @if($item->logo_path)<img src="{{ asset($item->logo_path) }}" alt="{{ $item->name }} logo">@else<span>{{ strtoupper(substr($item->name,0,2)) }}</span>@endif
+                                <img src="{{ $item->logo_url }}" alt="{{ $item->name }} logo">
                             </span>
                         @endforeach
                     </div>
@@ -86,7 +86,7 @@
                         <div class="mini-product-row">
                             @foreach($resolved->take(4) as $item)
                                 <div class="mini-product" title="{{ $item->name }}">
-                                    @if($item->logo_path)<img src="{{ asset($item->logo_path) }}" alt="">@else<span>{{ strtoupper(substr($item->name,0,2)) }}</span>@endif
+                                    <img src="{{ $item->logo_url }}" alt="{{ $item->name }} logo">
                                 </div>
                             @endforeach
                         </div>

@@ -41,7 +41,7 @@
         <div class="trend-items">
             @foreach($trendingTools as $tool)
                 <a href="{{ route('tools.show', $tool) }}" class="trend-item">
-                    <img src="{{ asset($tool->logo_path) }}" alt="{{ $tool->name }} logo">
+                    <img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo">
                     <span>{{ $tool->name }}</span>
                     <b>↑ {{ max(8, min(39, (int) round($tool->popularity / 3))) }}%</b>
                 </a>
@@ -86,7 +86,7 @@
                     @foreach($bestTools as $tool)
                     <article class="tool-card" data-category="{{ $tool->category?->slug }}" data-search="{{ strtolower($tool->name.' '.$tool->short_description.' '.($tool->company?->name ?? '')) }}">
                         <div class="tool-card-top">
-                            <img class="tool-logo" src="{{ asset($tool->logo_path) }}" alt="{{ $tool->name }} logo">
+                            <img class="tool-logo" src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo">
                             <div class="tool-title"><h3>{{ $tool->name }}</h3><span>{{ $tool->subcategory ?: $tool->category?->name }}</span></div>
                             <div class="tool-rating"><span>★ {{ number_format((float)$tool->rating,1) }}/5</span></div>
                         </div>
@@ -107,20 +107,10 @@
                     <div class="section-heading row-heading"><div class="heading-left"><div class="heading-icon purple"><i data-lucide="newspaper"></i></div><h2>Latest AI News</h2></div><a class="text-link" href="{{ route('news.index') }}">View All <i data-lucide="arrow-right"></i></a></div>
                     <div class="news-list">
                         @foreach($latestNews->take(3) as $news)
-                            @php
-                                $newsImage = $news->image_path;
-                                if (!$newsImage || !file_exists(public_path($newsImage))) {
-                                    $newsImage = match ($loop->iteration) {
-                                        1 => 'storage/ai-hub/news/openai-reasoning.png',
-                                        2 => 'storage/ai-hub/news/gemini-update.png',
-                                        3 => 'storage/ai-hub/news/ai-research.png',
-                                        default => 'storage/ai-hub/news/ai-security.png',
-                                    };
-                                }
-                            @endphp
+                            @php($newsImage = $news->image_url ?: '/images/frontend/content-placeholder.svg')
                             <a class="news-row" href="{{ route('news.show', $news) }}">
                                 <div class="news-thumb">
-                                    <img src="{{ asset($newsImage) }}" alt="{{ $news->headline }}" loading="lazy" onerror="this.onerror=null;this.src='{{ asset('storage/ai-hub/news/ai-research.png') }}';">
+                                    <img src="{{ $newsImage }}" alt="{{ $news->headline }}" loading="lazy">
                                 </div>
                                 <div><span class="news-badge">{{ strtoupper($news->category ?? 'UPDATE') }}</span><h3>{{ $news->headline }}</h3><p>{{ $news->company?->name ?? $news->source }} • {{ optional($news->published_at)->diffForHumans() }}</p></div>
                                 <i data-lucide="arrow-right"></i>
@@ -136,7 +126,7 @@
                         <div class="versus-card">
                             @foreach($comparison->resolved_items->take(2) as $idx => $item)
                                 @if($idx === 1)<span class="vs">VS</span>@endif
-                                <div class="versus-item"><img src="{{ asset($item->logo_path) }}" alt="{{ $item->name }}"><strong>{{ $item->name }}</strong></div>
+                                <div class="versus-item"><img src="{{ $item->logo_url }}" alt="{{ $item->name }}"><strong>{{ $item->name }}</strong></div>
                             @endforeach
                         </div>
                         <p class="compare-copy">Which AI product is better for your workflow?</p>
@@ -150,8 +140,8 @@
                 <section id="test-lab" class="panel test-panel">
                     <div class="section-heading row-heading"><div class="heading-left"><div class="heading-icon purple"><i data-lucide="flask-conical"></i></div><h2>AI Test Lab</h2></div><a class="text-link" href="{{ route('testlab.index') }}">View All <i data-lucide="arrow-right"></i></a></div>
                     <div class="test-cover">
-                        @php($testImage = $testLab?->results?->first()?->model?->cover_image_path ?: 'storage/ai-hub/tools/covers/runway.jpg')
-                        <img src="{{ asset($testImage) }}" alt="AI Test Lab">
+                        @php($testImage = $testLab?->results?->first()?->model?->cover_image_url ?: '/images/frontend/tool-hero-flow.jpg')
+                        <img src="{{ $testImage }}" alt="AI Test Lab">
                         <div class="test-overlay"><span><i data-lucide="play"></i></span></div>
                     </div>
                     <h3>{{ $testLab?->name ?? 'AI Model Challenge' }}</h3><p>Same task. Different AI models. Compare measured results.</p><a class="primary-pill" href="{{ $testLab ? route('testlab.show',$testLab) : route('testlab.index') }}">View Test</a>
@@ -162,7 +152,7 @@
                 <div class="section-heading row-heading"><div class="heading-left"><div class="heading-icon cyan"><i data-lucide="cpu"></i></div><div><h2>Top AI Models</h2><p>Benchmark-ready model records with dedicated artwork</p></div></div><a class="text-link" href="{{ route('models.index') }}">View All <i data-lucide="arrow-right"></i></a></div>
                 <div class="model-strip">
                     @foreach($featuredModels as $model)
-                        <a class="model-card" href="{{ route('models.show', $model) }}"><img src="{{ asset($model->logo_path ?: ($model->tool?->logo_path ?? $model->company?->logo_path)) }}" alt="{{ $model->name }}"><div><h3>{{ $model->name }}</h3><span>{{ $model->company?->name }} · {{ $model->context_window }}</span></div><b>{{ number_format((float)$model->benchmark_score,1) }}</b></a>
+                        <a class="model-card" href="{{ route('models.show', $model) }}"><img src="{{ $model->logo_url }}" alt="{{ $model->name }}"><div><h3>{{ $model->name }}</h3><span>{{ $model->company?->name }} · {{ $model->context_window }}</span></div><b>{{ number_format((float)$model->benchmark_score,1) }}</b></a>
                     @endforeach
                 </div>
             </section>
@@ -173,7 +163,7 @@
                 <div class="side-title"><h2>🔥 <span>Popular AI Tools</span></h2><a href="{{ route('tools.index', ['sort' => 'popular']) }}">View All <i data-lucide="arrow-right"></i></a></div>
                 <div class="rank-list">
                     @foreach($popularTools as $tool)
-                        <a href="{{ route('tools.show', $tool) }}" class="rank-item"><span class="rank">{{ $loop->iteration }}</span><img src="{{ asset($tool->logo_path) }}" alt="{{ $tool->name }}"><div><strong>{{ $tool->name }}</strong><small>{{ $tool->category?->name }}</small></div><b>★ {{ number_format((float)$tool->rating,1) }}/5</b></a>
+                        <a href="{{ route('tools.show', $tool) }}" class="rank-item"><span class="rank">{{ $loop->iteration }}</span><img src="{{ $tool->logo_url }}" alt="{{ $tool->name }}"><div><strong>{{ $tool->name }}</strong><small>{{ $tool->category?->name }}</small></div><b>★ {{ number_format((float)$tool->rating,1) }}/5</b></a>
                     @endforeach
                 </div>
             </section>
@@ -191,7 +181,7 @@
             <section class="panel side-panel model-leaderboard">
                 <div class="side-title"><h2><i data-lucide="sparkles"></i> Model Leaderboard</h2></div>
                 @foreach($featuredModels->take(4) as $model)
-                    <a class="mini-model" href="{{ route('models.show', $model) }}"><img src="{{ asset($model->logo_path ?: ($model->company?->logo_path ?? '')) }}" alt="{{ $model->name }}"><div><strong>{{ $model->name }}</strong><small>{{ $model->company?->name }}</small></div><b>{{ number_format((float)$model->benchmark_score,1) }}</b></a>
+                    <a class="mini-model" href="{{ route('models.show', $model) }}"><img src="{{ $model->logo_url }}" alt="{{ $model->name }}"><div><strong>{{ $model->name }}</strong><small>{{ $model->company?->name }}</small></div><b>{{ number_format((float)$model->benchmark_score,1) }}</b></a>
                 @endforeach
             </section>
         </aside>
@@ -207,14 +197,14 @@
                 @foreach($recentModels->take(3) as $model)
                     <a class="release-card model-release" href="{{ route('models.show', $model) }}">
                         <div class="release-top"><span class="release-label">NEW MODEL</span><span>{{ optional($model->release_date)->diffForHumans() }}</span></div>
-                        <div class="release-main"><img src="{{ asset($model->logo_path ?: ($model->tool?->logo_path ?? $model->company?->logo_path)) }}" alt="{{ $model->name }}"><div><h3>{{ $model->name }}</h3><p>{{ $model->company?->name }} · {{ $model->context_window }} context</p></div></div>
+                        <div class="release-main"><img src="{{ $model->logo_url }}" alt="{{ $model->name }}"><div><h3>{{ $model->name }}</h3><p>{{ $model->company?->name }} · {{ $model->context_window }} context</p></div></div>
                         <div class="release-stats"><span><i data-lucide="gauge"></i>{{ number_format((float)$model->benchmark_score,1) }} score</span><span><i data-lucide="calendar-days"></i>{{ optional($model->release_date)->format('M j') }}</span></div>
                     </a>
                 @endforeach
                 @foreach($recentTools->take(3) as $tool)
                     <a class="release-card tool-release" href="{{ route('tools.show', $tool) }}">
                         <div class="release-top"><span class="release-label">TOOL UPDATE</span><span>{{ optional($tool->published_at)->diffForHumans() }}</span></div>
-                        <div class="release-main"><img src="{{ asset($tool->logo_path) }}" alt="{{ $tool->name }}"><div><h3>{{ $tool->name }}</h3><p>{{ $tool->company?->name }} · {{ $tool->category?->name }}</p></div></div>
+                        <div class="release-main"><img src="{{ $tool->logo_url }}" alt="{{ $tool->name }}"><div><h3>{{ $tool->name }}</h3><p>{{ $tool->company?->name }} · {{ $tool->category?->name }}</p></div></div>
                         <div class="release-stats"><span><i data-lucide="star"></i>{{ number_format((float)$tool->rating,1) }}/5</span><span><i data-lucide="flame"></i>{{ $tool->popularity }} popularity</span></div>
                     </a>
                 @endforeach
@@ -236,7 +226,7 @@
                                 @php($model = $result->benchmarkable)
                                 <div class="benchmark-row">
                                     <b>{{ $loop->iteration }}</b>
-                                    <img src="{{ asset($model?->logo_path ?: ($model?->company?->logo_path ?? '')) }}" alt="{{ $model?->name }}">
+                                    <img src="{{ $model?->logo_url }}" alt="{{ $model?->name }}">
                                     <div><strong>{{ $model?->name }}</strong><small>{{ $model?->company?->name }}</small></div>
                                     <em>{{ number_format((float)$result->score,1) }}</em>
                                 </div>
@@ -258,7 +248,7 @@
                 <div class="pricing-grid">
                     @foreach($pricingPicks as $plan)
                         <article class="pricing-card">
-                            <div class="pricing-tool"><img src="{{ asset($plan->tool?->logo_path) }}" alt="{{ $plan->tool?->name }}"><div><h3>{{ $plan->tool?->name }}</h3><span>{{ $plan->plan_name }}</span></div></div>
+                            <div class="pricing-tool"><img src="{{ $plan->tool?->logo_url }}" alt="{{ $plan->tool?->name }}"><div><h3>{{ $plan->tool?->name }}</h3><span>{{ $plan->plan_name }}</span></div></div>
                             <div class="price-line">@if((float)$plan->monthly_price === 0.0)<strong>Free</strong>@else<strong>${{ number_format((float)$plan->monthly_price, 2) }}</strong><small>/mo</small>@endif</div>
                             <p>{{ $plan->credits ?: $plan->limits ?: 'Plan details available' }}</p>
                             <a href="{{ $plan->tool ? route('pricing.show', $plan->tool) : route('pricing.index') }}">Compare pricing <i data-lucide="arrow-right"></i></a>
@@ -274,7 +264,7 @@
                         @php($items = $comparison->resolved_items->take(2))
                         <article class="comparison-mini-card">
                             <div class="comparison-icons">
-                                @foreach($items as $item)<img src="{{ asset($item->logo_path) }}" alt="{{ $item->name }}">@endforeach
+                                @foreach($items as $item)<img src="{{ $item->logo_url }}" alt="{{ $item->name }}">@endforeach
                                 <span>VS</span>
                             </div>
                             <h3>{{ $comparison->title }}</h3>
@@ -290,7 +280,7 @@
             <div class="section-heading row-heading"><div class="heading-left"><div class="heading-icon cyan"><i data-lucide="building-2"></i></div><div><h2>Top AI Companies</h2><p>Explore the organizations building leading AI tools and models</p></div></div><a class="text-link" href="{{ route('companies.index') }}">View Companies <i data-lucide="arrow-right"></i></a></div>
             <div class="company-grid">
                 @foreach($topCompanies as $company)
-                    <a class="company-card" href="{{ route('companies.show', $company) }}"><img src="{{ asset($company->logo_path) }}" alt="{{ $company->name }}"><div><h3>{{ $company->name }}</h3><p>{{ $company->tools_count }} tools · {{ $company->models_count }} models</p></div><i data-lucide="arrow-up-right"></i></a>
+                    <a class="company-card" href="{{ route('companies.show', $company) }}"><img src="{{ $company->logo_url }}" alt="{{ $company->name }}"><div><h3>{{ $company->name }}</h3><p>{{ $company->tools_count }} tools · {{ $company->models_count }} models</p></div><i data-lucide="arrow-up-right"></i></a>
                 @endforeach
             </div>
         </section>
@@ -301,7 +291,7 @@
                 <div class="review-grid">
                     @foreach($latestReviews as $review)
                         <article class="review-card">
-                            <div class="review-head"><img src="{{ asset($review->tool?->logo_path) }}" alt="{{ $review->tool?->name }}"><div><h3>{{ $review->tool?->name }}</h3><span>{{ $review->tool?->company?->name }}</span></div><b>★ {{ number_format((float)$review->rating,1) }}</b></div>
+                            <div class="review-head"><img src="{{ $review->tool?->logo_url }}" alt="{{ $review->tool?->name }}"><div><h3>{{ $review->tool?->name }}</h3><span>{{ $review->tool?->company?->name }}</span></div><b>★ {{ number_format((float)$review->rating,1) }}</b></div>
                             <h4>{{ $review->verdict }}</h4><p>{{ $review->body }}</p>
                             <div class="review-foot"><span><i data-lucide="badge-check"></i>{{ ucfirst($review->review_type ?? 'editorial') }}</span><a href="{{ route('reviews.show', $review) }}">Read review</a></div>
                         </article>
@@ -313,9 +303,9 @@
                 <div class="section-heading row-heading"><div class="heading-left"><div class="heading-icon purple"><i data-lucide="book-open-text"></i></div><div><h2>Featured AI Articles</h2><p>Guides, explainers and practical AI intelligence</p></div></div><a class="text-link" href="{{ route('articles.index') }}">All Articles <i data-lucide="arrow-right"></i></a></div>
                 <div class="article-grid">
                     @foreach($featuredArticles as $article)
-                        @php($articleImage = $article->featured_image_path ?: 'storage/ai-hub/news/ai-research.png')
+                        @php($articleImage = $article->featured_image_url ?: '/images/frontend/content-placeholder.svg')
                         <article class="article-card">
-                            <div class="article-image"><img src="{{ asset($articleImage) }}" alt="{{ $article->title }}"><span>{{ $article->category ?: 'Guide' }}</span></div>
+                            <div class="article-image"><img src="{{ $articleImage }}" alt="{{ $article->title }}"><span>{{ $article->category ?: 'Guide' }}</span></div>
                             <div class="article-copy"><h3>{{ $article->title }}</h3><p>{{ $article->summary }}</p><div><span>{{ $article->company?->name ?? 'AI Hub' }} · {{ optional($article->published_at)->diffForHumans() }}</span><a href="{{ route('articles.show', $article) }}">Read <i data-lucide="arrow-right"></i></a></div></div>
                         </article>
                     @endforeach

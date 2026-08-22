@@ -28,10 +28,10 @@
             @foreach($items as $item)
                 <div class="detail-product-head {{ $winner && $winner->id === $item->id ? 'winner' : '' }}">
                     @if($winner && $winner->id === $item->id)<span class="winner-badge"><i data-lucide="trophy"></i> Highest overall score</span>@endif
-                    <div class="detail-product-logo">@if($item->logo_path)<img src="{{ asset($item->logo_path) }}" alt="{{ $item->name }} logo">@else{{ strtoupper(substr($item->name,0,2)) }}@endif</div>
+                    <div class="detail-product-logo"><img src="{{ $item->logo_url }}" alt="{{ $item->name }} logo"></div>
                     <small>{{ $item->company->name ?? 'Independent' }}</small>
                     <h2>{{ $item->name }}</h2>
-                    <p>{{ $comparisonType === 'tool' ? ($item->short_description ?: 'AI product') : ('Version '.($item->version ?: '—')) }}</p>
+                    <p>{{ $comparisonType === 'tool' ? ($item->short_description ?: Str::limit($item->overview,150)) : Str::limit($item->overview,170) }}</p>
                     <a href="{{ $comparisonType === 'tool' ? route('tools.show',$item) : route('models.show',$item) }}">View profile <i data-lucide="arrow-up-right"></i></a>
                 </div>
             @endforeach
@@ -60,9 +60,9 @@
                 <thead><tr><th>Metric</th>@foreach($items as $item)<th>{{ $item->name }}</th>@endforeach</tr></thead>
                 <tbody>
                     <tr><th>Provider</th>@foreach($items as $item)<td>{{ $item->company->name ?? '—' }}</td>@endforeach</tr>
-                    <tr><th>Benchmark score</th>@foreach($items as $item)<td><strong class="score-value">{{ number_format((float)($item->benchmark_score ?? 0),1) }}</strong><span class="mini-score-bar"><i style="width:{{ min(100,max(0,(float)($item->benchmark_score ?? 0))) }}%"></i></span></td>@endforeach</tr>
+                    <tr><th>Benchmark score</th>@foreach($items as $item)<td>@if($item->benchmark_score !== null)<strong class="score-value">{{ number_format((float)$item->benchmark_score,1) }}</strong><span class="mini-score-bar"><i style="width:{{ min(100,max(0,(float)$item->benchmark_score)) }}%"></i></span>@else<span class="muted">Not verified</span>@endif</td>@endforeach</tr>
                     @if($comparisonType === 'tool')
-                        <tr><th>Rating</th>@foreach($items as $item)<td><span class="rating-cell"><i data-lucide="star"></i>{{ number_format((float)$item->rating,1) }}/10</span></td>@endforeach</tr>
+                        <tr><th>Rating</th>@foreach($items as $item)<td><span class="rating-cell"><i data-lucide="star"></i>{{ number_format((float)$item->rating,1) }}/5</span></td>@endforeach</tr>
                         <tr><th>Popularity</th>@foreach($items as $item)<td>{{ number_format((int)$item->popularity) }}</td>@endforeach</tr>
                         <tr><th>Category</th>@foreach($items as $item)<td>{{ $item->category->name ?? '—' }}</td>@endforeach</tr>
                         <tr><th>Pricing</th>@foreach($items as $item)<td>@forelse((array)$item->pricing_models as $price)<span class="data-chip">{{ ucfirst((string)$price) }}</span>@empty—@endforelse</td>@endforeach</tr>
@@ -71,8 +71,8 @@
                     @else
                         <tr><th>Version</th>@foreach($items as $item)<td>{{ $item->version ?: '—' }}</td>@endforeach</tr>
                         <tr><th>Context window</th>@foreach($items as $item)<td><strong>{{ $item->context_window ?: '—' }}</strong></td>@endforeach</tr>
-                        <tr><th>Input / 1M tokens</th>@foreach($items as $item)<td>${{ number_format((float)$item->input_price_per_million,2) }}</td>@endforeach</tr>
-                        <tr><th>Output / 1M tokens</th>@foreach($items as $item)<td>${{ number_format((float)$item->output_price_per_million,2) }}</td>@endforeach</tr>
+                        <tr><th>Input / 1M tokens</th>@foreach($items as $item)<td>{{ $item->input_price_per_million !== null ? '$'.number_format((float)$item->input_price_per_million,2) : 'Not verified' }}</td>@endforeach</tr>
+                        <tr><th>Output / 1M tokens</th>@foreach($items as $item)<td>{{ $item->output_price_per_million !== null ? '$'.number_format((float)$item->output_price_per_million,2) : 'Not verified' }}</td>@endforeach</tr>
                         <tr><th>Status</th>@foreach($items as $item)<td><span class="status-chip {{ $item->status }}">{{ ucfirst($item->status) }}</span></td>@endforeach</tr>
                         <tr><th>Release date</th>@foreach($items as $item)<td>{{ $item->release_date?->format('M Y') ?? '—' }}</td>@endforeach</tr>
                     @endif
@@ -96,21 +96,19 @@
         <div class="capability-columns cols-{{ min($items->count(),4) }}">
             @foreach($items as $item)
                 @php($caps = $comparisonType === 'tool' ? (array)$item->capabilities : (array)$item->capabilities)
-                <div class="capability-column"><div class="capability-column-head"><div class="tiny-logo">@if($item->logo_path)<img src="{{ asset($item->logo_path) }}" alt="">@else{{ strtoupper(substr($item->name,0,2)) }}@endif</div><strong>{{ $item->name }}</strong></div><div class="capability-chip-list">@forelse($caps as $cap)<span><i data-lucide="check"></i>{{ is_string($cap) ? $cap : (is_array($cap) ? ($cap['name'] ?? 'Capability') : 'Capability') }}</span>@empty<span class="muted">No capability data yet.</span>@endforelse</div></div>
+                <div class="capability-column"><div class="capability-column-head"><div class="tiny-logo"><img src="{{ $item->logo_url }}" alt="{{ $item->name }} logo"></div><strong>{{ $item->name }}</strong></div><div class="capability-chip-list">@forelse($caps as $cap)<span><i data-lucide="check"></i>{{ is_string($cap) ? $cap : (is_array($cap) ? ($cap['name'] ?? 'Capability') : 'Capability') }}</span>@empty<span class="muted">No capability data yet.</span>@endforelse</div></div>
             @endforeach
         </div>
     </div>
 
-    @if($comparisonType === 'tool')
     <div class="choose-guide">
         <div class="table-title"><span><i data-lucide="lightbulb"></i></span><div><h2>Quick decision guide</h2><p>Use the dataset to narrow your choice.</p></div></div>
         <div class="decision-grid">
             @foreach($items as $item)
-                <div class="decision-card"><div class="tiny-logo">@if($item->logo_path)<img src="{{ asset($item->logo_path) }}" alt="">@else{{ strtoupper(substr($item->name,0,2)) }}@endif</div><div><small>CHOOSE {{ strtoupper($item->name) }} IF</small><h3>You value {{ $item->category->name ?? 'its core workflow' }}</h3><p>{{ $item->short_description ?: 'Explore the full profile to see capabilities, pricing and platform support.' }}</p></div></div>
+                <div class="decision-card"><div class="tiny-logo"><img src="{{ $item->logo_url }}" alt="{{ $item->name }} logo"></div><div><small>CHOOSE {{ strtoupper($item->name) }} IF</small>@if($comparisonType === 'tool')<h3>You value {{ $item->category->name ?? 'its core workflow' }}</h3><p>{{ $item->short_description ?: Str::limit($item->overview,180) }}</p>@else<h3>You need {{ $item->context_window ?: 'this model profile' }}</h3><p>{{ Str::limit($item->overview,220) }}</p>@endif</div></div>
             @endforeach
         </div>
     </div>
-    @endif
 
     @if(!$isPreview && $comparison->seo_faq)
     <div class="capability-comparison"><div class="table-title"><span><i data-lucide="circle-help"></i></span><div><h2>Comparison FAQ</h2><p>Quick answers about this comparison.</p></div></div><div class="decision-grid">@foreach($comparison->seo_faq as $faq)<div class="decision-card"><div><h3>{{ $faq['question'] }}</h3><p>{{ $faq['answer'] }}</p></div></div>@endforeach</div></div>

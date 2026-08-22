@@ -110,7 +110,7 @@
                         <a href="{{ route('admin.tools.show', $tool->id) }}" class="tool-identity">
                             <span class="tool-identity__logo">
                                 @if($tool->logo_path)
-                                    <img src="{{ asset('storage/'.$tool->logo_path) }}" alt="">
+                                    <img src="{{ $tool->logo_url }}" alt="">
                                 @else
                                     {{ $initials }}
                                 @endif

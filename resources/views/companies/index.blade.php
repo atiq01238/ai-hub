@@ -149,7 +149,7 @@
                                     <div class="company-identity">
                                         <a class="company-avatar" href="{{ route('admin.companies.show', $company->id) }}" aria-label="Open {{ $company->name }}">
                                             @if($company->logo_path)
-                                                <img src="{{ \Illuminate\Support\Facades\Storage::url($company->logo_path) }}" alt="{{ $company->name }} logo">
+                                                <img src="{{ $company->logo_url }}" alt="{{ $company->name }} logo">
                                             @else
                                                 <span>{{ $initials ?: 'AI' }}</span>
                                             @endif

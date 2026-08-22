@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Support\MediaUrl;
 
 class AiModel extends Model
 {
@@ -55,8 +56,49 @@ class AiModel extends Model
 
     public function getLogoUrlAttribute(): string
     {
-        if ($this->logo_path) return \Illuminate\Support\Facades\Storage::disk('public')->url($this->logo_path);
-        return $this->company?->logo_url ?: asset('favicon.ico');
+        return MediaUrl::resolve($this->logo_path)
+            ?: $this->tool?->logo_url
+            ?: $this->company?->logo_url
+            ?: MediaUrl::placeholder();
+    }
+
+    public function getCoverImageUrlAttribute(): ?string
+    {
+        return MediaUrl::resolve($this->cover_image_path) ?: $this->tool?->cover_image_url;
+    }
+
+    public function getOverviewAttribute(): string
+    {
+        $provider = $this->company?->name ?: 'its provider';
+        $parts = [];
+
+        if (filled($this->capability_notes)) {
+            $parts[] = trim((string) $this->capability_notes);
+        } else {
+            $parts[] = $this->name . ' is an AI model from ' . $provider . '.';
+        }
+
+        $specs = [];
+        if ($this->version) $specs[] = 'version ' . $this->version;
+        if ($this->context_window) $specs[] = 'a ' . $this->context_window . ' context window';
+        if ($this->release_date) $specs[] = 'released ' . $this->release_date->format('F Y');
+        if ($specs) $parts[] = 'The current AI Hub profile lists ' . implode(', ', $specs) . '.';
+
+        $caps = collect($this->capabilities ?? [])->filter()->take(6)->values();
+        if ($caps->isNotEmpty()) {
+            $parts[] = 'Cataloged capabilities include ' . $caps->join(', ', ' and ') . '.';
+        }
+
+        if ($this->input_price_per_million !== null || $this->output_price_per_million !== null) {
+            $pricing = [];
+            if ($this->input_price_per_million !== null) $pricing[] = '$' . number_format((float) $this->input_price_per_million, 2) . ' input';
+            if ($this->output_price_per_million !== null) $pricing[] = '$' . number_format((float) $this->output_price_per_million, 2) . ' output';
+            $parts[] = 'Verified API pricing currently stored in AI Hub is ' . implode(' and ', $pricing) . ' per 1M tokens.';
+        } else {
+            $parts[] = 'Verified input and output token pricing has not yet been added to this model profile.';
+        }
+
+        return implode("\n\n", array_values(array_unique(array_filter($parts))));
     }
     public function pricingSources()
     {

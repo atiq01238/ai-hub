@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="AI logo placeholder">
+  <rect width="128" height="128" rx="26" fill="#111827"/>
+  <rect x="3" y="3" width="122" height="122" rx="23" fill="none" stroke="#6d5dfc" stroke-width="6"/>
+  <path d="M37 89 55 39h18l18 50H76l-3-10H55l-3 10H37Zm22-23h10l-5-16-5 16Z" fill="#fff"/>
+</svg>

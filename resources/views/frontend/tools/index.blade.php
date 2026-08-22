@@ -257,7 +257,7 @@
                             $isFree = $pricing->contains('Free');
                             $priceLabel = $isFree ? ($pricing->contains('Paid') ? 'Free + Paid' : 'Free') : ($pricing->first() ?? 'Pricing varies');
                             $capabilities = collect($tool->capabilities ?? [])->take(3);
-                            $cover = $tool->cover_image_path ? asset($tool->cover_image_path) : null;
+                            $cover = $tool->cover_image_url;
                         @endphp
                         <article class="tool-directory-card" data-tool-card data-tool-id="{{ $tool->id }}" data-tool-name="{{ $tool->name }}" data-tool-logo="{{ $tool->logo_url }}" data-tool-rating="{{ number_format((float)$tool->rating,1) }}" data-tool-price="{{ $priceLabel }}" data-tool-benchmark="{{ $tool->benchmark_score ? number_format((float)$tool->benchmark_score,1) : '—' }}" data-tool-category="{{ $tool->category?->name ?? 'AI Tool' }}" data-tool-company="{{ $tool->company?->name ?? 'Independent' }}">
                             <div class="tool-card-media" @if($cover) style="--tool-cover:url('{{ $cover }}')" @endif>

@@ -130,7 +130,7 @@
                     <div class="company-logo-upload">
                         <div class="company-logo-upload__preview" id="companyLogoPreview">
                             @if($company?->logo_path)
-                                <img src="{{ \Illuminate\Support\Facades\Storage::url($company->logo_path) }}" alt="{{ $company->name }} logo">
+                                <img src="{{ $company->logo_url }}" alt="{{ $company->name }} logo">
                             @else
                                 <span class="company-logo-upload__placeholder">
                                     <i data-lucide="image-plus"></i>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="AI Hub media placeholder">
+  <rect width="640" height="360" fill="#0b1220"/>
+  <path d="M0 300 170 160l95 82 82-72 293 190H0Z" fill="#151f36"/>
+  <circle cx="480" cy="92" r="42" fill="#312e81"/>
+  <path d="M281 110h78v16h-78zm-52 38h182v16H229zm18 38h146v16H247z" fill="#8b5cf6" opacity=".8"/>
+  <text x="320" y="272" text-anchor="middle" fill="#dbeafe" font-family="Arial,sans-serif" font-size="24" font-weight="700">AI HUB</text>
+  <text x="320" y="302" text-anchor="middle" fill="#7c8aa5" font-family="Arial,sans-serif" font-size="14">No story image provided</text>
+</svg>

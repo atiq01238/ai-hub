@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Company;
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -72,7 +73,8 @@ class CompanyController extends Controller
         $company = Company::withCount(['tools', 'models'])->findOrFail($id);
 
         if ($company->logo_path) {
-            Storage::disk('public')->delete($company->logo_path);
+            $path = MediaUrl::diskPath($company->logo_path);
+            if ($path) Storage::disk('public')->delete($path);
         }
 
         $company->delete();
@@ -102,7 +104,8 @@ class CompanyController extends Controller
 
         if ($request->hasFile('logo')) {
             if ($company?->logo_path) {
-                Storage::disk('public')->delete($company->logo_path);
+                $path = MediaUrl::diskPath($company->logo_path);
+                if ($path) Storage::disk('public')->delete($path);
             }
             $data['logo_path'] = $request->file('logo')->store('companies', 'public');
         }

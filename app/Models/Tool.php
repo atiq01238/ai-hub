@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Support\MediaUrl;
 
 class Tool extends Model
 {
@@ -89,7 +90,58 @@ class Tool extends Model
 
     public function getLogoUrlAttribute(): string
     {
-        if ($this->logo_path) return \Illuminate\Support\Facades\Storage::disk('public')->url($this->logo_path);
-        return $this->company?->logo_url ?: asset('favicon.ico');
+        return MediaUrl::resolve($this->logo_path)
+            ?: $this->company?->logo_url
+            ?: MediaUrl::placeholder();
+    }
+
+    public function getCoverImageUrlAttribute(): ?string
+    {
+        return MediaUrl::resolve($this->cover_image_path);
+    }
+
+    public function getOgImageUrlAttribute(): ?string
+    {
+        return MediaUrl::resolve($this->og_image_path);
+    }
+
+    public function getOverviewAttribute(): string
+    {
+        $description = trim(strip_tags((string) ($this->description ?: $this->short_description)));
+        $short = trim(strip_tags((string) $this->short_description));
+        $parts = [];
+
+        if ($description !== '') {
+            $parts[] = $description;
+        } else {
+            $parts[] = $this->name . ' is an AI tool listed in the AI Hub catalog.';
+        }
+
+        $needsContext = mb_strlen($description) < 180 || ($short !== '' && $description === $short);
+        if ($needsContext) {
+            $provider = $this->company?->name;
+            $category = $this->category?->name;
+            $context = $this->name;
+            if ($provider) $context .= ' is developed by ' . $provider;
+            if ($category) $context .= ' and is categorized as ' . $category;
+            $parts[] = $context . '.';
+
+            $caps = collect($this->capabilities ?? [])->filter()->take(6)->values();
+            if ($caps->isNotEmpty()) {
+                $parts[] = 'Its cataloged capabilities include ' . $caps->join(', ', ' and ') . '.';
+            }
+
+            $platforms = collect($this->platforms ?? [])->filter()->take(6)->values();
+            if ($platforms->isNotEmpty()) {
+                $parts[] = 'AI Hub currently lists support for ' . $platforms->join(', ', ' and ') . '.';
+            }
+
+            $pricing = collect($this->pricing_models ?? [])->filter()->values();
+            if ($pricing->isNotEmpty()) {
+                $parts[] = 'The recorded pricing model is ' . $pricing->join(', ', ' and ') . '; detailed plan pricing is shown in the pricing section when verified data is available.';
+            }
+        }
+
+        return implode("\n\n", array_values(array_unique(array_filter($parts))));
     }
 }

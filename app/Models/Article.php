@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\MediaUrl;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -60,6 +61,11 @@ class Article extends Model
     public function tagTerms()
     {
         return $this->belongsToMany(Tag::class, 'article_tag');
+    }
+
+    public function getFeaturedImageUrlAttribute(): ?string
+    {
+        return MediaUrl::resolve($this->featured_image_path);
     }
 
     public function workflowEvents()

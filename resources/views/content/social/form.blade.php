@@ -37,7 +37,7 @@ $defaultContent = $post ? $post->content : ($newsItem ? $newsItem->headline.' â€
 </main>
 
 <aside class="content-social-editor__aside">
-<section class="card content-editor__publish"><span class="content-eyebrow">Media</span><div class="content-editor__publish-icon"><i data-lucide="image-plus"></i></div>@if($post?->image_path)<img class="content-editor__preview" src="{{ \Illuminate\Support\Facades\Storage::url($post->image_path) }}" alt="">@endif<label class="content-field"><span>Post image</span><input class="input" type="file" name="image" accept="image/*"><small>Maximum 4 MB.</small></label></section>
+<section class="card content-editor__publish"><span class="content-eyebrow">Media</span><div class="content-editor__publish-icon"><i data-lucide="image-plus"></i></div>@if($post?->image_path)<img class="content-editor__preview" src="{{ $post->image_url }}" alt="">@endif<label class="content-field"><span>Post image</span><input class="input" type="file" name="image" accept="image/*"><small>Maximum 4 MB.</small></label></section>
 </aside>
 </div>
 </form>

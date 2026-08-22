@@ -48,7 +48,7 @@
                 @php($model=$row['entity'])
                 <a class="podium-card rank-{{ $rank+1 }}" href="{{ route('models.show',$model) }}">
                     <span class="rank-medal">#{{ $rank+1 }}</span>
-                    <img src="{{ asset($model->logo_path ?: ($model->tool?->logo_path ?: 'storage/ai-hub/tools/logos/chatgpt.png')) }}" alt="{{ $model->name }} logo" onerror="this.src='{{ asset('storage/ai-hub/tools/logos/chatgpt.png') }}'">
+                    <img src="{{ $model->logo_url }}" alt="{{ $model->name }} logo">
                     <small>{{ $model->company?->name ?? 'AI Model' }}</small>
                     <h3>{{ $model->name }}</h3>
                     <strong>{{ number_format((float)$row['score'],1) }}</strong>
@@ -61,7 +61,7 @@
         <div class="ranking-table-wrap"><table class="ranking-table"><thead><tr><th>Rank</th><th>Model</th><th>Provider</th><th>Coverage</th><th>Verified</th><th>Composite</th></tr></thead><tbody>
             @foreach($modelLeaderboard->slice(3,7) as $index=>$row)
                 @php($model=$row['entity'])
-                <tr><td><b>#{{ $index+4 }}</b></td><td><a class="rank-entity" href="{{ route('models.show',$model) }}"><img src="{{ asset($model->logo_path ?: ($model->tool?->logo_path ?: 'storage/ai-hub/tools/logos/chatgpt.png')) }}" alt=""><span>{{ $model->name }}<small>{{ $model->version ?: 'Current' }}</small></span></a></td><td>{{ $model->company?->name ?? '—' }}</td><td>{{ $row['result_count'] }} tests</td><td><span class="verified-pill"><i data-lucide="check"></i>{{ $row['verified_count'] }}</span></td><td><strong>{{ number_format((float)$row['score'],1) }}</strong></td></tr>
+                <tr><td><b>#{{ $index+4 }}</b></td><td><a class="rank-entity" href="{{ route('models.show',$model) }}"><img src="{{ $model->logo_url }}" alt=""><span>{{ $model->name }}<small>{{ $model->version ?: 'Current' }}</small></span></a></td><td>{{ $model->company?->name ?? '—' }}</td><td>{{ $row['result_count'] }} tests</td><td><span class="verified-pill"><i data-lucide="check"></i>{{ $row['verified_count'] }}</span></td><td><strong>{{ number_format((float)$row['score'],1) }}</strong></td></tr>
             @endforeach
         </tbody></table></div>
         @endif
@@ -74,7 +74,7 @@
         <div class="compact-rank-grid">
             @foreach($toolLeaderboard->take(8) as $rank=>$row)
                 @php($tool=$row['entity'])
-                <a href="{{ route('tools.show',$tool) }}" class="compact-rank-card"><b>#{{ $rank+1 }}</b><img src="{{ asset($tool->logo_path ?: 'storage/ai-hub/tools/logos/chatgpt.png') }}" alt="{{ $tool->name }} logo"><div><small>{{ $tool->category?->name ?? $tool->company?->name }}</small><h3>{{ $tool->name }}</h3><span>{{ $row['result_count'] }} benchmark results</span></div><strong>{{ number_format((float)$row['score'],1) }}</strong></a>
+                <a href="{{ route('tools.show',$tool) }}" class="compact-rank-card"><b>#{{ $rank+1 }}</b><img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo"><div><small>{{ $tool->category?->name ?? $tool->company?->name }}</small><h3>{{ $tool->name }}</h3><span>{{ $row['result_count'] }} benchmark results</span></div><strong>{{ number_format((float)$row['score'],1) }}</strong></a>
             @endforeach
         </div>
     </section>

@@ -70,7 +70,7 @@
                             @foreach($tools as $tool)
                                 <article class="search-entity-card">
                                     <a class="entity-top" href="{{ route('tools.show',$tool) }}">
-                                        <img src="{{ asset($tool->logo_path ?: 'storage/ai-hub/tools/logos/chatgpt.png') }}" alt="{{ $tool->name }} logo" onerror="this.src='{{ asset('storage/ai-hub/tools/logos/chatgpt.png') }}'">
+                                        <img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo">
                                         <div><small>{{ $tool->company?->name ?? 'AI Tool' }}</small><h3>{{ $tool->name }}</h3><span>{{ $tool->category?->name ?? 'AI Software' }}</span></div>
                                         <b>{{ number_format((float)$tool->rating,1) }}</b>
                                     </a>
@@ -89,7 +89,7 @@
                             @foreach($models as $model)
                                 <article class="search-entity-card compact">
                                     <a class="entity-top" href="{{ route('models.show',$model) }}">
-                                        <img src="{{ asset($model->logo_path ?: ($model->tool?->logo_path ?: 'storage/ai-hub/tools/logos/chatgpt.png')) }}" alt="{{ $model->name }} logo" onerror="this.src='{{ asset('storage/ai-hub/tools/logos/chatgpt.png') }}'">
+                                        <img src="{{ $model->logo_url }}" alt="{{ $model->name }} logo">
                                         <div><small>{{ $model->company?->name ?? 'AI Model' }}</small><h3>{{ $model->name }}</h3><span>{{ $model->version ?: 'Current model' }}</span></div>
                                         <b>{{ number_format((float)$model->benchmark_score,1) }}</b>
                                     </a>
@@ -106,7 +106,7 @@
                         <div class="story-grid">
                             @foreach($news as $item)
                                 <article class="search-story-card">
-                                    <a href="{{ route('news.show',$item) }}" class="story-image"><img src="{{ asset($item->image_path ?: 'storage/ai-hub/news/ai-research.png') }}" alt="{{ $item->headline }}" onerror="this.style.display='none'"><span>{{ $item->category ?: 'AI News' }}</span></a>
+                                    <a href="{{ route('news.show',$item) }}" class="story-image"><img src="{{ $item->image_url ?: '/images/frontend/content-placeholder.svg' }}" alt="{{ $item->headline }}" onerror="this.style.display='none'"><span>{{ $item->category ?: 'AI News' }}</span></a>
                                     <div><small>{{ $item->company?->name ?? $item->source ?? 'AI Hub' }} · {{ optional($item->published_at)->diffForHumans() }}</small><h3><a href="{{ route('news.show',$item) }}">{{ $item->headline }}</a></h3><p>{{ \Illuminate\Support\Str::limit($item->summary ?: $item->ai_summary, 125) }}</p></div>
                                 </article>
                             @endforeach
@@ -119,7 +119,7 @@
                         <div class="section-bar"><div><span class="section-icon green"><i data-lucide="building-2"></i></span><h2>Companies</h2><small>{{ number_format($counts['companies']) }} matches</small></div><a href="{{ route('companies.index',['q'=>$query]) }}">View all companies <i data-lucide="arrow-right"></i></a></div>
                         <div class="company-search-grid">
                             @foreach($companies as $company)
-                                <a class="company-search-card" href="{{ route('companies.show',$company) }}"><img src="{{ asset($company->logo_path ?: 'storage/ai-hub/tools/logos/chatgpt.png') }}" alt="{{ $company->name }} logo"><div><h3>{{ $company->name }}</h3><p>{{ \Illuminate\Support\Str::limit($company->description, 90) }}</p><span>{{ $company->tools_count }} tools · {{ $company->models_count }} models</span></div><i data-lucide="arrow-up-right"></i></a>
+                                <a class="company-search-card" href="{{ route('companies.show',$company) }}"><img src="{{ $company->logo_url }}" alt="{{ $company->name }} logo"><div><h3>{{ $company->name }}</h3><p>{{ \Illuminate\Support\Str::limit($company->description, 90) }}</p><span>{{ $company->tools_count }} tools · {{ $company->models_count }} models</span></div><i data-lucide="arrow-up-right"></i></a>
                             @endforeach
                         </div>
                     </section>
@@ -131,7 +131,7 @@
                         <div class="story-grid">
                             @foreach($articles as $article)
                                 <article class="search-story-card article-result">
-                                    <a href="{{ route('articles.show',$article) }}" class="story-image"><img src="{{ asset($article->featured_image_path ?: 'storage/ai-hub/news/ai-research.png') }}" alt="{{ $article->title }}" onerror="this.style.display='none'"><span>{{ $article->categoryTerm?->name ?? $article->category ?? 'Guide' }}</span></a>
+                                    <a href="{{ route('articles.show',$article) }}" class="story-image"><img src="{{ $article->featured_image_url ?: '/images/frontend/content-placeholder.svg' }}" alt="{{ $article->title }}" onerror="this.style.display='none'"><span>{{ $article->categoryTerm?->name ?? $article->category ?? 'Guide' }}</span></a>
                                     <div><small>{{ $article->author?->name ?? 'AI Hub Editorial' }} · {{ optional($article->published_at)->format('M j, Y') }}</small><h3><a href="{{ route('articles.show',$article) }}">{{ $article->title }}</a></h3><p>{{ \Illuminate\Support\Str::limit($article->summary, 125) }}</p></div>
                                 </article>
                             @endforeach
@@ -151,7 +151,7 @@
             <div class="section-bar"><div><span class="section-icon"><i data-lucide="flame"></i></span><h2>Popular AI Tools</h2><small>High-interest products across AI Hub</small></div><a href="{{ route('tools.index',['sort'=>'popular']) }}">Explore directory <i data-lucide="arrow-right"></i></a></div>
             <div class="entity-grid entity-grid-tools">
                 @foreach($trendingTools as $tool)
-                    <article class="search-entity-card"><a class="entity-top" href="{{ route('tools.show',$tool) }}"><img src="{{ asset($tool->logo_path ?: 'storage/ai-hub/tools/logos/chatgpt.png') }}" alt="{{ $tool->name }} logo"><div><small>{{ $tool->company?->name }}</small><h3>{{ $tool->name }}</h3><span>Popular AI Tool</span></div><b>{{ number_format((float)$tool->rating,1) }}</b></a><p>{{ \Illuminate\Support\Str::limit($tool->short_description, 105) }}</p></article>
+                    <article class="search-entity-card"><a class="entity-top" href="{{ route('tools.show',$tool) }}"><img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo"><div><small>{{ $tool->company?->name }}</small><h3>{{ $tool->name }}</h3><span>Popular AI Tool</span></div><b>{{ number_format((float)$tool->rating,1) }}</b></a><p>{{ \Illuminate\Support\Str::limit($tool->short_description, 105) }}</p></article>
                 @endforeach
             </div>
         </section>

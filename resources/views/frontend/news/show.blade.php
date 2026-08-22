@@ -14,7 +14,7 @@
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/news.css') }}">@endpush
 
 @php
-$image = $news->image_path ? asset($news->image_path) : asset('storage/ai-hub/news/ai-research.png');
+$image = $news->image_url;
 $summary = $news->ai_summary ?: $news->summary;
 $why = $news->ai_why_it_matters ?: $news->why_it_matters;
 @endphp
@@ -28,14 +28,14 @@ $why = $news->ai_why_it_matters ?: $news->why_it_matters;
         <h1>{{ $news->headline }}</h1>
         @if($summary)<p class="news-deck">{{ $summary }}</p>@endif
         <div class="news-byline">
-            <div class="source-identity">@if($news->company?->logo_path)<img src="{{ asset($news->company->logo_path) }}" alt="{{ $news->company->name }}">@else<span><i data-lucide="radio"></i></span>@endif<div><strong>{{ $news->source ?: ($news->company?->name ?? 'AI Hub News Desk') }}</strong><small>@if($news->published_at)Published {{ $news->published_at->format('M j, Y \a\t g:i A') }}@endif</small></div></div>
+            <div class="source-identity">@if($news->company)<img src="{{ $news->company->logo_url }}" alt="{{ $news->company->name }}">@else<span><i data-lucide="radio"></i></span>@endif<div><strong>{{ $news->source ?: ($news->company?->name ?? 'AI Hub News Desk') }}</strong><small>@if($news->published_at)Published {{ $news->published_at->format('M j, Y \a\t g:i A') }}@endif</small></div></div>
             <div class="news-detail-actions"><button type="button" data-save-item data-save-type="news" data-save-id="{{ $news->id }}" aria-pressed="false"><i data-lucide="bookmark"></i><span data-save-label data-default-label="Save">Save</span></button><button type="button" data-copy-url><i data-lucide="link-2"></i>Copy link</button>@if($news->source_url)<a href="{{ $news->source_url }}" target="_blank" rel="noopener noreferrer">Original source<i data-lucide="external-link"></i></a>@endif</div>
         </div>
     </header>
 
     <div class="news-detail-layout">
         <main class="news-article">
-            <figure class="news-hero-image"><img src="{{ $image }}" alt="{{ $news->headline }}"><figcaption>AI Hub intelligence brief • Source context preserved below.</figcaption></figure>
+            <figure class="news-hero-image">@if($image)<img src="{{ $image }}" alt="{{ $news->headline }}">@else<div class="news-media-placeholder news-media-placeholder--detail"><i data-lucide="image-off"></i><strong>No story image provided</strong><span>This article was published without a selected image.</span></div>@endif<figcaption>AI Hub intelligence brief • Source context preserved below.</figcaption></figure>
 
             <section class="intelligence-summary"><div class="intelligence-icon"><i data-lucide="sparkles"></i></div><div><span>AI HUB SUMMARY</span><h2>What happened</h2><p>{{ $summary ?: 'A concise summary is not available for this item yet. Open the original source for the complete report.' }}</p></div>@if($news->ai_confidence)<div class="confidence"><strong>{{ (int)$news->ai_confidence }}%</strong><small>processing confidence</small></div>@endif</section>
 
@@ -61,8 +61,8 @@ $why = $news->ai_why_it_matters ?: $news->why_it_matters;
             @if($relatedTools->isNotEmpty() || $relatedModels->isNotEmpty())
             <section class="related-intelligence"><div class="detail-section-title"><span>CONNECTED INTELLIGENCE</span><h2>Related AI products</h2></div>
                 <div class="connected-grid">
-                    @foreach($relatedTools as $tool)<a class="connected-card" href="{{ route('tools.show',$tool) }}">@if($tool->logo_path)<img src="{{ asset($tool->logo_path) }}" alt="{{ $tool->name }}">@endif<div><span>AI TOOL</span><strong>{{ $tool->name }}</strong><small>{{ $tool->company?->name }}</small></div><i data-lucide="arrow-up-right"></i></a>@endforeach
-                    @foreach($relatedModels as $model)<a class="connected-card" href="{{ route('models.show',$model) }}">@if($model->logo_path)<img src="{{ asset($model->logo_path) }}" alt="{{ $model->name }}">@endif<div><span>AI MODEL</span><strong>{{ $model->name }}</strong><small>{{ $model->company?->name }}</small></div><i data-lucide="arrow-up-right"></i></a>@endforeach
+                    @foreach($relatedTools as $tool)<a class="connected-card" href="{{ route('tools.show',$tool) }}"><img src="{{ $tool->logo_url }}" alt="{{ $tool->name }}"><div><span>AI TOOL</span><strong>{{ $tool->name }}</strong><small>{{ $tool->company?->name }}</small></div><i data-lucide="arrow-up-right"></i></a>@endforeach
+                    @foreach($relatedModels as $model)<a class="connected-card" href="{{ route('models.show',$model) }}"><img src="{{ $model->logo_url }}" alt="{{ $model->name }}"><div><span>AI MODEL</span><strong>{{ $model->name }}</strong><small>{{ $model->company?->name }}</small></div><i data-lucide="arrow-up-right"></i></a>@endforeach
                 </div>
             </section>
             @endif
@@ -83,7 +83,7 @@ $why = $news->ai_why_it_matters ?: $news->why_it_matters;
         </aside>
     </div>
 
-    @if($relatedNews->isNotEmpty())<section class="related-news-section"><div class="news-section-head"><div><span>KEEP EXPLORING</span><h2>Related AI news</h2></div><a href="{{ route('news.index') }}">View all news <i data-lucide="arrow-right"></i></a></div><div class="related-news-grid">@foreach($relatedNews as $item)<a class="related-news-card" href="{{ route('news.show',$item) }}"><img src="{{ $item->image_path ? asset($item->image_path) : asset('storage/ai-hub/news/ai-research.png') }}" alt="{{ $item->headline }}"><div><span>{{ $item->category ?? 'AI Update' }}</span><h3>{{ $item->headline }}</h3><small>{{ $item->source ?: $item->company?->name }} • {{ optional($item->published_at)->diffForHumans() }}</small></div></a>@endforeach</div></section>@endif
+    @if($relatedNews->isNotEmpty())<section class="related-news-section"><div class="news-section-head"><div><span>KEEP EXPLORING</span><h2>Related AI news</h2></div><a href="{{ route('news.index') }}">View all news <i data-lucide="arrow-right"></i></a></div><div class="related-news-grid">@foreach($relatedNews as $item)<a class="related-news-card" href="{{ route('news.show',$item) }}">@if($item->image_url)<img src="{{ $item->image_url }}" alt="{{ $item->headline }}">@else<div class="news-media-placeholder"><i data-lucide="image-off"></i></div>@endif<div><span>{{ $item->category ?? 'AI Update' }}</span><h3>{{ $item->headline }}</h3><small>{{ $item->source ?: $item->company?->name }} • {{ optional($item->published_at)->diffForHumans() }}</small></div></a>@endforeach</div></section>@endif
 </div>
 @endsection
 

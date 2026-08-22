@@ -8,10 +8,7 @@
 @endpush
 
 @php
-    $imageFor = function ($item) {
-        $path = trim((string) ($item->image_path ?? ''));
-        return $path !== '' ? asset($path) : asset('storage/ai-hub/news/ai-research.png');
-    };
+    $imageFor = fn ($item) => $item->image_url;
     $activeTab = request('tab', 'latest');
     $tabUrl = fn ($tab) => route('news.index', array_filter(array_merge(request()->except('page', 'tab'), ['tab' => $tab === 'latest' ? null : $tab])));
 @endphp
@@ -58,14 +55,14 @@
         <div class="news-featured-grid">
             @php($lead = $featured->first())
             <a class="news-lead-card" href="{{ route('news.show', $lead) }}">
-                <img src="{{ $imageFor($lead) }}" alt="{{ $lead->headline }}">
+                @if($imageFor($lead))<img src="{{ $imageFor($lead) }}" alt="{{ $lead->headline }}">@else<div class="news-media-placeholder news-media-placeholder--lead"><i data-lucide="image-off"></i><span>No story image provided</span></div>@endif
                 <span class="news-media-shade"></span>
                 <div class="news-lead-copy">
                     <div class="news-card-meta"><span class="news-category">{{ $lead->category ?? 'AI Update' }}</span>@if($lead->verification_status === 'verified')<span class="verified"><i data-lucide="badge-check"></i>Verified</span>@endif</div>
                     <h2>{{ $lead->headline }}</h2>
                     <p>{{ $lead->ai_summary ?: $lead->summary }}</p>
                     <div class="news-source-row">
-                        @if($lead->company?->logo_path)<img src="{{ asset($lead->company->logo_path) }}" alt="">@endif
+                        @if($lead->company)<img src="{{ $lead->company->logo_url }}" alt="{{ $lead->company->name }} logo">@endif
                         <span>{{ $lead->source ?: ($lead->company?->name ?? 'AI Hub Desk') }}</span><b>•</b><time>{{ optional($lead->published_at)->diffForHumans() }}</time>
                     </div>
                 </div>
@@ -73,7 +70,7 @@
             <div class="news-featured-stack">
                 @foreach($featured->skip(1) as $item)
                 <a class="news-featured-mini" href="{{ route('news.show', $item) }}">
-                    <div class="news-featured-mini-img"><img src="{{ $imageFor($item) }}" alt="{{ $item->headline }}"><span>{{ $item->importance }}</span></div>
+                    <div class="news-featured-mini-img">@if($imageFor($item))<img src="{{ $imageFor($item) }}" alt="{{ $item->headline }}">@else<div class="news-media-placeholder"><i data-lucide="image-off"></i></div>@endif<span>{{ $item->importance }}</span></div>
                     <div><span class="news-category">{{ $item->category ?? 'AI Update' }}</span><h3>{{ $item->headline }}</h3><p>{{ Str::limit($item->ai_summary ?: $item->summary, 105) }}</p><small>{{ $item->source ?: ($item->company?->name ?? 'AI Hub') }} • {{ optional($item->published_at)->diffForHumans() }}</small></div>
                 </a>
                 @endforeach
@@ -113,13 +110,13 @@
                 <div class="news-card-grid">
                     @foreach($news as $item)
                     <article class="news-card">
-                        <a class="news-card-media" href="{{ route('news.show', $item) }}"><img src="{{ $imageFor($item) }}" alt="{{ $item->headline }}" loading="lazy"><span class="importance-badge"><i data-lucide="activity"></i>{{ (int)$item->importance }}</span></a>
+                        <a class="news-card-media" href="{{ route('news.show', $item) }}">@if($imageFor($item))<img src="{{ $imageFor($item) }}" alt="{{ $item->headline }}" loading="lazy">@else<div class="news-media-placeholder"><i data-lucide="image-off"></i><span>No story image</span></div>@endif<span class="importance-badge"><i data-lucide="activity"></i>{{ (int)$item->importance }}</span></a>
                         <div class="news-card-body">
                             <div class="news-card-meta"><span class="news-category">{{ $item->category ?? 'AI Update' }}</span>@if($item->verification_status === 'verified')<span class="verified"><i data-lucide="badge-check"></i>Verified</span>@endif<button type="button" class="save-item-btn compact" data-save-item data-save-type="news" data-save-id="{{ $item->id }}" aria-label="Save news" aria-pressed="false"><i data-lucide="bookmark"></i></button></div>
                             <h3><a href="{{ route('news.show', $item) }}">{{ $item->headline }}</a></h3>
                             <p>{{ Str::limit($item->ai_summary ?: $item->summary, 145) }}</p>
                             <div class="news-card-footer">
-                                <div class="news-source-row">@if($item->company?->logo_path)<img src="{{ asset($item->company->logo_path) }}" alt="">@endif<span>{{ $item->source ?: ($item->company?->name ?? 'AI Hub') }}</span></div>
+                                <div class="news-source-row">@if($item->company)<img src="{{ $item->company->logo_url }}" alt="{{ $item->company->name }} logo">@endif<span>{{ $item->source ?: ($item->company?->name ?? 'AI Hub') }}</span></div>
                                 <time>{{ optional($item->published_at)->diffForHumans() }}</time>
                             </div>
                         </div>

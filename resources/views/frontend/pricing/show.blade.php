@@ -15,11 +15,7 @@
 
         <div class="pi-detail-head">
             <div class="pi-logo pi-logo-lg">
-                @if ($tool->logo_path)
-                    <img src="{{ asset($tool->logo_path) }}" alt="{{ $tool->name }} logo">
-                @else
-                    <span>{{ strtoupper(substr($tool->name, 0, 2)) }}</span>
-                @endif
+                <img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo">
             </div>
 
             <div>
@@ -134,11 +130,7 @@
             @forelse ($alternatives as $alt)
                 <a class="pi-alt" href="{{ route('pricing.show', $alt) }}">
                     <div class="pi-logo">
-                        @if ($alt->logo_path)
-                            <img src="{{ asset($alt->logo_path) }}" alt="{{ $alt->name }} logo">
-                        @else
-                            <span>{{ strtoupper(substr($alt->name, 0, 2)) }}</span>
-                        @endif
+                        <img src="{{ $alt->logo_url }}" alt="{{ $alt->name }} logo">
                     </div>
                     <div>
                         <b>{{ $alt->name }}</b>

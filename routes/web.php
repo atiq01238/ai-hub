@@ -69,6 +69,7 @@ use App\Http\Controllers\Frontend\BenchmarkController as FrontendBenchmarkContro
 use App\Http\Controllers\Frontend\TrendingController as FrontendTrendingController;
 use App\Http\Controllers\Frontend\SavedController as FrontendSavedController;
 use App\Http\Controllers\Frontend\PageController as FrontendPageController;
+use App\Http\Controllers\Frontend\PublicMediaController;
 use App\Http\Controllers\Admin\SubmissionController as AdminSubmissionController;
 use App\Http\Controllers\ReportController as PublicReportController;
 use App\Http\Controllers\SubmissionController as PublicSubmissionController;
@@ -82,6 +83,9 @@ use App\Http\Middleware\RequirePermission;
 |--------------------------------------------------------------------------
 */
 
+Route::get('/media/{path}', [PublicMediaController::class, 'show'])
+    ->where('path', '.*')
+    ->name('media.public');
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/ai-tools', [FrontendToolController::class, 'index'])->name('tools.index');
 Route::get('/ai-tools/{tool:slug}', [FrontendToolController::class, 'show'])->name('tools.show');

@@ -93,7 +93,7 @@
                     <div class="form-field tool-file-field"><label for="{{ $field }}">{{ $label }}</label><input id="{{ $field }}" class="input" type="file" name="{{ $field }}" accept="image/*"></div>
                 @endforeach
                 @if($tool && ($tool->logo_path || $tool->cover_image_path || $tool->og_image_path))
-                    <div class="tool-media-existing"><span>Existing assets</span><div>@if($tool->logo_path)<img src="{{ asset('storage/'.$tool->logo_path) }}" alt="Current logo">@endif @if($tool->cover_image_path)<img src="{{ asset('storage/'.$tool->cover_image_path) }}" alt="Current cover">@endif @if($tool->og_image_path)<img src="{{ asset('storage/'.$tool->og_image_path) }}" alt="Current Open Graph image">@endif</div></div>
+                    <div class="tool-media-existing"><span>Existing assets</span><div>@if($tool->logo_path)<img src="{{ $tool->logo_url }}" alt="Current logo">@endif @if($tool->cover_image_path)<img src="{{ $tool->cover_image_url }}" alt="Current cover">@endif @if($tool->og_image_path)<img src="{{ $tool->og_image_url }}" alt="Current Open Graph image">@endif</div></div>
                 @endif
             </section>
 

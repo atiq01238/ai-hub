@@ -72,7 +72,7 @@
         <label class="content-field"><span>Author <b>*</b></span><select class="select" name="user_id" required>@foreach($authors as $author)<option value="{{ $author->id }}" @selected((string)$old('user_id',$article?->user_id ?? auth()->id()) === (string)$author->id)>{{ $author->name }}</option>@endforeach</select></label>
         <label class="content-field"><span>Publication Status <b>*</b></span><select class="select" name="status" required><option value="draft" @selected($old('status','draft')==='draft')>Draft</option><option value="scheduled" @selected($old('status')==='scheduled')>Scheduled</option><option value="published" @selected($old('status')==='published')>Published</option></select><small>Scheduled/published states require article approval. Controller will safely force unapproved content back to draft.</small></label>
         <label class="content-field"><span>Publish / Schedule Date</span><input class="input" type="datetime-local" name="published_at" value="{{ old('published_at',$article?->published_at?->format('Y-m-d\TH:i')) }}"></label>
-        <label class="content-field"><span>Featured Image</span>@if($article?->featured_image_path)<img class="content-editor__preview" src="{{ \Illuminate\Support\Facades\Storage::url($article->featured_image_path) }}" alt="">@endif<input class="input" type="file" name="featured_image" accept="image/*"></label>
+        <label class="content-field"><span>Featured Image</span>@if($article?->featured_image_path)<img class="content-editor__preview" src="{{ $article->featured_image_url }}" alt="">@endif<input class="input" type="file" name="featured_image" accept="image/*"></label>
         @if($article)
         <div class="content-editor__approval">
             <span>Approval state</span>

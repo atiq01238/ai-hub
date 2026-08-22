@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Support\MediaUrl;
 
 class Company extends Model
 {
@@ -37,6 +38,6 @@ class Company extends Model
 
     public function getLogoUrlAttribute(): string
     {
-        return $this->logo_path ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->logo_path) : asset('favicon.ico');
+        return MediaUrl::resolve($this->logo_path, 'favicon.ico') ?: MediaUrl::placeholder();
     }
 }

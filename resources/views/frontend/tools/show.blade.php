@@ -10,11 +10,11 @@
 <meta property="og:title" content="{{ $seo['title'] }}">
 <meta property="og:description" content="{{ $seo['description'] }}">
 <meta property="og:url" content="{{ route('tools.show', $tool) }}">
-<meta property="og:image" content="{{ $tool->og_image_path ? asset($tool->og_image_path) : $tool->logo_url }}">
+<meta property="og:image" content="{{ $tool->og_image_url ?: $tool->logo_url }}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{ $seo['title'] }}">
 <meta name="twitter:description" content="{{ $seo['description'] }}">
-<meta name="twitter:image" content="{{ $tool->og_image_path ? asset($tool->og_image_path) : $tool->logo_url }}">
+<meta name="twitter:image" content="{{ $tool->og_image_url ?: $tool->logo_url }}">
 @foreach($seoSchemas as $schema)
 <script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org'] + $schema, JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
 @endforeach
@@ -27,7 +27,7 @@
 @section('content')
 @php
     $logo = $tool->logo_url;
-    $cover = $tool->cover_image_path ? asset($tool->cover_image_path) : null;
+    $cover = $tool->cover_image_url;
     $pricing = collect($tool->pricing_models ?? []);
     $priceLabel = $pricing->contains('Free') ? ($pricing->contains('Paid') ? 'Free + Paid' : 'Free') : ($pricing->first() ?: 'Pricing varies');
     $publishedReviews = $tool->reviews;
@@ -106,7 +106,7 @@
     <div class="tool-detail-main">
         <section class="detail-panel overview-panel" id="overview">
             <div class="detail-section-head"><div><span>Overview</span><h2>What is {{ $tool->name }}?</h2></div><i data-lucide="sparkles"></i></div>
-            <div class="rich-description">{!! nl2br(e($tool->description ?: $tool->short_description)) !!}</div>
+            <div class="rich-description">{!! nl2br(e($tool->overview)) !!}</div>
             @if($capabilities->isNotEmpty())
             <div class="best-for-box"><span><i data-lucide="target"></i>Best for</span><div>@foreach($capabilities->take(5) as $capability)<b>{{ $capability }}</b>@endforeach</div></div>
             @endif
@@ -238,7 +238,7 @@
         @if($latestNews->isNotEmpty())
         <section class="sidebar-card">
             <div class="sidebar-title"><span>Latest news</span><i data-lucide="radio"></i></div>
-            <div class="tool-news-list">@foreach($latestNews as $news)<article>@if($news->image_path)<img src="{{ asset($news->image_path) }}" alt="">@endif<div><span>{{ $news->category ?: 'AI News' }} @if($news->published_at)• {{ $news->published_at->diffForHumans() }}@endif</span><h3>{{ Str::limit($news->headline,75) }}</h3></div></article>@endforeach</div>
+            <div class="tool-news-list">@foreach($latestNews as $news)<article>@if($news->image_path)<img src="{{ $news->image_url }}" alt="">@endif<div><span>{{ $news->category ?: 'AI News' }} @if($news->published_at)• {{ $news->published_at->diffForHumans() }}@endif</span><h3>{{ Str::limit($news->headline,75) }}</h3></div></article>@endforeach</div>
         </section>
         @endif
     </aside>
