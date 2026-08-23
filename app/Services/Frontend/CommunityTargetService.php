@@ -33,7 +33,7 @@ class CommunityTargetService
                 ->findOrFail($id),
             'comparison' => Comparison::query()->where('status', 'published')->findOrFail($id),
             'benchmark' => Benchmark::query()->where('is_active', true)->findOrFail($id),
-            'test' => AiTest::query()->findOrFail($id),
+            'test' => AiTest::query()->published()->findOrFail($id),
             default => abort(422),
         };
     }
@@ -73,8 +73,13 @@ class CommunityTargetService
             return $target ? $this->context('comparison', $target) : null;
         }
 
-        if (preg_match('#^/test-lab/(\d+)$#', $path, $m)) {
-            $target = AiTest::find((int) $m[1]);
+        if (preg_match('#^/test-lab/([^/]+)$#', $path, $m)) {
+            if ($m[1] === 'leaderboard') return null;
+            $value = rawurldecode($m[1]);
+            $target = AiTest::query()->published()->where(function ($q) use ($value) {
+                $q->where('slug', $value);
+                if (ctype_digit($value)) $q->orWhere('id', (int) $value);
+            })->first();
             return $target ? $this->context('test', $target) : null;
         }
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Models\AiModel;
+use App\Models\AiTest;
 use App\Models\Article;
 use App\Models\Category;
 use App\Models\Feature;
@@ -24,6 +25,7 @@ class SeoSitemapController extends Controller
             route('sitemap.news'),
             route('sitemap.articles'),
             route('sitemap.taxonomy'),
+            route('sitemap.testlab'),
         ]);
 
         $body = view('frontend.sitemaps.index', compact('sitemaps'))->render();
@@ -52,6 +54,18 @@ class SeoSitemapController extends Controller
     {
         $items=Article::query()->where('status','published')->where('approval_status','approved')->select(['slug','updated_at'])->orderByDesc('published_at')->get();
         return $this->xml($items, fn($item)=>route('articles.show',$item));
+    }
+
+
+    public function testLab(): Response
+    {
+        $items = AiTest::query()->published()
+            ->whereHas('completedResults')
+            ->select(['slug', 'updated_at'])
+            ->orderByDesc('published_at')
+            ->get();
+
+        return $this->xml($items, fn ($item) => route('testlab.show', $item));
     }
 
     public function taxonomy(): Response

@@ -140,7 +140,7 @@
                 <section id="test-lab" class="panel test-panel">
                     <div class="section-heading row-heading"><div class="heading-left"><div class="heading-icon purple"><i data-lucide="flask-conical"></i></div><h2>AI Test Lab</h2></div><a class="text-link" href="{{ route('testlab.index') }}">View All <i data-lucide="arrow-right"></i></a></div>
                     <div class="test-cover">
-                        @php($testImage = $testLab?->results?->first()?->model?->cover_image_url ?: '/images/frontend/tool-hero-flow.jpg')
+                        @php($testImage = $testLab?->completedResults?->first()?->model?->cover_image_url ?: '/images/frontend/tool-hero-flow.jpg')
                         <img src="{{ $testImage }}" alt="AI Test Lab">
                         <div class="test-overlay"><span><i data-lucide="play"></i></span></div>
                     </div>

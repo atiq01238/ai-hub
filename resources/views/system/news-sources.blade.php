@@ -8,7 +8,7 @@
 @section('content')
 @php
 $active=$sources->where('status','active')->count();
-$errors=$sources->filter(fn($s)=>filled($s->last_error))->count();
+$failureSignals=$sources->filter(fn($s)=>filled($s->last_error))->count();
 $totalCollected=$sources->sum('articles_collected');
 @endphp
 <div class="dr-page">
@@ -23,7 +23,7 @@ $totalCollected=$sources->sum('articles_collected');
 @foreach([
 ['Configured Sources',$sources->count(),'rss',''],
 ['Active Sources',$active,'radio-tower','green'],
-['Failure Signals',$errors,'triangle-alert','red'],
+['Failure Signals',$failureSignals,'triangle-alert','red'],
 ['Articles Collected',$totalCollected,'newspaper','violet'],
 ] as [$label,$value,$icon,$tone])
 <article class="dr-kpi dr-kpi--{{ $tone }}"><span><i data-lucide="{{ $icon }}"></i></span><div><small>{{ $label }}</small><strong>{{ number_format($value) }}</strong></div></article>

@@ -139,7 +139,7 @@ class HomeController extends Controller
             ->map(fn ($rows) => $rows->take(3))
             ->take(4);
 
-        $testLab = AiTest::query()->with(['results.model'])->latest()->first();
+        $testLab = AiTest::query()->published()->with(['completedResults.model'])->orderByDesc('is_featured')->latest('published_at')->first();
 
         $newsCategoryCounts = NewsItem::query()
             ->where('status', 'published')

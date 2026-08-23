@@ -112,7 +112,8 @@ class UserInteractionController extends Controller
             ->paginate(20);
 
         $tests = AiTest::query()
-            ->withCount('results')
+            ->published()
+            ->withCount(['completedResults as results_count'])
             ->whereIn('id', $history->getCollection()->pluck('target_id'))
             ->get()
             ->keyBy('id');

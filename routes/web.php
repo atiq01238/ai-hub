@@ -110,6 +110,7 @@ Route::get('/sitemap-models.xml', [SeoSitemapController::class, 'models'])->name
 Route::get('/sitemap-news.xml', [SeoSitemapController::class, 'news'])->name('sitemap.news');
 Route::get('/sitemap-articles.xml', [SeoSitemapController::class, 'articles'])->name('sitemap.articles');
 Route::get('/sitemap-taxonomy.xml', [SeoSitemapController::class, 'taxonomy'])->name('sitemap.taxonomy');
+Route::get('/sitemap-testlab.xml', [SeoSitemapController::class, 'testLab'])->name('sitemap.testlab');
 Route::get('/companies', [FrontendCompanyController::class, 'index'])->name('companies.index');
 Route::get('/companies/{company:slug}', [FrontendCompanyController::class, 'show'])->name('companies.show');
 Route::get('/articles', [FrontendArticleController::class, 'index'])->name('articles.index');
@@ -117,7 +118,8 @@ Route::get('/articles/{article:slug}', [FrontendArticleController::class, 'show'
 Route::get('/reviews', [FrontendReviewController::class, 'index'])->name('reviews.index');
 Route::get('/reviews/{review}', [FrontendReviewController::class, 'show'])->whereNumber('review')->name('reviews.show');
 Route::get('/test-lab', [FrontendTestLabController::class, 'index'])->name('testlab.index');
-Route::get('/test-lab/{test}', [FrontendTestLabController::class, 'show'])->whereNumber('test')->name('testlab.show');
+Route::get('/test-lab/leaderboard', [FrontendTestLabController::class, 'leaderboard'])->name('testlab.leaderboard');
+Route::get('/test-lab/{test}', [FrontendTestLabController::class, 'show'])->name('testlab.show');
 Route::get('/pricing-intelligence', [FrontendPricingIntelligenceController::class, 'index'])->name('pricing.index');
 Route::get('/pricing-intelligence/{tool:slug}', [FrontendPricingIntelligenceController::class, 'show'])->name('pricing.show');
 Route::get('/search', [FrontendSearchController::class, 'index'])->name('search.index');
@@ -351,6 +353,9 @@ Route::middleware(['auth', EnsureAccountIsActive::class, 'admin'])
                 Route::get('/results', 'results')->middleware(RequirePermission::class . ':AI Test Lab,View')->name('results');
                 Route::post('/', 'store')->middleware(RequirePermission::class . ':AI Test Lab,Add')->name('store');
                 Route::get('/{id}', 'show')->whereNumber('id')->middleware(RequirePermission::class . ':AI Test Lab,View')->name('show');
+                Route::put('/{id}', 'update')->whereNumber('id')->middleware(RequirePermission::class . ':AI Test Lab,Edit')->name('update');
+                Route::post('/{id}/models', 'addModels')->whereNumber('id')->middleware(RequirePermission::class . ':AI Test Lab,Edit')->name('models.add');
+                Route::get('/{id}/export', 'export')->whereNumber('id')->middleware(RequirePermission::class . ':AI Test Lab,Export')->name('export');
                 Route::delete('/{id}', 'destroy')->whereNumber('id')->middleware(RequirePermission::class . ':AI Test Lab,Delete')->name('destroy');
             });
 
@@ -358,6 +363,10 @@ Route::middleware(['auth', EnsureAccountIsActive::class, 'admin'])
             ->whereNumber('resultId')
             ->middleware(RequirePermission::class . ':AI Test Lab,Edit')
             ->name('testlab.results.update');
+        Route::delete('/testlab/results/{resultId}', [TestlabController::class, 'destroyResult'])
+            ->whereNumber('resultId')
+            ->middleware(RequirePermission::class . ':AI Test Lab,Delete')
+            ->name('testlab.results.destroy');
 
 
         Route::controller(BenchmarkController::class)

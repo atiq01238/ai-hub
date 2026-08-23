@@ -43,6 +43,8 @@ class UserInteractionService
             $query->where('status', 'active');
         } elseif ($type === 'review') {
             $query->where('status', 'published');
+        } elseif ($type === 'test') {
+            $query->where('status', 'published')->whereNotNull('published_at')->where('published_at', '<=', now());
         }
 
         return $query->firstOrFail();

@@ -1,7 +1,7 @@
 @extends('frontend.layouts.app')
 
 @section('title', $query !== '' ? 'Search: '.$query.' — AI Hub' : 'Search AI Hub')
-@section('meta_description', 'Search AI tools, models, news, companies and articles across AI Hub.')
+@section('meta_description', 'Search AI tools, models, news, companies, articles and independent Test Lab experiments across AI Hub.')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/frontend/discovery.css') }}">
@@ -29,7 +29,7 @@
     <div class="discovery-hero-copy">
         <span class="eyebrow"><i data-lucide="search"></i> Global AI Search</span>
         <h1>Search the entire <span>AI Hub.</span></h1>
-        <p>Find tools, models, companies, news and expert guides from one research-driven index.</p>
+        <p>Find tools, models, companies, news, expert guides and independent Test Lab experiments from one research-driven index.</p>
         <form class="discovery-search" action="{{ route('search.index') }}" method="get">
             <i data-lucide="search"></i>
             <input name="q" type="search" value="{{ $query }}" placeholder="Search ChatGPT, Claude, image generators, AI news..." autofocus>
@@ -44,7 +44,7 @@
 
 <div class="discovery-page">
     @if($query !== '')
-        @php($tabs=['all'=>'All','tools'=>'Tools','models'=>'Models','news'=>'News','companies'=>'Companies','articles'=>'Articles'])
+        @php($tabs=['all'=>'All','tools'=>'Tools','models'=>'Models','news'=>'News','companies'=>'Companies','articles'=>'Articles','tests'=>'Test Lab'])
         <nav class="result-tabs" aria-label="Search result types">
             @foreach($tabs as $key=>$label)
                 <a class="{{ $type === $key ? 'active' : '' }}" href="{{ route('search.index', ['q'=>$query,'type'=>$key]) }}">
@@ -133,6 +133,26 @@
                                 <article class="search-story-card article-result">
                                     <a href="{{ route('articles.show',$article) }}" class="story-image"><img src="{{ $article->featured_image_url ?: '/images/frontend/content-placeholder.svg' }}" alt="{{ $article->title }}" onerror="this.style.display='none'"><span>{{ $article->categoryTerm?->name ?? $article->category ?? 'Guide' }}</span></a>
                                     <div><small>{{ $article->author?->name ?? 'AI Hub Editorial' }} · {{ optional($article->published_at)->format('M j, Y') }}</small><h3><a href="{{ route('articles.show',$article) }}">{{ $article->title }}</a></h3><p>{{ \Illuminate\Support\Str::limit($article->summary, 125) }}</p></div>
+                                </article>
+                            @endforeach
+                        </div>
+                    </section>
+                @endif
+
+
+                @if(($type==='all'||$type==='tests') && $tests->isNotEmpty())
+                    <section class="result-section">
+                        <div class="section-bar"><div><span class="section-icon cyan"><i data-lucide="flask-conical"></i></span><h2>AI Test Lab</h2><small>{{ number_format($counts['tests']) }} matches</small></div><a href="{{ route('testlab.index',['q'=>$query]) }}">View all tests <i data-lucide="arrow-right"></i></a></div>
+                        <div class="entity-grid">
+                            @foreach($tests as $test)
+                                <article class="search-entity-card compact">
+                                    <a class="entity-top" href="{{ route('testlab.show',$test) }}">
+                                        <span class="category-orb"><i data-lucide="flask-conical"></i></span>
+                                        <div><small>{{ $test->category }} · {{ config('test_lab.difficulties.'.$test->difficulty, ucfirst($test->difficulty)) }}</small><h3>{{ $test->name }}</h3><span>{{ $test->results_count }} completed model results</span></div>
+                                        <b>{{ $test->is_verified ? '✓' : '—' }}</b>
+                                    </a>
+                                    <p>{{ \Illuminate\Support\Str::limit($test->short_description ?: $test->prompt,112) }}</p>
+                                    <div class="entity-meta">@if($test->feature)<span><i data-lucide="sparkles"></i>{{ $test->feature->name }}</span>@endif @if($test->useCase)<span><i data-lucide="target"></i>{{ $test->useCase->name }}</span>@endif<a href="{{ route('testlab.show',$test) }}">View evidence <i data-lucide="arrow-up-right"></i></a></div>
                                 </article>
                             @endforeach
                         </div>
