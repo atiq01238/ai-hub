@@ -11,7 +11,6 @@ class WelcomeToAiHubNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public $afterCommit = true;
 
     public ?int $deliveryLogId;
 

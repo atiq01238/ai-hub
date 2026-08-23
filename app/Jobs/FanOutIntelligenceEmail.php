@@ -16,7 +16,6 @@ class FanOutIntelligenceEmail implements ShouldQueue
 {
     use Queueable;
 
-    public $afterCommit = true;
     public int $tries = 3;
     public int $timeout = 180;
 

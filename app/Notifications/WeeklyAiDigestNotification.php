@@ -11,7 +11,6 @@ class WeeklyAiDigestNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public $afterCommit = true;
 
     public function __construct(
         public array $digest,
