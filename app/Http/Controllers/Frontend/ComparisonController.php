@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Models\AiModel;
+use App\Models\AiTestResult;
 use App\Models\Comparison;
 use App\Models\Tool;
 use App\Services\Frontend\ComparisonHistoryService;
@@ -118,6 +119,7 @@ class ComparisonController extends Controller
         $relatedComparisons = collect();
         $isPreview = true;
         $intelligence = $this->intelligence->build($items, $comparisonType);
+        $labComparison = $this->testLabComparison($items, $comparisonType);
 
         if ($request->user()) {
             $this->userHistory->fromPreview(
@@ -130,7 +132,7 @@ class ComparisonController extends Controller
         }
 
         return view('frontend.comparisons.show', compact(
-            'comparison', 'comparisonType', 'items', 'winner', 'title', 'relatedComparisons', 'isPreview', 'intelligence'
+            'comparison', 'comparisonType', 'items', 'winner', 'title', 'relatedComparisons', 'isPreview', 'intelligence', 'labComparison'
         ));
     }
 
@@ -159,6 +161,7 @@ class ComparisonController extends Controller
         $title = $comparison->title;
         $isPreview = false;
         $intelligence = $this->intelligence->build($items, $comparisonType);
+        $labComparison = $this->testLabComparison($items, $comparisonType);
 
         if ($request->user()) {
             $this->userHistory->fromPublished($request->user(), $comparison, false);
@@ -174,8 +177,48 @@ class ComparisonController extends Controller
         $relatedComparisons->each(fn (Comparison $item) => $item->setRelation('resolved_items', $item->items()));
 
         return view('frontend.comparisons.show', compact(
-            'comparison', 'comparisonType', 'items', 'winner', 'title', 'relatedComparisons', 'isPreview', 'intelligence'
+            'comparison', 'comparisonType', 'items', 'winner', 'title', 'relatedComparisons', 'isPreview', 'intelligence', 'labComparison'
         ));
+    }
+
+
+    private function testLabComparison(Collection $items, string $comparisonType): array
+    {
+        if ($comparisonType !== 'model' || $items->isEmpty()) {
+            return ['stats' => collect(), 'shared' => collect(), 'has_data' => false];
+        }
+
+        $results = AiTestResult::query()
+            ->with('test')
+            ->whereIn('ai_model_id', $items->pluck('id'))
+            ->complete()
+            ->whereHas('test', fn ($q) => $q->published())
+            ->get();
+
+        $stats = $items->mapWithKeys(function ($model) use ($results) {
+            $rows = $results->where('ai_model_id', $model->id);
+            return [$model->id => [
+                'average' => $rows->isNotEmpty() ? round((float) $rows->avg('overall_score'), 1) : null,
+                'tests' => $rows->count(),
+                'runs' => (int) $rows->sum('run_count'),
+                'verified' => $rows->whereIn('verification_level', ['verified', 'high_confidence'])->count(),
+            ]];
+        });
+
+        $shared = $results->groupBy('ai_test_id')
+            ->filter(fn ($rows) => $rows->pluck('ai_model_id')->unique()->count() >= 2)
+            ->map(function ($rows) {
+                $first = $rows->first();
+                return [
+                    'test' => $first->test,
+                    'scores' => $rows->keyBy('ai_model_id'),
+                ];
+            })
+            ->sortByDesc(fn ($row) => $row['test']?->published_at?->timestamp ?? 0)
+            ->take(8)
+            ->values();
+
+        return ['stats' => $stats, 'shared' => $shared, 'has_data' => $stats->contains(fn ($row) => $row['tests'] > 0)];
     }
 
     private function winner(Collection $items): mixed

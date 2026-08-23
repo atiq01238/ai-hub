@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Models\ContactMessage;
+use App\Services\ContactMessageService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -44,7 +45,7 @@ class PageController extends Controller
         return view('frontend.pages.disclosures');
     }
 
-    public function storeContact(Request $request)
+    public function storeContact(Request $request, ContactMessageService $contactMessages)
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
@@ -74,7 +75,8 @@ class PageController extends Controller
             ]);
         }
 
-        ContactMessage::create($data);
+        $message = ContactMessage::create($data);
+        $contactMessages->notifyAdmins($message);
 
         return redirect()->route('contact')->with('status', 'Message received. Thank you for helping us improve AI Hub.');
     }

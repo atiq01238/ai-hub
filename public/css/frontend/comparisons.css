@@ -16,3 +16,6 @@
 .comparison-detail-hero:after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(90deg,#070b18 0%,rgba(7,11,24,.95) 40%,rgba(7,11,24,.66) 70%,rgba(7,11,24,.24)),linear-gradient(180deg,transparent,rgba(7,11,24,.7))}
 .detail-product-strip{position:relative;z-index:1}
 @media(max-width:760px){.comparison-detail-hero{background-size:auto 100%!important;background-position:70% center!important}.comparison-detail-hero:after{background:linear-gradient(180deg,rgba(7,11,24,.72),#070b18 88%)}}
+
+/* Test Lab V3 comparison intelligence */
+.testlab-comparison-card .table-title>span{background:rgba(103,82,244,.17);color:#9b8cff}.lab-coverage-note{display:block;color:#74849d;font-size:11px;margin-top:3px}.lab-test-link{color:#dce5f7;font-weight:800}.lab-test-link:hover{color:#9b8cff}

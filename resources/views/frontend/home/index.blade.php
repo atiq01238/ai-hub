@@ -20,10 +20,11 @@
             <h1>Discover. <span>Compare.</span> Master <em>AI.</em></h1>
             <p>Explore the latest AI tools, models, news, reviews, pricing and real-world comparisons — all in one place.</p>
 
-            <form class="global-search home-hero-search" action="{{ route('search.index') }}" method="get">
+            <form class="global-search home-hero-search search-intelligence-shell" action="{{ route('search.index') }}" method="get" data-search-shell>
                 <div class="hero-search-icon"><i data-lucide="search"></i></div>
-                <input id="home-global-search" name="q" type="search" placeholder="Search AI tools, models, companies, news..." autocomplete="off">
+                <input id="home-global-search" name="q" type="search" placeholder="Search AI tools, models, companies, news..." autocomplete="off" data-search-autocomplete>
                 <button type="submit"><i data-lucide="search"></i><span>Search</span></button>
+                <div class="search-live-results home-search-live-results" data-search-suggestions hidden></div>
             </form>
 
             <div class="quick-chips home-hero-chips">

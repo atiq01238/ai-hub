@@ -28,6 +28,7 @@ use App\Http\Controllers\Admin\BenchmarkController;
 use App\Http\Controllers\Admin\PricingController;
 use App\Http\Controllers\Admin\ModelPricingController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\ContactMessageController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\AnalyticsController;
@@ -128,6 +129,12 @@ Route::get('/test-lab/leaderboard', [FrontendTestLabController::class, 'leaderbo
 Route::get('/test-lab/{test}', [FrontendTestLabController::class, 'show'])->name('testlab.show');
 Route::get('/pricing-intelligence', [FrontendPricingIntelligenceController::class, 'index'])->name('pricing.index');
 Route::get('/pricing-intelligence/{tool:slug}', [FrontendPricingIntelligenceController::class, 'show'])->name('pricing.show');
+Route::get('/search/suggest', [FrontendSearchController::class, 'suggest'])
+    ->middleware('throttle:60,1')
+    ->name('search.suggest');
+Route::post('/search/click', [FrontendSearchController::class, 'click'])
+    ->middleware('throttle:120,1')
+    ->name('search.click');
 Route::get('/search', [FrontendSearchController::class, 'index'])->name('search.index');
 Route::get('/categories', [FrontendCategoryController::class, 'index'])->name('categories.index');
 Route::get('/categories/{legacySlug}', [FrontendCategoryController::class, 'legacy'])
@@ -392,6 +399,11 @@ Route::middleware(['auth', EnsureAccountIsActive::class, 'admin'])
                 Route::delete('/{id}', 'destroy')->whereNumber('id')->middleware(RequirePermission::class . ':AI Test Lab,Delete')->name('destroy');
             });
 
+        Route::put('/testlab/runs/{runId}', [TestlabController::class, 'updateRun'])
+            ->whereNumber('runId')
+            ->middleware(RequirePermission::class . ':AI Test Lab,Edit')
+            ->name('testlab.runs.update');
+
         Route::put('/testlab/results/{resultId}', [TestlabController::class, 'updateResult'])
             ->whereNumber('resultId')
             ->middleware(RequirePermission::class . ':AI Test Lab,Edit')
@@ -532,6 +544,16 @@ Route::middleware(['auth', EnsureAccountIsActive::class, 'admin'])
                 Route::post('/{id}/restore', 'restore')->whereNumber('id')->middleware(RequirePermission::class . ':Users,Delete')->name('restore');
                 Route::delete('/{id}', 'destroy')->whereNumber('id')->middleware(RequirePermission::class . ':Users,Delete')->name('destroy');
                 Route::get('/{id}', 'show')->whereNumber('id')->middleware(RequirePermission::class . ':Users,View')->name('show');
+            });
+
+        Route::controller(ContactMessageController::class)
+            ->prefix('contact-messages')
+            ->name('contact-messages.')
+            ->group(function () {
+                Route::get('/', 'index')->middleware(RequirePermission::class . ':Users,View')->name('index');
+                Route::post('/{contactMessage}/reply', 'reply')->middleware(RequirePermission::class . ':Users,Edit')->name('reply');
+                Route::patch('/{contactMessage}/status', 'updateStatus')->middleware(RequirePermission::class . ':Users,Edit')->name('status');
+                Route::get('/{contactMessage}', 'show')->middleware(RequirePermission::class . ':Users,View')->name('show');
             });
 
         Route::controller(ReviewController::class)

@@ -6,6 +6,7 @@ use App\Models\Report;
 use App\Models\Review;
 use App\Models\Submission;
 use App\Models\CommunityComment;
+use App\Models\ContactMessage;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Event;
@@ -71,6 +72,7 @@ class AppServiceProvider extends ServiceProvider
                 'submissions' => 0,
                 'reports' => 0,
                 'comments' => 0,
+                'contacts' => 0,
             ];
 
             if (Schema::hasTable('reviews')) {
@@ -93,6 +95,10 @@ class AppServiceProvider extends ServiceProvider
 
             if (Schema::hasTable('reports')) {
                 $counts['reports'] = Report::open()->count();
+            }
+
+            if (Schema::hasTable('contact_messages')) {
+                $counts['contacts'] = ContactMessage::where('status', 'new')->count();
             }
 
             $view->with('communityNavCounts', $counts);

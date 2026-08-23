@@ -203,7 +203,6 @@ Route::middleware(['auth', EnsureAccountIsActive::class, 'admin'])->group(functi
 Route::middleware(['auth', 'verified', EnsureAccountIsActive::class])->group(function () {
     Route::post('/search/save', [AdvancedSearchController::class, 'save'])->name('search.save');
     Route::delete('/search/saved/{savedSearch}', [AdvancedSearchController::class, 'destroySaved'])->name('search.saved.destroy');
-    Route::post('/search/click', [AdvancedSearchController::class, 'click'])->name('search.click');
 
     Route::get('/onboarding', [OnboardingController::class, 'show'])->name('account.onboarding');
     Route::post('/onboarding', [OnboardingController::class, 'store'])->name('account.onboarding.store');

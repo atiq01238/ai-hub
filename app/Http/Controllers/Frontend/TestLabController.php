@@ -78,7 +78,7 @@ class TestLabController extends Controller
 
         $test->load([
             'feature:id,name,slug', 'useCase:id,name,slug',
-            'completedResults' => fn ($q) => $q->with(['model.company'])->orderByDesc('overall_score'),
+            'completedResults' => fn ($q) => $q->with(['model.company', 'runs' => fn ($runs) => $runs->where('status', 'complete')->orderBy('run_number')])->orderByDesc('overall_score'),
         ]);
 
         if ($request->user()) {
@@ -92,7 +92,7 @@ class TestLabController extends Controller
             ->when($test->use_case_id, fn ($q) => $q->where('use_case_id', $test->use_case_id))
             ->when(! $test->use_case_id && $test->category, fn ($q) => $q->where('category', $test->category))
             ->latest('published_at')->take(4)->get();
-        $criteria = config('test_lab.criteria', []);
+        $criteria = $test->evaluationRubric();
         $weights = $test->scoreWeights();
 
         return view('frontend.testlab.show', compact('test', 'results', 'winner', 'related', 'criteria', 'weights'));
@@ -130,9 +130,11 @@ class TestLabController extends Controller
             ->withAvg(['testResults as lab_average' => $scope], 'overall_score')
             ->withCount(['testResults as lab_tests' => $scope])
             ->withCount(['testResults as verified_lab_tests' => fn ($q) => $q
-                ->where('status', 'complete')->where('is_verified', true)
+                ->where('status', 'complete')->whereIn('verification_level', ['verified', 'high_confidence'])
                 ->whereHas('test', fn ($test) => $test->published()
                     ->when($category, fn ($t) => $t->where('category', $category)))])
+            ->withSum(['testResults as lab_runs' => $scope], 'run_count')
+            ->orderByRaw('CASE WHEN lab_tests >= 3 THEN 0 ELSE 1 END')
             ->orderByDesc('lab_average')
             ->orderByDesc('lab_tests')
             ->orderBy('name');

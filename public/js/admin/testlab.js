@@ -82,3 +82,48 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+// Test Lab V3 — dynamic rubric + explicit N/A handling.
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-rubric-builder]').forEach(builder => {
+        const total = builder.querySelector('[data-rubric-total]');
+        const rows = [...builder.querySelectorAll('[data-rubric-item]')];
+        const locked = builder.dataset.rubricLocked === '1';
+
+        const refresh = () => {
+            let sum = 0;
+            rows.forEach(row => {
+                const toggle = row.querySelector('[data-rubric-toggle]');
+                const weight = row.querySelector('[data-rubric-weight]');
+                const enabled = Boolean(toggle?.checked);
+                row.classList.toggle('is-enabled', enabled);
+                if (weight) {
+                    if (!locked) weight.disabled = !enabled;
+                    if (enabled) sum += Number(weight.value || 0);
+                }
+            });
+            if (total) {
+                total.textContent = `${sum}%`;
+                total.classList.toggle('is-invalid', sum !== 100);
+            }
+        };
+
+        rows.forEach(row => {
+            row.querySelector('[data-rubric-toggle]')?.addEventListener('change', refresh);
+            row.querySelector('[data-rubric-weight]')?.addEventListener('input', refresh);
+        });
+        refresh();
+    });
+
+    document.querySelectorAll('.tl-score-criterion').forEach(row => {
+        const input = row.querySelector('[data-score-input]');
+        const na = row.querySelector('[data-score-na]');
+        const refresh = () => {
+            if (!input || !na) return;
+            input.disabled = na.checked;
+            row.classList.toggle('is-na', na.checked);
+        };
+        na?.addEventListener('change', refresh);
+        refresh();
+    });
+});

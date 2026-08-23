@@ -49,6 +49,7 @@
         ['Articles','admin.content.articles.index','file-text','Content','View'],
         ['Reviews','admin.content.reviews.index','message-square-heart','Reviews','View'],
         ['Users','admin.users.index','users','Users','View'],
+        ['Contact Messages','admin.contact-messages.index','mail','Users','View'],
         ['Analytics','admin.analytics.website','chart-no-axes-combined','Analytics','View'],
         ['System Overview','admin.system.overview','command','Security','View'],
         ['Security Center','admin.system.security','shield-check','Security','View'],

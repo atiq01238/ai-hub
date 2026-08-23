@@ -4,78 +4,79 @@ namespace App\Services\TestLab;
 
 use App\Models\AiTest;
 use App\Models\AiTestResult;
+use App\Models\AiTestRun;
 use Illuminate\Support\Str;
 
 class AutoScoringService
 {
-    public function score(AiTest $test, AiTestResult $result): array
+    public function score(AiTest $test, AiTestRun|AiTestResult $run): array
     {
-        $response = trim((string) $result->response_text);
-        if ($response === '') {
-            return $this->emptySuggestion();
+        $response = trim((string) $run->response_text);
+        if ($response === '') return $this->emptySuggestion();
+
+        $rubric = $test->evaluationRubric();
+        $scores = [];
+        $signals = [];
+        $autoCount = 0;
+        $manualCount = 0;
+
+        foreach ($rubric as $criterion) {
+            $key = $criterion['key'];
+            $strategy = $criterion['auto_strategy'] ?? 'manual';
+            $evaluation = match ($strategy) {
+                'answer_key' => $this->answerKeyScore($response, trim((string) $test->expected_output)),
+                'prompt_constraints' => $this->adherenceScore($response, trim((string) $test->prompt), trim((string) $test->expected_output)),
+                'structure' => $this->structureScore($response, trim((string) $test->prompt)),
+                'latency' => $this->speedScore($run->latency_ms),
+                default => ['score' => null, 'detail' => 'Human rubric review required; no automatic score is assigned to this criterion.'],
+            };
+
+            $scores[$key] = $evaluation['score'];
+            $signals[$key] = $evaluation['detail'];
+            if ($evaluation['score'] === null) $manualCount++; else $autoCount++;
         }
 
-        $expected = trim((string) $test->expected_output);
-        $prompt = trim((string) $test->prompt);
+        $overall = $this->weightedOverall($scores, $rubric);
+        $confidence = $this->confidence($test, $run, $autoCount, count($rubric));
 
-        $accuracy = $this->accuracyScore($response, $expected);
-        $adherence = $this->adherenceScore($response, $prompt, $expected);
-        $quality = $this->qualityScore($response, $prompt);
-        $creativity = $this->creativityScore($response, (string) $test->category);
-        $speed = $this->speedScore($result->latency_ms);
+        $autoLabels = collect($rubric)->filter(fn ($item) => ($scores[$item['key']] ?? null) !== null)->pluck('label')->all();
+        $manualLabels = collect($rubric)->filter(fn ($item) => ($scores[$item['key']] ?? null) === null)->pluck('label')->all();
 
-        $scores = [
-            'score_quality' => $quality['score'],
-            'score_accuracy' => $accuracy['score'],
-            'score_prompt_adherence' => $adherence['score'],
-            'score_creativity' => $creativity['score'],
-            'score_speed' => $speed['score'],
-        ];
-
-        $confidence = $this->confidence($expected, $accuracy, $adherence, $result->latency_ms);
-        $overall = $this->weightedOverall($scores, $test->scoreWeights());
-        $summary = $this->summary($scores, $accuracy, $adherence, $quality, $speed, $confidence);
+        $summary = 'Automatic checks scored '.($autoLabels ? implode(', ', $autoLabels) : 'no criteria').' from deterministic signals.';
+        if ($manualLabels) $summary .= ' Human review is still required for '.implode(', ', $manualLabels).'.';
+        if ($overall !== null) $summary .= ' Partial auto-score: '.number_format($overall, 1).'/100 across auto-scored applicable criteria only.';
 
         return [
             'scores' => $scores,
             'overall' => $overall,
             'summary' => $summary,
             'confidence' => $confidence,
-            'signals' => [
-                'accuracy' => $accuracy['detail'],
-                'adherence' => $adherence['detail'],
-                'quality' => $quality['detail'],
-                'creativity' => $creativity['detail'],
-                'speed' => $speed['detail'],
-            ],
+            'signals' => $signals,
+            'auto_count' => $autoCount,
+            'manual_count' => $manualCount,
+            'is_partial' => $manualCount > 0,
         ];
     }
 
     private function emptySuggestion(): array
     {
         return [
-            'scores' => [],
-            'overall' => null,
-            'summary' => null,
-            'confidence' => 0,
-            'signals' => [],
+            'scores' => [], 'overall' => null, 'summary' => null, 'confidence' => 0,
+            'signals' => [], 'auto_count' => 0, 'manual_count' => 0, 'is_partial' => true,
         ];
     }
 
-    private function accuracyScore(string $response, string $expected): array
+    private function answerKeyScore(string $response, string $expected): array
     {
         if ($expected === '') {
             return [
-                'score' => 70,
-                'detail' => 'No answer key is stored, so accuracy uses a conservative neutral suggestion.',
-                'numeric_ratio' => null,
-                'keyword_ratio' => null,
+                'score' => null,
+                'detail' => 'N/A for automatic scoring: no expected answer or reference output is stored.',
             ];
         }
 
         $responseNorm = $this->normalize($response);
         $expectedNorm = $this->normalize($expected);
-
         $expectedNumbers = $this->numbers($expected);
         $responseNumbers = $this->numbers($response);
         $numericRatio = null;
@@ -96,50 +97,49 @@ class AutoScoringService
         $keywords = $this->keywords($expectedNorm);
         $keywordMatches = 0;
         foreach ($keywords as $keyword) {
-            if (str_contains($responseNorm, $keyword)) {
-                $keywordMatches++;
-            }
+            if (str_contains($responseNorm, $keyword)) $keywordMatches++;
         }
-        $keywordRatio = $keywords !== [] ? $keywordMatches / count($keywords) : 0.5;
+        $keywordRatio = $keywords !== [] ? $keywordMatches / count($keywords) : null;
 
         $lastExpectedLine = $this->lastMeaningfulLine($expected);
         $lastResponseLine = $this->lastMeaningfulLine($response);
-        $finalLineMatch = 0.0;
+        $finalLineMatch = null;
         if ($lastExpectedLine !== '' && $lastResponseLine !== '') {
-            if ($this->normalize($lastExpectedLine) === $this->normalize($lastResponseLine)) {
-                $finalLineMatch = 1.0;
-            } elseif ($this->lineSimilarity($lastExpectedLine, $lastResponseLine) >= 0.75) {
-                $finalLineMatch = 0.75;
-            }
+            $similarity = $this->lineSimilarity($lastExpectedLine, $lastResponseLine);
+            $finalLineMatch = $similarity >= .92 ? 1.0 : ($similarity >= .75 ? .75 : 0.0);
         }
 
-        if ($numericRatio !== null) {
-            $score = ($numericRatio * 70) + ($keywordRatio * 20) + ($finalLineMatch * 10);
-        } else {
-            $score = ($keywordRatio * 80) + ($finalLineMatch * 20);
+        $components = [];
+        if ($numericRatio !== null) $components[] = [$numericRatio, 70];
+        if ($keywordRatio !== null) $components[] = [$keywordRatio, $numericRatio !== null ? 20 : 80];
+        if ($finalLineMatch !== null) $components[] = [$finalLineMatch, $numericRatio !== null ? 10 : 20];
+
+        if ($components === []) {
+            return ['score' => null, 'detail' => 'N/A for automatic scoring: the stored answer key does not contain reliable machine-checkable signals.'];
         }
 
-        $score = $this->clampScore($score);
+        $weighted = 0;
+        $weightTotal = 0;
+        foreach ($components as [$value, $weight]) {
+            $weighted += $value * $weight;
+            $weightTotal += $weight;
+        }
+        $score = $this->clampScore(($weighted / max(1, $weightTotal)) * 100);
 
-        $detail = $numericRatio !== null
-            ? sprintf('Matched about %d%% of answer-key numeric values and %d%% of key terms.', round($numericRatio * 100), round($keywordRatio * 100))
-            : sprintf('Matched about %d%% of key answer terms.', round($keywordRatio * 100));
+        $parts = [];
+        if ($numericRatio !== null) $parts[] = round($numericRatio * 100).'% answer-key numeric values matched';
+        if ($keywordRatio !== null) $parts[] = round($keywordRatio * 100).'% key terms matched';
+        if ($finalLineMatch !== null) $parts[] = 'final-answer similarity '.round($finalLineMatch * 100).'%';
 
-        return [
-            'score' => $score,
-            'detail' => $detail,
-            'numeric_ratio' => $numericRatio,
-            'keyword_ratio' => $keywordRatio,
-        ];
+        return ['score' => $score, 'detail' => implode('; ', $parts).'. Review manually before verification.'];
     }
 
     private function adherenceScore(string $response, string $prompt, string $expected): array
     {
         $checks = [];
-        $promptLower = Str::lower($prompt);
         $responseLower = Str::lower($response);
-
         $requirements = $this->requirementLines($prompt);
+
         foreach ($requirements as $requirement) {
             $r = Str::lower($requirement);
 
@@ -147,100 +147,83 @@ class AutoScoringService
                 $checks[] = preg_match('/(?:\d[\d,.]*\s*[×x*+\-÷\/]\s*\d|=\s*\$?\d|\bcalculation\b)/iu', $response) === 1;
                 continue;
             }
-
             if ((str_contains($r, '2 decimal') || str_contains($r, 'two decimal')) && str_contains($r, 'percentage')) {
                 $checks[] = preg_match('/\b\d+(?:,\d{3})*\.\d{2}%/u', $response) === 1;
                 continue;
             }
-
-            if (str_contains($r, 'end your answer') || str_contains($r, 'final')) {
+            if (str_contains($r, 'end your answer') || str_contains($r, 'final answer')) {
                 $expectedLine = $this->lastMeaningfulLine($expected);
                 $responseLine = $this->lastMeaningfulLine($response);
-                $checks[] = $expectedLine !== '' && $this->lineSimilarity($expectedLine, $responseLine) >= 0.75;
+                if ($expectedLine !== '') $checks[] = $this->lineSimilarity($expectedLine, $responseLine) >= 0.75;
                 continue;
             }
-
-            if (str_contains($r, 'do not change') && preg_match('/\$?\s*48[, ]?000/', $prompt)) {
-                $checks[] = preg_match('/\$?\s*48[, ]?000/', $response) === 1;
+            if (preg_match('/(?:include|mention|contain)\s+["“]?([^"”.,;]{3,50})/iu', $requirement, $m)) {
+                $checks[] = str_contains($responseLower, Str::lower(trim($m[1])));
                 continue;
             }
         }
 
-        $requestedLabels = $this->requestedLabels($prompt);
-        foreach ($requestedLabels as $label) {
+        foreach ($this->requestedLabels($prompt) as $label) {
             $checks[] = str_contains($responseLower, Str::lower($label));
         }
 
+        $promptLower = Str::lower($prompt);
+        if (preg_match('/(?:exactly|return|provide|give)\s+(\d+)\s+(?:bullet|bullets|items|points)/iu', $prompt, $m)) {
+            preg_match_all('/(?:^|\R)\s*(?:[-*]|\d+[.)])\s+/u', $response, $listMatches);
+            $checks[] = count($listMatches[0] ?? []) === (int) $m[1];
+        }
+        if (str_contains($promptLower, 'json')) {
+            json_decode(trim($response), true);
+            $checks[] = json_last_error() === JSON_ERROR_NONE;
+        }
+        if (str_contains($promptLower, 'table')) {
+            $checks[] = preg_match('/\|.+\|/u', $response) === 1;
+        }
+
         if ($checks === []) {
-            $hasStructure = substr_count($response, "\n") >= 2;
-            $checks = [$hasStructure, mb_strlen($response) >= 120];
+            return ['score' => null, 'detail' => 'N/A for automatic scoring: no deterministic prompt constraints were detected.'];
         }
 
         $passed = count(array_filter($checks));
-        $score = $this->clampScore(($passed / max(1, count($checks))) * 100);
-
         return [
-            'score' => $score,
+            'score' => $this->clampScore(($passed / count($checks)) * 100),
             'detail' => sprintf('Passed %d of %d detectable prompt constraints.', $passed, count($checks)),
-            'checks' => count($checks),
-            'passed' => $passed,
         ];
     }
 
-    private function qualityScore(string $response, string $prompt): array
+    private function structureScore(string $response, string $prompt): array
     {
-        $length = mb_strlen($response);
-        $lines = preg_split('/\R/u', $response) ?: [];
-        $nonEmptyLines = array_values(array_filter(array_map('trim', $lines), fn ($line) => $line !== ''));
+        $checks = [];
+        $promptLower = Str::lower($prompt);
 
-        $score = 55;
-        if ($length >= 180) $score += 12;
-        if ($length >= 350) $score += 8;
-        if ($length > 12000) $score -= 12;
-        if (count($nonEmptyLines) >= 4) $score += 8;
-        if (preg_match('/(?:^|\R)\s*(?:[-*]|\d+[.)])\s+/u', $response)) $score += 5;
-        if (preg_match('/(?:=|therefore|thus|total|final)/iu', $response)) $score += 7;
-        if (str_contains(Str::lower($prompt), 'show the calculations') && ! preg_match('/(?:=|×|\*|\+|\-|\/|%)/u', $response)) $score -= 18;
-
-        $score = $this->clampScore($score);
-
-        return [
-            'score' => $score,
-            'detail' => sprintf('Response has %d characters across %d non-empty lines; structure and task-specific explanation were checked.', $length, count($nonEmptyLines)),
-        ];
-    }
-
-    private function creativityScore(string $response, string $category): array
-    {
-        $creativeCategories = ['Writing', 'Image', 'Video', 'Audio'];
-        if (! in_array($category, $creativeCategories, true)) {
-            return [
-                'score' => 80,
-                'detail' => 'Creativity is not a primary objective for this test category, so a neutral-high score is suggested.',
-            ];
+        if (preg_match('/(?:exactly|return|provide|give)\s+(\d+)\s+(?:bullet|bullets|items|points)/iu', $prompt, $m)) {
+            preg_match_all('/(?:^|\R)\s*(?:[-*]|\d+[.)])\s+/u', $response, $matches);
+            $checks[] = count($matches[0] ?? []) === (int) $m[1];
+        }
+        if (str_contains($promptLower, 'json')) {
+            json_decode(trim($response), true);
+            $checks[] = json_last_error() === JSON_ERROR_NONE;
+        }
+        if (str_contains($promptLower, 'markdown table') || str_contains($promptLower, 'table')) {
+            $checks[] = preg_match('/\|.+\|/u', $response) === 1;
+        }
+        if (preg_match('/(?:under|maximum|max)\s+(\d+)\s+words?/iu', $prompt, $m)) {
+            $wordCount = count(preg_split('/\s+/u', trim($response), -1, PREG_SPLIT_NO_EMPTY) ?: []);
+            $checks[] = $wordCount <= (int) $m[1];
         }
 
-        $words = preg_split('/[^\pL\pN]+/u', Str::lower($response), -1, PREG_SPLIT_NO_EMPTY) ?: [];
-        if ($words === []) {
-            return ['score' => 50, 'detail' => 'Not enough text to assess originality.'];
+        if ($checks === []) {
+            return ['score' => null, 'detail' => 'N/A for automatic scoring: no explicit machine-checkable structure requirement was detected.'];
         }
 
-        $uniqueRatio = count(array_unique($words)) / max(1, count($words));
-        $score = 55 + min(40, $uniqueRatio * 65);
-
-        return [
-            'score' => $this->clampScore($score),
-            'detail' => sprintf('Lexical variety was about %d%%; this is only a lightweight originality signal.', round($uniqueRatio * 100)),
-        ];
+        $passed = count(array_filter($checks));
+        return ['score' => $this->clampScore(($passed / count($checks)) * 100), 'detail' => sprintf('Passed %d of %d detectable structure checks.', $passed, count($checks))];
     }
 
     private function speedScore(?int $latencyMs): array
     {
         if (! $latencyMs || $latencyMs <= 0) {
-            return [
-                'score' => 50,
-                'detail' => 'Latency was not recorded, so Speed uses a neutral 50/100 suggestion.',
-            ];
+            return ['score' => null, 'detail' => 'N/A: latency was not recorded, so Speed is excluded from automatic scoring.'];
         }
 
         $seconds = $latencyMs / 1000;
@@ -254,59 +237,37 @@ class AutoScoringService
             default => 30,
         };
 
-        return [
-            'score' => $score,
-            'detail' => sprintf('Recorded latency: %.2f seconds.', $seconds),
-        ];
+        return ['score' => $score, 'detail' => sprintf('Recorded latency: %.2f seconds.', $seconds)];
     }
 
-    private function confidence(string $expected, array $accuracy, array $adherence, ?int $latencyMs): int
+    private function confidence(AiTest $test, AiTestRun|AiTestResult $run, int $autoCount, int $criteriaCount): int
     {
-        $score = 45;
-        if ($expected !== '') $score += 20;
-        if (($accuracy['numeric_ratio'] ?? null) !== null) $score += 15;
-        if (($adherence['checks'] ?? 0) >= 3) $score += 10;
-        if ($latencyMs) $score += 5;
-
-        return max(35, min(95, $score));
+        if ($autoCount === 0) return 0;
+        $coverage = $criteriaCount > 0 ? $autoCount / $criteriaCount : 0;
+        $score = 35 + (int) round($coverage * 35);
+        if (filled($test->expected_output)) $score += 15;
+        if (! empty($run->latency_ms)) $score += 5;
+        return max(25, min(90, $score));
     }
 
-    private function weightedOverall(array $scores, array $weights): float
+    private function weightedOverall(array $scores, array $rubric): ?float
     {
-        $criteria = config('test_lab.criteria', []);
         $weighted = 0.0;
         $total = 0;
-
-        foreach ($criteria as $key => $definition) {
-            $field = $definition['field'];
-            $weight = max(0, (int) ($weights[$key] ?? 0));
-            if ($weight <= 0 || ! array_key_exists($field, $scores)) continue;
-            $weighted += ((float) $scores[$field]) * $weight;
+        foreach ($rubric as $criterion) {
+            $key = $criterion['key'];
+            $score = $scores[$key] ?? null;
+            $weight = max(0, (int) ($criterion['weight'] ?? 0));
+            if ($score === null || $weight <= 0) continue;
+            $weighted += (float) $score * $weight;
             $total += $weight;
         }
-
-        return $total > 0 ? round($weighted / $total, 1) : 0.0;
-    }
-
-    private function summary(array $scores, array $accuracy, array $adherence, array $quality, array $speed, int $confidence): string
-    {
-        return sprintf(
-            'Auto-evaluation suggestion (%d%% confidence). Accuracy: %d/100 — %s Prompt adherence: %d/100 — %s Quality: %d/100. Speed: %d/100 — %s Review the saved response before marking this result Verified.',
-            $confidence,
-            $scores['score_accuracy'],
-            $accuracy['detail'],
-            $scores['score_prompt_adherence'],
-            $adherence['detail'],
-            $scores['score_quality'],
-            $scores['score_speed'],
-            $speed['detail'],
-        );
+        return $total > 0 ? round($weighted / $total, 1) : null;
     }
 
     private function numbers(string $text): array
     {
         preg_match_all('/(?<![\pL\pN])\$?\s*-?\d[\d,]*(?:\.\d+)?\s*%?/u', $text, $matches);
-
         return array_values(array_filter(array_map(function ($value) {
             $value = preg_replace('/[\s,$]/u', '', (string) $value);
             $percent = str_ends_with($value, '%');
@@ -319,13 +280,9 @@ class AutoScoringService
 
     private function keywords(string $normalized): array
     {
-        $stop = array_flip([
-            'this','that','with','from','into','then','than','have','your','their','there','where','when','what','which','will','would','should','could','must','only','also','each','exact','exactly','total','answer','calculate','calculation','final','amount','monthly','current','represented','percentage','following','requirements','budget',
-        ]);
-
+        $stop = array_flip(['this','that','with','from','into','then','than','have','your','their','there','where','when','what','which','will','would','should','could','must','only','also','each','exact','exactly','total','answer','calculate','calculation','final','amount','following','requirements']);
         $words = preg_split('/[^\pL\pN]+/u', $normalized, -1, PREG_SPLIT_NO_EMPTY) ?: [];
         $words = array_values(array_unique(array_filter($words, fn ($word) => mb_strlen($word) >= 4 && ! isset($stop[$word]) && ! is_numeric($word))));
-
         return array_slice($words, 0, 40);
     }
 
@@ -334,25 +291,21 @@ class AutoScoringService
         $lines = preg_split('/\R/u', $prompt) ?: [];
         $requirements = [];
         $inRequirements = false;
-
         foreach ($lines as $line) {
             $trim = trim($line);
             if (preg_match('/^requirements?\s*:/iu', $trim)) {
                 $inRequirements = true;
                 continue;
             }
-            if ($inRequirements && preg_match('/^[-*]\s*(.+)$/u', $trim, $m)) {
-                $requirements[] = trim($m[1]);
-            }
+            if ($inRequirements && preg_match('/^[-*]\s*(.+)$/u', $trim, $m)) $requirements[] = trim($m[1]);
         }
-
         return $requirements;
     }
 
     private function requestedLabels(string $prompt): array
     {
         $labels = [];
-        if (preg_match('/calculate\s+the\s+new\s+monthly\s+amount\s+for\s*:\s*(.+?)(?:\R\s*\R|Then\s+calculate|Requirements?\s*:)/isu', $prompt, $match)) {
+        if (preg_match('/(?:return|provide|include)\s+(?:the\s+)?following\s*:\s*(.+?)(?:\R\s*\R|Requirements?\s*:|$)/isu', $prompt, $match)) {
             preg_match_all('/^\s*[-*]\s*([^\r\n]+)/mu', $match[1], $items);
             foreach ($items[1] ?? [] as $item) {
                 $label = trim(preg_replace('/[:.]+$/u', '', $item));

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Article;
 use App\Models\Comparison;
+use App\Models\ContactMessage;
 use App\Models\Company;
 use App\Models\AiModel;
 use App\Models\NewsItem;
@@ -58,6 +59,7 @@ class DashboardController extends Controller
         $pending = [
             'reviews'     => Review::where('status', 'pending')->count(),
             'submissions' => Submission::where('status', 'pending')->count(),
+            'contacts' => ContactMessage::where('status', 'new')->count(),
         ];
 
         return view('dashboard.index', compact(

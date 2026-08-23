@@ -18,6 +18,8 @@
     <meta name="saved-intent-url" content="{{ route('saved.intent') }}">
     <meta name="saved-status-url" content="{{ route('saved.status') }}">
     <meta name="login-url" content="{{ route('login') }}">
+    <meta name="search-suggest-url" content="{{ route('search.suggest') }}">
+    <meta name="search-click-url" content="{{ route('search.click') }}">
     <meta name="auth-status" content="{{ auth()->check() ? '1' : '0' }}">
     <title>@yield('title', 'AI Hub — Discover, Compare, Master AI')</title>
     <meta name="description" content="@yield('meta_description', 'Discover AI tools, models, news, comparisons, pricing and independent test results in one place.')">
@@ -28,6 +30,7 @@
     <link rel="stylesheet" href="{{ asset('css/frontend/app.css') }}">
     <link rel="stylesheet" href="{{ asset('css/frontend/community.css') }}">
     <link rel="stylesheet" href="{{ asset('css/frontend/saved.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/frontend/search-intelligence.css') }}">
     @stack('styles')
     <link rel="stylesheet" href="{{ asset('css/frontend/ui-polish.css') }}">
 </head>
@@ -53,7 +56,7 @@
         </nav>
 
         <div class="nav-actions">
-            <a class="icon-btn" href="{{ route('search.index') }}" aria-label="Search AI Hub"><i data-lucide="search"></i></a>
+            <a class="icon-btn {{ request()->routeIs('search.*') ? 'active' : '' }}" href="{{ route('search.index') }}" aria-label="Search AI Hub" data-global-search-open><i data-lucide="search"></i></a>
             <a class="icon-btn {{ request()->routeIs('saved.*') ? 'active' : '' }}" href="{{ route('saved.index') }}" aria-label="Saved library"><i data-lucide="bookmark"></i></a>
             @auth
                 @if(auth()->user()->role !== 'admin')
@@ -92,6 +95,28 @@
             @endif
         @endauth
         <a href="{{ route('home') }}">Home</a><a href="{{ route('search.index') }}">Search</a><a href="{{ route('saved.index') }}">Saved</a><a href="{{ route('categories.index') }}">Categories</a><a href="{{ route('features.index') }}">Features</a><a href="{{ route('use-cases.index') }}">Use Cases</a><a href="{{ route('topics.index') }}">Topics</a><a href="{{ route('trending.index') }}">Trending</a><a href="{{ route('benchmarks.index') }}">Benchmarks</a><a href="{{ route('tools.index') }}">AI Tools</a><a href="{{ route('models.index') }}">AI Models</a><a href="{{ route('news.index') }}">AI News</a><a href="{{ route('comparisons.index') }}">Compare</a><a href="{{ route('testlab.index') }}">Test Lab</a><a href="{{ route('pricing.index') }}">Pricing</a><a href="{{ route('reviews.index') }}">Reviews</a><a href="{{ route('articles.index') }}">Articles</a><a href="{{ route('companies.index') }}">Companies</a><a href="{{ route('about') }}">About</a><a href="{{ route('methodology') }}">Methodology</a><a href="{{ route('contact') }}">Contact</a>
+    </div>
+
+    <div class="site-search-overlay" data-site-search-modal hidden aria-hidden="true">
+        <button class="site-search-backdrop" type="button" data-global-search-close aria-label="Close search"></button>
+        <section class="site-search-panel" role="dialog" aria-modal="true" aria-label="Search AI Hub">
+            <div class="site-search-panel-head">
+                <div><span><i data-lucide="sparkles"></i> Search Intelligence</span><strong>Search across AI Hub</strong></div>
+                <button type="button" data-global-search-close aria-label="Close search"><i data-lucide="x"></i></button>
+            </div>
+            <form class="site-search-form" action="{{ route('search.index') }}" method="get" data-search-shell>
+                <i data-lucide="search"></i>
+                <input type="search" name="q" autocomplete="off" placeholder="Tools, models, companies, news, use cases..." data-search-autocomplete data-search-overlay-input>
+                <button type="submit">Search</button>
+                <div class="search-live-results site-search-live-results" data-search-suggestions hidden></div>
+            </form>
+            <div class="site-search-hints">
+                <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+                <span><kbd>Enter</kbd> open</span>
+                <span><kbd>Esc</kbd> close</span>
+                <a href="{{ route('search.index') }}">Advanced search <i data-lucide="arrow-right"></i></a>
+            </div>
+        </section>
     </div>
 
     <main>@yield('content')</main>
@@ -146,6 +171,7 @@
 </div>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script src="{{ asset('js/frontend/app.js') }}"></script>
+<script src="{{ asset('js/frontend/search-intelligence.js') }}"></script>
 <script src="{{ asset('js/frontend/saved.js') }}"></script>
 <script src="{{ asset('js/frontend/community.js') }}"></script>
 @stack('scripts')

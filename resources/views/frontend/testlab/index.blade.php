@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
 @section('title','AI Test Lab — Independent AI Model Tests | AI Hub')
-@section('meta_description','Explore transparent AI model experiments with shared prompts, weighted criteria, evidence, verification and side-by-side scores.')
+@section('meta_description','Explore controlled AI model experiments with locked prompts, test-specific rubrics, multi-run scoring, evidence and transparent verification.')
 @push('head')
 <link rel="canonical" href="{{ route('testlab.index') }}">
 <meta name="robots" content="{{ request()->query() ? 'noindex,follow' : 'index,follow,max-image-preview:large' }}">
@@ -9,7 +9,7 @@
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/testlab.css') }}">@endpush
 @section('content')
 <section class="lab-hero"><div class="lab-wrap"><div class="lab-hero-grid">
-    <div class="lab-hero-copy"><span class="lab-eyebrow"><i data-lucide="flask-conical"></i> INDEPENDENT AI TESTING</span><h1>Same task. Same rules. <span>Visible evidence.</span></h1><p>Compare AI models on controlled experiments with shared prompts, weighted scoring criteria, result metadata and verification status.</p><form class="lab-search" method="GET"><i data-lucide="search"></i><input name="q" value="{{ request('q') }}" placeholder="Search tests, prompts, use cases..."><button>Search tests</button></form><div class="lab-hero-links"><a href="{{ route('testlab.leaderboard') }}"><i data-lucide="trophy"></i>Model leaderboard</a><a href="{{ route('methodology') }}#testlab"><i data-lucide="book-open-check"></i>Testing methodology</a></div></div>
+    <div class="lab-hero-copy"><span class="lab-eyebrow"><i data-lucide="flask-conical"></i> INDEPENDENT AI TESTING</span><h1>Same task. Same rules. <span>Visible evidence.</span></h1><p>Compare AI models on controlled experiments with locked prompts, test-specific rubrics, optional multi-run verification, evidence and transparent result metadata.</p><form class="lab-search" method="GET"><i data-lucide="search"></i><input name="q" value="{{ request('q') }}" placeholder="Search tests, prompts, use cases..."><button>Search tests</button></form><div class="lab-hero-links"><a href="{{ route('testlab.leaderboard') }}"><i data-lucide="trophy"></i>Model leaderboard</a><a href="{{ route('methodology') }}#testlab"><i data-lucide="book-open-check"></i>Testing methodology</a></div></div>
     <div class="lab-hero-panel"><div class="lab-signal"><span>PUBLIC LAB INDEX</span><b>{{ number_format($stats['results']) }}</b><small>complete model results</small></div><div class="lab-mini-stats"><div><b>{{ $stats['tests'] }}</b><span>Tests</span></div><div><b>{{ $stats['models'] }}</b><span>Models</span></div><div><b>{{ $stats['verified_results'] }}</b><span>Verified</span></div><div><b>{{ $stats['categories'] }}</b><span>Categories</span></div></div></div>
 </div></div></section>
 
@@ -22,13 +22,13 @@
             <div class="lab-filter-group"><h3>Difficulty</h3><label><span><input type="radio" name="difficulty" value="" @checked(!request('difficulty'))>Any difficulty</span></label>@foreach($difficulties as $value=>$label)<label><span><input type="radio" name="difficulty" value="{{ $value }}" @checked(request('difficulty')===$value)>{{ $label }}</span></label>@endforeach</div>
             <div class="lab-filter-group"><h3>Trust</h3><label><span><input type="checkbox" name="verified" value="1" @checked(request('verified')==='1')>Verified methodology only</span></label></div>
             <button class="lab-apply">Apply filters</button>
-        </form><div class="lab-method-card"><i data-lucide="shield-check"></i><h3>Transparent scoring</h3><p>Every published test exposes its prompt, score weights and completed model results. Verification is shown separately from raw scores.</p></div></aside>
+        </form><div class="lab-method-card"><i data-lucide="shield-check"></i><h3>Transparent scoring</h3><p>Every published test exposes its locked prompt, rubric weights, completed run aggregates and verification state. Missing criteria are never replaced with neutral filler scores.</p></div></aside>
 
         <div class="lab-results">
             @forelse($tests as $test)
                 @php($ranked=$test->completedResults->sortByDesc('overall_score')->values())
                 <article class="lab-test-card {{ $test->is_featured ? 'featured' : '' }}">
-                    <div class="lab-card-top"><div class="lab-card-badges"><span class="lab-category">{{ $test->category ?: 'General' }}</span><span>{{ $difficulties[$test->difficulty] ?? ucfirst($test->difficulty) }}</span>@if($test->is_verified)<span class="verified"><i data-lucide="badge-check"></i>Verified</span>@endif</div><span class="lab-model-count"><i data-lucide="layers-3"></i>{{ $test->results_count }} models</span></div>
+                    <div class="lab-card-top"><div class="lab-card-badges"><span class="lab-category">{{ $test->testTypeLabel() }}</span><span>{{ $test->runModeLabel() }} · {{ $test->required_runs }}×</span><span>{{ $difficulties[$test->difficulty] ?? ucfirst($test->difficulty) }}</span>@if($test->is_verified)<span class="verified"><i data-lucide="badge-check"></i>Verified</span>@endif</div><span class="lab-model-count"><i data-lucide="layers-3"></i>{{ $test->results_count }} models</span></div>
                     <h3><a href="{{ route('testlab.show',$test) }}">{{ $test->name }}</a></h3>
                     <p class="lab-summary">{{ $test->short_description ?: \Illuminate\Support\Str::limit($test->prompt,150) }}</p>
                     <div class="lab-taxonomy">@if($test->feature)<a href="{{ route('features.show',$test->feature) }}"><i data-lucide="sparkles"></i>{{ $test->feature->name }}</a>@endif @if($test->useCase)<a href="{{ route('use-cases.show',$test->useCase) }}"><i data-lucide="target"></i>{{ $test->useCase->name }}</a>@endif</div>
@@ -41,7 +41,7 @@
         </div>
 
         <aside class="lab-side"><div class="lab-side-card"><div class="lab-side-title"><div><span class="side-kicker">MODEL LEADERBOARD</span><h3>Best in the lab</h3></div><a href="{{ route('testlab.leaderboard') }}">All</a></div>@forelse($leaderboard as $i=>$model)<a class="lab-leader-row" href="{{ route('models.show',$model) }}"><span class="lab-rank">{{ $i+1 }}</span><img src="{{ $model->logo_url }}" alt=""><span class="lab-model-name"><b>{{ $model->name }}</b><small>{{ $model->lab_tests }} tests · {{ $model->verified_lab_tests }} verified</small></span><strong>{{ number_format((float)$model->lab_average,1) }}</strong></a>@empty<p class="lab-side-empty">No completed results yet.</p>@endforelse</div>
-        <div class="lab-side-card"><span class="side-kicker">HOW A TEST BECOMES PUBLIC</span><div class="lab-step"><b>01</b><p><strong>Define</strong><span>One prompt, category, weights and method.</span></p></div><div class="lab-step"><b>02</b><p><strong>Run</strong><span>The same task is captured for each model.</span></p></div><div class="lab-step"><b>03</b><p><strong>Score</strong><span>Criteria are scored 0–100 with visible weights.</span></p></div><div class="lab-step"><b>04</b><p><strong>Publish</strong><span>At least two complete results are required.</span></p></div></div></aside>
+        <div class="lab-side-card"><span class="side-kicker">HOW A TEST BECOMES PUBLIC</span><div class="lab-step"><b>01</b><p><strong>Lock</strong><span>One prompt and one test-specific 100% rubric.</span></p></div><div class="lab-step"><b>02</b><p><strong>Run</strong><span>Each model receives the exact same locked task.</span></p></div><div class="lab-step"><b>03</b><p><strong>Review</strong><span>Score applicable criteria; irrelevant evidence is explicit N/A.</span></p></div><div class="lab-step"><b>04</b><p><strong>Publish</strong><span>Only complete model aggregates enter the public ranking.</span></p></div></div></aside>
     </div>
 </div></section>
 @endsection

@@ -7,7 +7,7 @@
 
 @section('content')
 @php
-    $pendingTotal = (int) ($pending['reviews'] ?? 0) + (int) ($pending['submissions'] ?? 0);
+    $pendingTotal = (int) ($pending['reviews'] ?? 0) + (int) ($pending['submissions'] ?? 0) + (int) ($pending['contacts'] ?? 0);
     $firstName = trim(explode(' ', auth()->user()->name ?? 'Admin')[0] ?? 'Admin');
 @endphp
 
@@ -82,12 +82,14 @@
                 <strong>{{ number_format($pendingTotal) }} item{{ $pendingTotal === 1 ? '' : 's' }} waiting for review</strong>
                 <p>
                     {{ number_format($pending['reviews'] ?? 0) }} review(s) and
-                    {{ number_format($pending['submissions'] ?? 0) }} tool submission(s) are currently pending.
+                    {{ number_format($pending['submissions'] ?? 0) }} tool submission(s), and
+                    {{ number_format($pending['contacts'] ?? 0) }} new contact message(s) are currently pending.
                 </p>
             </div>
             <div class="dashboard-attention__actions">
                 <a href="{{ route('admin.content.reviews.index') }}" class="btn btn-secondary btn-sm">Review queue</a>
                 <a href="{{ route('admin.submissions.index') }}" class="btn btn-secondary btn-sm">Submissions</a>
+                <a href="{{ route('admin.contact-messages.index') }}" class="btn btn-secondary btn-sm">Contact inbox</a>
             </div>
         </section>
     @endif
@@ -238,6 +240,12 @@
                     <span class="dashboard-queue-item__icon"><i data-lucide="package-plus"></i></span>
                     <span class="dashboard-queue-item__copy"><strong>Tool submissions</strong><small>Awaiting review</small></span>
                     <span class="dashboard-queue-item__count {{ ($pending['submissions'] ?? 0) > 0 ? 'is-warning' : 'is-clear' }}">{{ number_format($pending['submissions'] ?? 0) }}</span>
+                </a>
+
+                <a href="{{ route('admin.contact-messages.index') }}" class="dashboard-queue-item">
+                    <span class="dashboard-queue-item__icon"><i data-lucide="mail"></i></span>
+                    <span class="dashboard-queue-item__copy"><strong>Contact messages</strong><small>New user messages</small></span>
+                    <span class="dashboard-queue-item__count {{ ($pending['contacts'] ?? 0) > 0 ? 'is-warning' : 'is-clear' }}">{{ number_format($pending['contacts'] ?? 0) }}</span>
                 </a>
 
                 <div class="dashboard-queue-summary">
