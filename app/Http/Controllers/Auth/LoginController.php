@@ -71,9 +71,11 @@ class LoginController extends Controller
 
             $destination = $user->role === 'admin'
                 ? route('admin.dashboard')
-                : (($user->preference?->onboarding_completed)
-                    ? route('home')
-                    : route('account.onboarding'));
+                : (! $user->hasVerifiedEmail()
+                    ? route('verification.notice')
+                    : (($user->preference?->onboarding_completed)
+                        ? route('home')
+                        : route('account.onboarding')));
 
             return redirect()->intended($destination);
         }

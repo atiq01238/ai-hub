@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\EngagementAnalyticsController;
 
 use App\Http\Controllers\Frontend\FollowPreferenceController;
+use App\Http\Controllers\Frontend\EmailPreferenceController;
 
 use App\Http\Controllers\Frontend\OnboardingController;
 
@@ -72,7 +73,7 @@ Route::get('/benchmarks/{benchmark:slug}/discussion', function (Benchmark $bench
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth', EnsureAccountIsActive::class])->group(function () {
+Route::middleware(['auth', 'verified', EnsureAccountIsActive::class])->group(function () {
     // Community comments
     Route::post('/community/comments', [CommunityController::class, 'store'])
         ->middleware('throttle:15,1')
@@ -128,6 +129,11 @@ Route::middleware(['auth', EnsureAccountIsActive::class])->group(function () {
     Route::patch('/account/password', [AccountController::class, 'updatePassword'])
         ->middleware('throttle:10,1')
         ->name('account.password.update');
+
+    Route::get('/account/email-preferences', [EmailPreferenceController::class, 'edit'])
+        ->name('account.email-preferences');
+    Route::patch('/account/email-preferences', [EmailPreferenceController::class, 'update'])
+        ->middleware('throttle:20,1')->name('account.email-preferences.update');
 
     // User notifications
     Route::get('/account/notifications', [FrontendNotificationController::class, 'index'])
@@ -194,7 +200,7 @@ Route::middleware(['auth', EnsureAccountIsActive::class, 'admin'])->group(functi
 
 
 /* Six-feature intelligence upgrade */
-Route::middleware(['auth', EnsureAccountIsActive::class])->group(function () {
+Route::middleware(['auth', 'verified', EnsureAccountIsActive::class])->group(function () {
     Route::post('/search/save', [AdvancedSearchController::class, 'save'])->name('search.save');
     Route::delete('/search/saved/{savedSearch}', [AdvancedSearchController::class, 'destroySaved'])->name('search.saved.destroy');
     Route::post('/search/click', [AdvancedSearchController::class, 'click'])->name('search.click');

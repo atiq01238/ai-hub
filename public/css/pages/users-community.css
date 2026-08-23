@@ -2,3 +2,19 @@
 @media(max-width:1200px){.uc-kpi-grid--five{grid-template-columns:repeat(3,minmax(0,1fr))}.uc-filterbar{grid-template-columns:minmax(220px,1fr) 140px 170px 135px 145px auto}.uc-filterbar .btn-ghost{grid-column:1/-1;justify-self:start}}
 @media(max-width:950px){.uc-profile__layout,.uc-case__layout{grid-template-columns:1fr}.uc-profile__aside,.uc-case__aside{position:static}.uc-profile__metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.uc-filterbar,.uc-filterbar--submissions,.uc-filterbar--reports{grid-template-columns:repeat(2,minmax(0,1fr))}.uc-search{grid-column:1/-1}}
 @media(max-width:700px){.uc-kpi-grid,.uc-kpi-grid--five,.uc-profile__metrics,.uc-filterbar,.uc-filterbar--submissions,.uc-filterbar--reports{grid-template-columns:1fr}.uc-search{grid-column:auto}.uc-section-head,.uc-pagination,.uc-profile__hero,.uc-case__hero{align-items:flex-start;flex-direction:column}.uc-profile__signal,.uc-case__signal{min-width:0;width:100%;padding:14px 0 0;border-left:0;border-top:1px solid var(--uc-border)}.uc-data-grid{grid-template-columns:1fr}.uc-access-form{min-width:300px}.uc-profile__identity{align-items:flex-start;flex-direction:column}}
+
+/* User soft-delete / recovery states */
+.uc-row--deleted{opacity:.72;background:rgba(245,158,11,.018)}
+.uc-row--deleted:hover{opacity:.92}
+.uc-deleted-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border:1px solid rgba(245,158,11,.18);border-radius:999px;color:#fbbf24;background:rgba(245,158,11,.055);font-size:11.5px;font-weight:750;white-space:nowrap}
+.uc-deleted-badge svg{width:11px;height:11px}
+.uc-deleted-alert{display:flex;gap:10px;margin-bottom:16px;padding:14px 16px;border:1px solid rgba(245,158,11,.2);border-radius:13px;background:rgba(245,158,11,.045);color:#f8d276}
+.uc-deleted-alert>svg{width:19px;height:19px;flex:0 0 19px;margin-top:1px}
+.uc-deleted-alert strong{display:block;color:#fde7a4;font-size:12.5px}
+.uc-deleted-alert p{margin:4px 0;color:#c9b983;font-size:11.5px;line-height:1.5}
+.uc-deleted-alert small{color:#968b69;font-size:11px}
+.uc-action-card--restore{border-color:rgba(50,213,131,.17);background:rgba(50,213,131,.025)}
+.uc-delete-zone .input{font-weight:800;letter-spacing:.08em}
+@media (max-width:1200px){.uc-kpi-grid--five{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:720px){.uc-kpi-grid--five{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:460px){.uc-kpi-grid--five{grid-template-columns:1fr}}

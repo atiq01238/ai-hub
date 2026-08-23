@@ -77,6 +77,7 @@
             ['Activity Logs', '/admin/system/activity-logs', 'scroll-text', null, null, ['admin.system.activity-logs'], 'Security', 'View'],
             ['Backups', '/admin/system/backups', 'database-backup', null, null, ['admin.system.backups*'], 'Backups', 'View'],
             ['Notifications', '/admin/system/notifications', 'bell'],
+            ['Email Deliveries', '/admin/system/email-deliveries', 'mail-check'],
             ['Notification Rules', '/admin/system/notification-rules', 'bell-ring'],
             ['Data Verification', '/admin/system/data-verification', 'file-check-2'],
             ['Source Reliability', '/admin/system/source-reliability', 'gauge-circle'],
@@ -100,7 +101,7 @@
         '/admin/users' => ['Users','View'], '/admin/community/reviews' => ['Reviews','View'], '/admin/submissions' => ['Submissions','View'], '/admin/community/reports' => ['Reports','View'],
         '/admin/analytics/website' => ['Analytics','View'], '/admin/analytics/tools' => ['Analytics','View'], '/admin/analytics/search' => ['Analytics','View'], '/admin/analytics/comparisons' => ['Analytics','View'], '/admin/analytics/content' => ['Analytics','View'], '/admin/analytics/trending' => ['Analytics','View'], '/admin/analytics/engagement' => ['Analytics','View'],
         '/admin/system' => ['Security','View'], '/admin/system/health' => ['System Health','View'], '/admin/system/errors' => ['Error Monitoring','View'], '/admin/system/api-monitoring' => ['API Monitoring','View'], '/admin/system/security' => ['Security','View'], '/admin/system/roles' => ['Roles & Permissions','View'], '/admin/system/activity-logs' => ['Security','View'], '/admin/system/backups' => ['Backups','View'],
-        '/admin/system/notifications' => ['Notifications','View'], '/admin/system/notification-rules' => ['Notifications','View'], '/admin/system/data-verification' => ['Data Verification','View'], '/admin/system/source-reliability' => ['Source Reliability','View'], '/admin/system/news-sources' => ['News Sources','View'], '/admin/system/automation-monitor' => ['Automation','View'], '/admin/system/feature-flags' => ['Feature Flags','View'], '/admin/system/integrations' => ['Integrations','View'], '/admin/system/seo' => ['SEO','View'], '/admin/system/settings' => ['Settings','View'],
+        '/admin/system/notifications' => ['Notifications','View'], '/admin/system/email-deliveries' => ['Notifications','View'], '/admin/system/notification-rules' => ['Notifications','View'], '/admin/system/data-verification' => ['Data Verification','View'], '/admin/system/source-reliability' => ['Source Reliability','View'], '/admin/system/news-sources' => ['News Sources','View'], '/admin/system/automation-monitor' => ['Automation','View'], '/admin/system/feature-flags' => ['Feature Flags','View'], '/admin/system/integrations' => ['Integrations','View'], '/admin/system/seo' => ['SEO','View'], '/admin/system/settings' => ['Settings','View'],
     ];
     $current = request()->path();
 @endphp

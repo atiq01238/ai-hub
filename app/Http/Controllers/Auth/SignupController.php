@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use App\Services\EmailIntelligenceService;
 
 class SignupController extends Controller
 {
@@ -23,13 +25,18 @@ class SignupController extends Controller
             'password' => 'required|min:8|confirmed',
             'terms' => 'required|accepted',
         ]);
-        User::create([
+        $user = User::create([
             'name' => $validated['name'],
-            'email' => $validated['email'],
+            'email' => mb_strtolower(trim($validated['email'])),
             'password' => $validated['password'],
         ]);
 
-        return redirect()->route('login')
-            ->with('success', 'Account created successfully. You can now sign in.');
+        app(EmailIntelligenceService::class)->ensurePreferences($user);
+        Auth::login($user);
+        $request->session()->regenerate();
+        $user->sendEmailVerificationNotification();
+
+        return redirect()->route('verification.notice')
+            ->with('status', 'verification-link-sent');
     }
 }

@@ -3,6 +3,7 @@ namespace App\Observers;
 use App\Models\AppNotification;
 use App\Models\UserInteraction;
 use Illuminate\Database\Eloquent\Model;
+use App\Jobs\FanOutIntelligenceEmail;
 class FollowedEntityObserver {
  public function updated(Model $model): void {
   $type=match(true){$model instanceof \App\Models\Tool=>'tool',$model instanceof \App\Models\AiModel=>'model',$model instanceof \App\Models\Company=>'company',default=>null}; if(!$type)return;
@@ -13,5 +14,8 @@ class FollowedEntityObserver {
    $alerts=$follow->metadata['alerts']??['news','pricing','benchmark','major_update']; if(!in_array($event,$alerts,true))return;
    AppNotification::sendTo((int)$follow->user_id,'bell-ring','info',$name.' was updated','A '.ucfirst($type).' you follow has a '.str_replace('_',' ',$event).' update.',$url,'follow_'.$event);
   });
+  $publicationTransition = ($model instanceof \App\Models\Tool && $model->wasChanged('status') && $model->status === 'published')
+   || ($model instanceof \App\Models\AiModel && $model->wasChanged('status') && $model->status === 'active');
+  if(! $publicationTransition) FanOutIntelligenceEmail::dispatch('followed_update',(int)$model->getKey(),$type,$event);
  }
 }

@@ -14,8 +14,15 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
-        $query = User::query()
-            ->with('roleModel')
+        $status = (string) $request->query('status');
+
+        $query = User::query();
+
+        if ($status === 'deleted') {
+            $query->onlyTrashed();
+        }
+
+        $query->with('roleModel')
             ->withCount(['reviews', 'submissions', 'reportsReceived', 'communityComments']);
 
         if ($search = trim((string) $request->query('search'))) {
@@ -41,17 +48,15 @@ class UserController extends Controller
             }
         }
 
-        if ($status = $request->query('status')) {
-            if (in_array($status, ['active', 'suspended'], true)) {
-                $query->where('status', $status);
-            }
+        if (in_array($status, ['active', 'suspended'], true)) {
+            $query->where('status', $status);
         }
 
         match ($request->query('sort')) {
             'oldest' => $query->oldest(),
             'name' => $query->orderBy('name'),
             'most-active' => $query->orderByDesc('reviews_count')->orderByDesc('submissions_count'),
-            default => $query->latest(),
+            default => $status === 'deleted' ? $query->orderByDesc('deleted_at') : $query->latest(),
         };
 
         $stats = [
@@ -59,6 +64,7 @@ class UserController extends Controller
             'active' => User::where('status', 'active')->count(),
             'suspended' => User::where('status', 'suspended')->count(),
             'admins' => User::where('role', 'admin')->count(),
+            'deleted' => User::onlyTrashed()->count(),
         ];
 
         return view('users.index', [
@@ -70,8 +76,8 @@ class UserController extends Controller
 
     public function show(int $id)
     {
-        $user = User::query()
-            ->with(['roleModel', 'suspendedBy'])
+        $user = User::withTrashed()
+            ->with(['roleModel', 'suspendedBy', 'deletedBy'])
             ->withCount(['reviews', 'submissions', 'reportsReceived', 'reportsFiled', 'communityComments'])
             ->findOrFail($id);
 
@@ -238,6 +244,70 @@ class UserController extends Controller
         return back()->with('status', "{$user->name}'s community trust level is now " . ucfirst($data['community_trust_level']) . '.');
     }
 
+
+    public function destroy(Request $request, int $id)
+    {
+        $data = $request->validate([
+            'deletion_reason' => ['required', 'string', 'max:1000'],
+            'delete_confirmation' => ['required', 'in:DELETE'],
+        ]);
+
+        abort_if($request->user()->id === $id, 422, 'You cannot delete your own account.');
+
+        $user = User::with('roleModel')->findOrFail($id);
+        $actor = $request->user();
+        $isSystemAdmin = $user->role === 'admin' && $user->roleModel?->isSystemRole();
+
+        abort_if($isSystemAdmin && ! $actor->isSuperAdmin(), 403, 'Only a Super Admin can delete another Super Admin account.');
+
+        if ($user->status === 'active' && $isSystemAdmin) {
+            abort_unless($this->hasOtherActiveSuperAdmin($user), 422, 'The final active Super Admin cannot be deleted.');
+        }
+
+        if ($user->role === 'admin' && $user->status === 'active') {
+            $otherActiveAdmins = User::where('role', 'admin')
+                ->where('status', 'active')
+                ->where('id', '!=', $user->id)
+                ->count();
+
+            abort_if($otherActiveAdmins === 0, 422, 'The final active admin cannot be deleted.');
+        }
+
+        DB::transaction(function () use ($request, $user, $data) {
+            DB::table('sessions')->where('user_id', $user->id)->delete();
+            DB::table('password_reset_tokens')->where('email', $user->email)->delete();
+
+            $user->forceFill([
+                'deleted_by' => $request->user()->id,
+                'deletion_reason' => trim($data['deletion_reason']),
+                'remember_token' => null,
+            ])->save();
+
+            $this->logAction($request->user()->id, 'deleted', $user, $data['deletion_reason']);
+            $user->delete();
+        });
+
+        return redirect()->route('admin.users.index')
+            ->with('status', "{$user->name} has been deleted. Public/history records were preserved and active sessions were revoked.");
+    }
+
+    public function restore(Request $request, int $id)
+    {
+        $user = User::onlyTrashed()->with('roleModel')->findOrFail($id);
+
+        DB::transaction(function () use ($request, $user) {
+            $user->restore();
+            $user->forceFill([
+                'deleted_by' => null,
+                'deletion_reason' => null,
+            ])->save();
+
+            $this->logAction($request->user()->id, 'restored', $user);
+        });
+
+        return redirect()->route('admin.users.show', $user->id)
+            ->with('status', "{$user->name} has been restored. Their previous account status and content were preserved.");
+    }
 
     private function hasOtherActiveSuperAdmin(User $user): bool
     {

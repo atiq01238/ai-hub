@@ -66,3 +66,10 @@ Schedule::command('content:publish-scheduled')
     ->everyMinute()
     ->withoutOverlapping(5)
     ->appendOutputTo(storage_path('logs/content-publishing.log'));
+
+
+/* Email intelligence: weekly subscriber digest. */
+Schedule::command('email:weekly-digest')
+    ->sundays()->at('09:00')
+    ->withoutOverlapping(30)
+    ->appendOutputTo(storage_path('logs/email-weekly-digest.log'));

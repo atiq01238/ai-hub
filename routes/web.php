@@ -4,6 +4,12 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Auth\SignupController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Controllers\Auth\SocialAuthController;
+use App\Http\Controllers\Frontend\EmailPreferenceController;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Http\Request;
 
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\NewsController;
@@ -98,7 +104,7 @@ Route::get('/ai-news/{news:slug}', [FrontendNewsController::class, 'show'])->nam
 // comparison is an authenticated user action. Keep static routes before the
 // dynamic slug route so /compare/builder cannot be captured as a slug.
 Route::get('/compare', [FrontendComparisonController::class, 'index'])->name('comparisons.index');
-Route::middleware(['auth', EnsureAccountIsActive::class])->group(function () {
+Route::middleware(['auth', 'verified', EnsureAccountIsActive::class])->group(function () {
     Route::get('/compare/builder', [FrontendComparisonController::class, 'builder'])->name('comparisons.builder');
     Route::get('/compare/preview', [FrontendComparisonController::class, 'preview'])->name('comparisons.preview');
 });
@@ -145,7 +151,7 @@ Route::post('/saved/intent', [FrontendSavedController::class, 'intent'])
     ->middleware([EnsureAccountIsActive::class, 'throttle:30,1'])
     ->name('saved.intent');
 
-Route::middleware(['auth', EnsureAccountIsActive::class])->group(function () {
+Route::middleware(['auth', 'verified', EnsureAccountIsActive::class])->group(function () {
     Route::get('/saved', [FrontendSavedController::class, 'index'])
         ->name('saved.index');
 
@@ -176,7 +182,34 @@ Route::middleware('guest')->group(function () {
 
     Route::get('/auth/login', [LoginController::class, 'index'])->name('login');
     Route::post('/auth/login', [LoginController::class, 'authenticate'])->middleware('throttle:10,1')->name('login.authenticate');
+
+    Route::get('/auth/forgot-password', [ForgotPasswordController::class, 'show'])->name('password.request');
+    Route::post('/auth/forgot-password', [ForgotPasswordController::class, 'send'])->middleware('throttle:5,10')->name('password.email');
+    Route::get('/auth/reset-password/{token}', [ResetPasswordController::class, 'show'])->name('password.reset');
+    Route::post('/auth/reset-password', [ResetPasswordController::class, 'reset'])->middleware('throttle:10,10')->name('password.update');
+
+    Route::get('/auth/social/{provider}', [SocialAuthController::class, 'redirect'])
+        ->whereIn('provider', ['google', 'apple'])
+        ->name('social.redirect');
+    Route::match(['GET', 'POST'], '/auth/social/{provider}/callback', [SocialAuthController::class, 'callback'])
+        ->whereIn('provider', ['google', 'apple'])
+        ->name('social.callback');
 });
+
+Route::get('/email/verify', fn () => view('auth.verify-email'))
+    ->middleware('auth')->name('verification.notice');
+Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+    $request->fulfill();
+    return redirect()->route('account.onboarding')->with('status', 'Email verified. Welcome to AI Hub!');
+})->middleware(['auth','signed','throttle:6,1'])->name('verification.verify');
+Route::post('/email/verification-notification', function (Request $request) {
+    if ($request->user()->hasVerifiedEmail()) return redirect()->route('home');
+    $request->user()->sendEmailVerificationNotification();
+    return back()->with('status', 'verification-link-sent');
+})->middleware(['auth','throttle:6,1'])->name('verification.send');
+
+Route::get('/email/unsubscribe/{user}', [EmailPreferenceController::class, 'unsubscribe'])
+    ->middleware('signed')->name('email.unsubscribe');
 
 Route::post('/logout', [LoginController::class, 'logout'])
     ->middleware('auth')
@@ -496,6 +529,8 @@ Route::middleware(['auth', EnsureAccountIsActive::class, 'admin'])
                     RequirePermission::class . ':Users,Edit',
                     RequirePermission::class . ':Roles & Permissions,Edit',
                 ])->name('access');
+                Route::post('/{id}/restore', 'restore')->whereNumber('id')->middleware(RequirePermission::class . ':Users,Delete')->name('restore');
+                Route::delete('/{id}', 'destroy')->whereNumber('id')->middleware(RequirePermission::class . ':Users,Delete')->name('destroy');
                 Route::get('/{id}', 'show')->whereNumber('id')->middleware(RequirePermission::class . ':Users,View')->name('show');
             });
 
@@ -576,6 +611,8 @@ Route::middleware(['auth', EnsureAccountIsActive::class, 'admin'])
                     Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
                 });
             Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications');
+            Route::get('/email-deliveries', [\App\Http\Controllers\Admin\System\EmailDeliveryController::class, 'index'])
+                ->middleware(RequirePermission::class . ':Notifications,View')->name('email-deliveries');
             Route::get('/activity-logs', [\App\Http\Controllers\Admin\System\ActivityLogController::class, 'index'])->middleware(RequirePermission::class . ':Security,View')->name('activity-logs');
             Route::controller(RoleController::class)
                 ->prefix('roles')
@@ -669,7 +706,7 @@ Route::post('/suggest-tool', [PublicSubmissionController::class, 'store'])
     ->middleware('throttle:5,10')
     ->name('submissions.store');
 
-Route::middleware(['auth', EnsureAccountIsActive::class])->group(function () {
+Route::middleware(['auth', 'verified', EnsureAccountIsActive::class])->group(function () {
     Route::get('/tools/{tool}/review', [PublicReviewController::class, 'create'])->name('reviews.create');
     Route::post('/tools/{tool}/review', [PublicReviewController::class, 'store'])
         ->middleware('throttle:10,1')->name('reviews.store');

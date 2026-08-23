@@ -6,11 +6,14 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Contracts\Auth\MustVerifyEmail as MustVerifyEmailContract;
+use App\Notifications\VerifyEmailNotification;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmailContract
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
 
     public function roleModel()
     {
@@ -37,6 +40,31 @@ class User extends Authenticatable
         return $this->hasMany(SavedItem::class);
     }
 
+    public function socialAccounts()
+    {
+        return $this->hasMany(SocialAccount::class);
+    }
+
+    public function emailPreference()
+    {
+        return $this->hasOne(EmailPreference::class);
+    }
+
+    public function emailDeliveryLogs()
+    {
+        return $this->hasMany(EmailDeliveryLog::class);
+    }
+
+    public function interactions()
+    {
+        return $this->hasMany(UserInteraction::class);
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyEmailNotification());
+    }
+
     public function reportsFiled()
     {
         return $this->hasMany(Report::class, 'reporter_id');
@@ -49,7 +77,12 @@ class User extends Authenticatable
 
     public function suspendedBy()
     {
-        return $this->belongsTo(self::class, 'suspended_by');
+        return $this->belongsTo(self::class, 'suspended_by')->withTrashed();
+    }
+
+    public function deletedBy()
+    {
+        return $this->belongsTo(self::class, 'deleted_by')->withTrashed();
     }
 
     protected $fillable = [
@@ -79,6 +112,7 @@ class User extends Authenticatable
             'last_login_at' => 'datetime',
             'community_trusted_at' => 'datetime',
             'community_restricted_at' => 'datetime',
+            'deleted_at' => 'datetime',
         ];
     }
 

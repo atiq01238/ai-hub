@@ -16,7 +16,7 @@
             <form method="POST" action="{{ route('account.profile.update') }}">
                 @csrf @method('PATCH')
                 <label><span>Name</span><input name="name" value="{{ old('name',$user->name) }}" maxlength="100" required></label>
-                <label><span>Email</span><input value="{{ $user->email }}" disabled><small>Email changes are intentionally locked until verification workflow is enabled.</small></label>
+                <label><span>Email</span><input value="{{ $user->email }}" disabled><small>{{ $user->email_verified_at ? 'Email verified.' : 'Email verification is required for account actions.' }}</small></label>
                 <button type="submit"><i data-lucide="save"></i>Save profile</button>
             </form>
         </section>
@@ -30,6 +30,11 @@
                 <label><span>Confirm new password</span><input type="password" name="password_confirmation" autocomplete="new-password" required></label>
                 <button type="submit"><i data-lucide="shield-check"></i>Update password</button>
             </form>
+        </section>
+
+        <section class="account-panel settings-card">
+            <div class="settings-title"><span><i data-lucide="mail"></i></span><div><h2>Email intelligence</h2><p>Control breaking news, new model/tool, pricing, benchmark, followed entity and weekly digest emails.</p></div></div>
+            <a class="settings-link-button" href="{{ route('account.email-preferences') }}"><i data-lucide="sliders-horizontal"></i>Manage email preferences</a>
         </section>
 
         <section class="account-panel security-card">

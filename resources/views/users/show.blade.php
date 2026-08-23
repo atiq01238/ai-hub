@@ -17,7 +17,9 @@
 >
 <x-slot:actions>
     <a href="{{ route('admin.users.index') }}" class="btn btn-secondary"><i data-lucide="arrow-left"></i>Users</a>
-    @if($user->status==='suspended' && auth()->user()->canAccessModule('Users','Edit'))
+    @if($user->trashed() && auth()->user()->canAccessModule('Users','Delete'))
+        <form action="{{ route('admin.users.restore',$user->id) }}" method="POST" onsubmit="return confirm('Restore {{ addslashes($user->name) }}?')">@csrf<button class="btn btn-primary"><i data-lucide="rotate-ccw"></i>Restore Account</button></form>
+    @elseif($user->status==='suspended' && auth()->user()->canAccessModule('Users','Edit'))
         <form action="{{ route('admin.users.activate',$user->id) }}" method="POST">@csrf<button class="btn btn-primary"><i data-lucide="user-check"></i>Activate Account</button></form>
     @endif
 </x-slot:actions>
@@ -26,7 +28,16 @@
 @if(session('status'))<div class="alert alert-success uc-flash"><i data-lucide="check-circle-2"></i><span>{{ session('status') }}</span></div>@endif
 @if($errors->any())<div class="alert alert-danger uc-flash"><i data-lucide="circle-alert"></i><span>{{ $errors->first() }}</span></div>@endif
 
-@if($user->status==='suspended')
+@if($user->trashed())
+<section class="uc-deleted-alert">
+    <i data-lucide="trash-2"></i>
+    <div>
+        <strong>Account deleted</strong>
+        <p>{{ $user->deletion_reason ?: 'No deletion reason recorded.' }}</p>
+        <small>Deleted {{ $user->deleted_at?->format('M j, Y g:i A') }}@if($user->deletedBy) · by {{ $user->deletedBy->name }}@endif · public/history records are preserved</small>
+    </div>
+</section>
+@elseif($user->status==='suspended')
 <section class="uc-suspension-alert">
     <i data-lucide="shield-alert"></i>
     <div><strong>Account suspended</strong><p>{{ $user->suspension_reason ?: 'No reason recorded.' }}</p><small>{{ $user->suspended_at?->format('M j, Y g:i A') }}@if($user->suspendedBy) · by {{ $user->suspendedBy->name }}@endif @if($user->suspended_until) · until {{ $user->suspended_until->format('M j, Y g:i A') }}@endif</small></div>
@@ -39,7 +50,11 @@
         <div>
             <div class="uc-profile__badges">
                 <span class="uc-access {{ $user->role==='admin'?'is-admin':'' }}"><i data-lucide="{{ $user->role==='admin'?'shield':'user-round' }}"></i>{{ $user->role==='admin'?'Administrator':'Member' }}</span>
-                <x-status-badge status="{{ ucfirst($user->status) }}" type="{{ $user->status==='active'?'pos':'neg' }}" />
+                @if($user->trashed())
+                    <span class="uc-deleted-badge"><i data-lucide="trash-2"></i>Deleted</span>
+                @else
+                    <x-status-badge status="{{ ucfirst($user->status) }}" type="{{ $user->status==='active'?'pos':'neg' }}" />
+                @endif
                 <span class="uc-access {{ $user->community_trust_level==='trusted'?'is-admin':'' }}">
                     <i data-lucide="{{ $user->community_trust_level==='trusted'?'badge-check':($user->community_trust_level==='restricted'?'shield-alert':'user-check') }}"></i>
                     {{ ucfirst($user->community_trust_level ?? 'normal') }} community
@@ -100,7 +115,11 @@
         <dl>
             <div><dt>Access</dt><dd>{{ $user->role==='admin'?'Administrator':'Member' }}</dd></div>
             <div><dt>Permission role</dt><dd>{{ $user->role==='admin' ? ($user->roleModel?->name ?? 'Legacy admin') : 'Not applicable' }}</dd></div>
-            <div><dt>Status</dt><dd>{{ ucfirst($user->status) }}</dd></div>
+            <div><dt>Status</dt><dd>{{ $user->trashed() ? 'Deleted' : ucfirst($user->status) }}</dd></div>
+            @if($user->trashed())
+                <div><dt>Deleted</dt><dd>{{ $user->deleted_at?->format('M j, Y') }}</dd></div>
+                <div><dt>Deleted by</dt><dd>{{ $user->deletedBy?->name ?? 'Unknown admin' }}</dd></div>
+            @endif
             <div><dt>Joined</dt><dd>{{ $user->created_at->format('M j, Y') }}</dd></div>
             <div><dt>Community trust</dt><dd>{{ ucfirst($user->community_trust_level ?? 'normal') }}</dd></div>
             <div><dt>Published comments</dt><dd>{{ $communityStats['published'] ?? 0 }}</dd></div>
@@ -109,7 +128,7 @@
         </dl>
     </section>
 
-    @if(auth()->id() !== $user->id && auth()->user()->canAccessModule('Users','Edit') && auth()->user()->canAccessModule('Roles & Permissions','Edit'))
+    @if(! $user->trashed() && auth()->id() !== $user->id && auth()->user()->canAccessModule('Users','Edit') && auth()->user()->canAccessModule('Roles & Permissions','Edit'))
     <section class="card uc-action-card">
         <span class="uc-eyebrow">Access Control</span>
         <h3>Update account access</h3>
@@ -123,7 +142,7 @@
     @endif
 
 
-    @if(auth()->id() !== $user->id && auth()->user()->canAccessModule('Users','Edit'))
+    @if(! $user->trashed() && auth()->id() !== $user->id && auth()->user()->canAccessModule('Users','Edit'))
     <section class="card uc-action-card">
         <span class="uc-eyebrow">Community Trust</span>
         <h3>Moderation level</h3>
@@ -153,7 +172,7 @@
     </section>
     @endif
 
-    @if($user->status==='active' && auth()->id() !== $user->id && auth()->user()->canAccessModule('Users','Edit'))
+    @if(! $user->trashed() && $user->status==='active' && auth()->id() !== $user->id && auth()->user()->canAccessModule('Users','Edit'))
     <section class="card uc-action-card uc-action-card--danger">
         <span class="uc-eyebrow">Account Safety</span>
         <h3>Suspend account</h3>
@@ -163,6 +182,32 @@
             <label><span>Reason <b>*</b></span><textarea class="textarea" name="suspension_reason" rows="4" required placeholder="Policy or safety reason..."></textarea></label>
             <label><span>Suspended until</span><input class="input" type="datetime-local" name="suspended_until"></label>
             <button class="btn btn-danger" type="submit"><i data-lucide="user-x"></i>Suspend Account</button>
+        </form>
+    </section>
+    @endif
+
+    @if(! $user->trashed() && auth()->id() !== $user->id && auth()->user()->canAccessModule('Users','Delete'))
+    <section class="card uc-action-card uc-action-card--danger uc-delete-zone">
+        <span class="uc-eyebrow">Danger Zone</span>
+        <h3>Delete account</h3>
+        <p>Soft deletion blocks sign-in, revokes sessions and preserves public/history records. A deleted account can be restored by an authorized admin.</p>
+        <form action="{{ route('admin.users.destroy',$user->id) }}" method="POST" onsubmit="return confirm('Delete {{ addslashes($user->name) }}? This account will be signed out immediately.')">
+            @csrf @method('DELETE')
+            <label><span>Deletion reason <b>*</b></span><textarea class="textarea" name="deletion_reason" rows="4" required maxlength="1000" placeholder="Why is this account being deleted?"></textarea></label>
+            <label><span>Type DELETE to confirm <b>*</b></span><input class="input" type="text" name="delete_confirmation" required autocomplete="off" pattern="DELETE" placeholder="DELETE"></label>
+            <button class="btn btn-danger" type="submit"><i data-lucide="trash-2"></i>Delete Account</button>
+        </form>
+    </section>
+    @endif
+
+    @if($user->trashed() && auth()->user()->canAccessModule('Users','Delete'))
+    <section class="card uc-action-card uc-action-card--restore">
+        <span class="uc-eyebrow">Recovery</span>
+        <h3>Restore account</h3>
+        <p>Restore this user with their previous content, role, preferences and account status intact.</p>
+        <form action="{{ route('admin.users.restore',$user->id) }}" method="POST" onsubmit="return confirm('Restore {{ addslashes($user->name) }}?')">
+            @csrf
+            <button class="btn btn-primary" type="submit"><i data-lucide="rotate-ccw"></i>Restore Account</button>
         </form>
     </section>
     @endif

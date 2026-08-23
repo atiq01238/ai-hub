@@ -20,12 +20,13 @@
         <div class="alert alert-danger uc-flash"><i data-lucide="circle-alert"></i><span>{{ $errors->first() }}</span></div>
     @endif
 
-    <section class="uc-kpi-grid">
+    <section class="uc-kpi-grid uc-kpi-grid--five">
         @foreach([
             ['label'=>'Total Users','value'=>$stats['total'],'icon'=>'users','tone'=>''],
             ['label'=>'Active','value'=>$stats['active'],'icon'=>'user-check','tone'=>'green'],
             ['label'=>'Suspended','value'=>$stats['suspended'],'icon'=>'user-x','tone'=>'red'],
             ['label'=>'Administrators','value'=>$stats['admins'],'icon'=>'shield-check','tone'=>'violet'],
+            ['label'=>'Deleted','value'=>$stats['deleted'],'icon'=>'trash-2','tone'=>'amber'],
         ] as $item)
             <article class="uc-kpi uc-kpi--{{ $item['tone'] }}">
                 <span><i data-lucide="{{ $item['icon'] }}"></i></span>
@@ -60,6 +61,7 @@
             <option value="">All statuses</option>
             <option value="active" @selected(request('status')==='active')>Active</option>
             <option value="suspended" @selected(request('status')==='suspended')>Suspended</option>
+            <option value="deleted" @selected(request('status')==='deleted')>Deleted</option>
         </select>
         <select class="select" name="sort">
             <option value="newest" @selected(request('sort','newest')==='newest')>Newest first</option>
@@ -102,7 +104,7 @@
                         @php
                             $initials = collect(preg_split('/\s+/', trim($user->name)))->filter()->take(2)->map(fn($p)=>mb_strtoupper(mb_substr($p,0,1)))->implode('');
                         @endphp
-                        <tr>
+                        <tr class="{{ $user->trashed() ? 'uc-row--deleted' : '' }}">
                             <td>
                                 <div class="uc-user">
                                     <a class="uc-avatar" href="{{ route('admin.users.show',$user->id) }}">{{ $initials ?: 'U' }}</a>
@@ -119,7 +121,7 @@
                                 </span>
                             </td>
                             <td>
-                                @if(auth()->id() !== $user->id && auth()->user()->canAccessModule('Users','Edit') && auth()->user()->canAccessModule('Roles & Permissions','Edit'))
+                                @if(! $user->trashed() && auth()->id() !== $user->id && auth()->user()->canAccessModule('Users','Edit') && auth()->user()->canAccessModule('Roles & Permissions','Edit'))
                                     <form action="{{ route('admin.users.access',$user->id) }}" method="POST" class="uc-access-form" onsubmit="return confirm('Update {{ addslashes($user->name) }} access and revoke active sessions?')">
                                         @csrf @method('PATCH')
                                         <select class="select" name="access_level">
@@ -156,8 +158,14 @@
                                 <small class="uc-muted">{{ $user->community_comments_count }} comments</small>
                             </td>
                             <td><span class="uc-muted">{{ $user->created_at->format('M j, Y') }}<small>{{ $user->created_at->diffForHumans() }}</small></span></td>
-                            <td><x-status-badge status="{{ ucfirst($user->status) }}" type="{{ $user->status==='active'?'pos':'neg' }}" /></td>
-                            <td><a href="{{ route('admin.users.show',$user->id) }}" class="btn btn-secondary btn-sm"><i data-lucide="user-round-cog"></i>Manage</a></td>
+                            <td>
+                                @if($user->trashed())
+                                    <span class="uc-deleted-badge"><i data-lucide="trash-2"></i>Deleted</span>
+                                @else
+                                    <x-status-badge status="{{ ucfirst($user->status) }}" type="{{ $user->status==='active'?'pos':'neg' }}" />
+                                @endif
+                            </td>
+                            <td><a href="{{ route('admin.users.show',$user->id) }}" class="btn btn-secondary btn-sm"><i data-lucide="{{ $user->trashed() ? 'eye' : 'user-round-cog' }}"></i>{{ $user->trashed() ? 'View' : 'Manage' }}</a></td>
                         </tr>
                     @endforeach
                     </tbody>

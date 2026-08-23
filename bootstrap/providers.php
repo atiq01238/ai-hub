@@ -4,5 +4,6 @@ use App\Providers\AppServiceProvider;
 
 return [
     AppServiceProvider::class,
+    SocialiteProviders\Manager\ServiceProvider::class,
     App\Providers\UserActionServiceProvider::class,
 ];
