@@ -299,19 +299,39 @@
                     <tbody>
                     @forelse ($priceChanges as $change)
                         @php
-                            $pct = ($change->old_price && $change->new_price)
-                                ? round((($change->new_price - $change->old_price) / $change->old_price) * 100)
-                                : null;
+                            $oldPrice = $change->old_price !== null ? (float) $change->old_price : null;
+                            $newPrice = $change->new_price !== null ? (float) $change->new_price : null;
+
+                            $pct = null;
+                            $changeLabel = null;
+                            $changeBadgeClass = 'badge-neutral';
+
+                            if ($oldPrice !== null && $oldPrice > 0 && $newPrice !== null) {
+                                $pct = round((($newPrice - $oldPrice) / $oldPrice) * 100);
+                                $changeBadgeClass = $pct > 0 ? 'badge-neg' : 'badge-pos';
+                            } elseif ($oldPrice === 0.0 && $newPrice !== null && $newPrice > 0) {
+                                $changeLabel = 'Free → Paid';
+                                $changeBadgeClass = 'badge-neg';
+                            } elseif ($oldPrice !== null && $oldPrice > 0 && $newPrice === 0.0) {
+                                $changeLabel = 'Now Free';
+                                $changeBadgeClass = 'badge-pos';
+                            } elseif ($change->change_type === 'new_plan') {
+                                $changeLabel = 'New Plan';
+                            } elseif ($change->change_type === 'removed_plan' || $newPrice === null) {
+                                $changeLabel = 'Removed';
+                            } else {
+                                $changeLabel = 'Updated';
+                            }
                         @endphp
                         <tr>
                             <td><strong>{{ $change->tool->name ?? '—' }}</strong></td>
-                            <td class="dashboard-mono dashboard-muted">{{ $change->old_price !== null ? '$'.number_format($change->old_price, 0) : '—' }}</td>
-                            <td class="dashboard-mono">{{ $change->new_price !== null ? '$'.number_format($change->new_price, 0) : '—' }}</td>
+                            <td class="dashboard-mono dashboard-muted">{{ $oldPrice !== null ? '$'.number_format($oldPrice, 0) : '—' }}</td>
+                            <td class="dashboard-mono">{{ $newPrice !== null ? '$'.number_format($newPrice, 0) : '—' }}</td>
                             <td>
                                 @if ($pct !== null)
-                                    <span class="badge {{ $pct > 0 ? 'badge-neg' : 'badge-pos' }}">{{ $pct > 0 ? '+' : '' }}{{ $pct }}%</span>
+                                    <span class="badge {{ $changeBadgeClass }}">{{ $pct > 0 ? '+' : '' }}{{ $pct }}%</span>
                                 @else
-                                    <span class="badge badge-neutral">{{ $change->change_type === 'new_plan' ? 'New Plan' : 'Removed' }}</span>
+                                    <span class="badge {{ $changeBadgeClass }}">{{ $changeLabel }}</span>
                                 @endif
                             </td>
                         </tr>

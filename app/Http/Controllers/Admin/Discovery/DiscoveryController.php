@@ -9,8 +9,8 @@ use App\Models\DiscoverySource;
 use App\Models\Tool;
 use App\Models\NewsItem;
 use App\Models\Setting;
+use App\Jobs\RefreshAiDiscovery;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -42,8 +42,9 @@ class DiscoveryController extends Controller
         $discoveries = $query->latest()->paginate(20)->withQueryString();
         $stats = [
             'pending' => AiDiscovery::where('status', 'pending')->count(),
-            'models' => AiDiscovery::where('status', 'pending')->whereIn('entity_type', ['model', 'model_update'])->count(),
-            'tools' => AiDiscovery::where('status', 'pending')->whereIn('entity_type', ['tool', 'tool_update'])->count(),
+            'models' => AiDiscovery::where('status', 'pending')->where('entity_type', 'model')->count(),
+            'tools' => AiDiscovery::where('status', 'pending')->where('entity_type', 'tool')->count(),
+            'updates' => AiDiscovery::where('status', 'pending')->whereIn('entity_type', ['model_update', 'tool_update'])->count(),
             'high_confidence' => AiDiscovery::where('status', 'pending')->where('confidence', '>=', 85)->count(),
         ];
         $sources = DiscoverySource::with('newsSource')->orderByDesc('trusted')->orderBy('id')->get();
@@ -52,6 +53,9 @@ class DiscoveryController extends Controller
             'health_status' => Setting::get('ai_discovery_health_status', 'not_checked'),
             'health_checked_at' => Setting::get('ai_discovery_health_checked_at'),
             'health_message' => Setting::get('ai_discovery_health_message', 'Health check has not run yet.'),
+            'refresh_status' => Setting::get('ai_discovery_refresh_status', 'not_run'),
+            'refresh_finished_at' => Setting::get('ai_discovery_refresh_finished_at'),
+            'refresh_message' => Setting::get('ai_discovery_refresh_message', 'Use Refresh Market to fetch fresh RSS entries and detect new tools/models.'),
             'enabled_sources' => $enabledSourceIds->count(),
             'unanalyzed' => $enabledSourceIds->isEmpty() ? 0 : NewsItem::whereIn('news_source_id', $enabledSourceIds)->whereNull('discovery_analyzed_at')->count(),
         ];
@@ -164,16 +168,13 @@ class DiscoveryController extends Controller
 
     public function scanNow()
     {
-        $exit = Artisan::call('discovery:scan', ['--limit' => 500]);
-        $output = trim(Artisan::output());
+        Setting::set('ai_discovery_refresh_status', 'queued');
+        Setting::set('ai_discovery_refresh_queued_at', now()->toDateTimeString());
+        Setting::set('ai_discovery_refresh_message', 'Market refresh queued. Fresh RSS entries will be fetched before discovery analysis.');
 
-        if ($exit !== 0) {
-            return back()->with('error', $output !== '' ? $output : 'Discovery scan failed. Check the application log.');
-        }
+        RefreshAiDiscovery::dispatch(250);
 
-        Artisan::call('discovery:health-check');
-
-        return back()->with('status', $output !== '' ? $output : 'Discovery scan completed.');
+        return back()->with('status', 'Market refresh queued. Keep the queue worker running, then reload this page to see new discoveries.');
     }
 
     public function updateSource(Request $request, int $id)

@@ -1,4 +1,13 @@
 @php
+    $discoveryModels = (int) ($discoveryNavCounts['models'] ?? 0);
+    $discoveryTools = (int) ($discoveryNavCounts['tools'] ?? 0);
+    $discoveryUpdates = (int) ($discoveryNavCounts['updates'] ?? 0);
+    $discoveryBadgeParts = [];
+    if ($discoveryModels > 0) $discoveryBadgeParts[] = 'M'.$discoveryModels;
+    if ($discoveryTools > 0) $discoveryBadgeParts[] = 'T'.$discoveryTools;
+    if ($discoveryUpdates > 0 && $discoveryModels === 0 && $discoveryTools === 0) $discoveryBadgeParts[] = 'U'.$discoveryUpdates;
+    $discoveryBadge = $discoveryBadgeParts ? implode(' · ', $discoveryBadgeParts) : null;
+
     // Each item: [label, url path, icon, badge(optional), badgeType(optional)]
     $navGroups = [
         'Dashboard' => [
@@ -6,7 +15,7 @@
         ],
         'AI Intelligence' => [
             ['AI News Feed', '/admin/news', 'newspaper', null, null, ['admin.news.index']],
-            ['AI Discovery', '/admin/discovery', 'radar', null, null, ['admin.discovery.*']],
+            ['AI Discovery', '/admin/discovery', 'radar', $discoveryBadge, 'warn', ['admin.discovery.*']],
             ['Breaking News', '/admin/news/breaking', 'zap'],
             ['Trending AI', '/admin/news/trending', 'trending-up'],
             ['AI Updates', '/admin/news/updates', 'refresh-cw'],

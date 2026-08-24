@@ -6,6 +6,7 @@ use App\Models\AiDiscovery;
 use App\Models\AppNotification;
 use App\Models\DiscoverySource;
 use App\Models\NewsItem;
+use App\Models\NewsSource;
 use App\Models\Setting;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Schema;
@@ -37,16 +38,26 @@ class DiscoveryHealthCheck extends Command
             return self::FAILURE;
         }
 
-        $enabledSourceIds = DiscoverySource::where('enabled', true)->pluck('news_source_id');
+        $activeNewsSources = NewsSource::where('status', 'active')->count();
+        $enabledSourceIds = DiscoverySource::where('enabled', true)
+            ->whereHas('newsSource', fn ($query) => $query->where('status', 'active'))
+            ->pluck('news_source_id');
         $enabledSources = $enabledSourceIds->count();
         $trustedSources = DiscoverySource::where('enabled', true)->where('trusted', true)->count();
         $unanalyzed = $enabledSourceIds->isEmpty() ? 0 : NewsItem::whereIn('news_source_id', $enabledSourceIds)->whereNull('discovery_analyzed_at')->count();
         $pending = AiDiscovery::where('status', 'pending')->count();
         $highConfidence = AiDiscovery::where('status', 'pending')->where('confidence', '>=', 85)->count();
+        $lastSuccessfulFetch = NewsSource::where('status', 'active')->whereNotNull('last_success_at')->max('last_success_at');
 
         $issues = [];
         if ($enabledSources === 0) {
             $issues[] = 'No discovery sources are enabled';
+        }
+        if ($activeNewsSources > $enabledSources) {
+            $issues[] = ($activeNewsSources - $enabledSources).' active RSS source(s) are not enabled for discovery';
+        }
+        if (! $lastSuccessfulFetch || \Illuminate\Support\Carbon::parse($lastSuccessfulFetch)->lt(now()->subHours(6))) {
+            $issues[] = 'No successful RSS collection has been recorded in the last 6 hours';
         }
         if ($unanalyzed > 1000) {
             $issues[] = "{$unanalyzed} RSS items are waiting for discovery analysis";
@@ -57,7 +68,7 @@ class DiscoveryHealthCheck extends Command
 
         $status = $issues === [] ? 'healthy' : 'attention';
         $message = $issues === []
-            ? "Discovery healthy: {$enabledSources} enabled sources ({$trustedSources} trusted), {$pending} pending discoveries, {$unanalyzed} items awaiting analysis."
+            ? "Discovery healthy: {$enabledSources}/{$activeNewsSources} active sources enabled ({$trustedSources} trusted), {$pending} pending discoveries, {$unanalyzed} items awaiting analysis."
             : implode('; ', $issues).'.';
 
         $this->line($message);

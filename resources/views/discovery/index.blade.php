@@ -2,18 +2,18 @@
 @section('title','AI Discovery')
 @push('styles')<link rel="stylesheet" href="{{ asset('css/pages/discovery.css') }}">@endpush
 @section('content')
-<x-page-header title="AI Discovery" subtitle="Automatically surface new AI tools, models and meaningful product updates from your existing RSS intelligence pipeline." :breadcrumb="['AI Intelligence','AI Discovery']">
-    <x-slot:actions><form method="POST" action="{{ route('admin.discovery.scan-now') }}" class="discovery-scan-form">@csrf<button class="btn btn-primary btn-sm"><i data-lucide="scan-search"></i> Scan Now</button></form><a class="btn btn-secondary btn-sm" href="{{ route('admin.system.news-sources') }}"><i data-lucide="rss"></i> Manage RSS Sources</a></x-slot:actions>
+<x-page-header title="AI Discovery" subtitle="Fetch fresh monitored AI-market RSS sources, detect new tools/models, and route every candidate into an admin review inbox." :breadcrumb="['AI Intelligence','AI Discovery']">
+    <x-slot:actions><form method="POST" action="{{ route('admin.discovery.scan-now') }}" class="discovery-scan-form">@csrf<button class="btn btn-primary btn-sm"><i data-lucide="refresh-cw"></i> Refresh Market</button></form><a class="btn btn-secondary btn-sm" href="{{ route('admin.system.news-sources') }}"><i data-lucide="rss"></i> Manage RSS Sources</a></x-slot:actions>
 </x-page-header>
 @if(session('status'))<div class="alert alert-success discovery-alert"><i data-lucide="circle-check"></i>{{ session('status') }}</div>@endif
 @if(session('error'))<div class="alert alert-danger discovery-alert"><i data-lucide="triangle-alert"></i>{{ session('error') }}</div>@endif
 <div class="discovery-stats">
-@foreach([['Pending',$stats['pending'],'radar'],['Models',$stats['models'],'brain-circuit'],['Tools',$stats['tools'],'wrench'],['High confidence',$stats['high_confidence'],'badge-check']] as [$label,$value,$icon])
+@foreach([['Pending',$stats['pending'],'radar'],['New models',$stats['models'],'brain-circuit'],['New tools',$stats['tools'],'wrench'],['Updates',$stats['updates'],'refresh-cw']] as [$label,$value,$icon])
 <div class="card discovery-stat"><span><i data-lucide="{{ $icon }}"></i></span><div><strong>{{ number_format($value) }}</strong><small>{{ $label }}</small></div></div>
 @endforeach
 </div>
 <div class="card discovery-runtime {{ $runtime['health_status']==='attention' || $runtime['health_status']==='failed' ? 'needs-attention' : '' }}">
-<div class="discovery-runtime-icon"><i data-lucide="activity"></i></div><div><strong>Discovery Automation</strong><p>{{ $runtime['health_message'] }}</p></div><div class="discovery-runtime-meta"><span><b>{{ number_format($runtime['enabled_sources']) }}</b> enabled sources</span><span><b>{{ number_format($runtime['unanalyzed']) }}</b> waiting</span><span>{{ $runtime['health_checked_at'] ? 'Checked '.\Illuminate\Support\Carbon::parse($runtime['health_checked_at'])->diffForHumans() : 'Health check pending' }}</span></div>
+<div class="discovery-runtime-icon"><i data-lucide="activity"></i></div><div><strong>Discovery Automation</strong><p>{{ $runtime['refresh_message'] ?: $runtime['health_message'] }}</p></div><div class="discovery-runtime-meta"><span><b>{{ number_format($runtime['enabled_sources']) }}</b> enabled sources</span><span><b>{{ number_format($runtime['unanalyzed']) }}</b> waiting</span><span><b>{{ ucfirst(str_replace('_',' ', $runtime['refresh_status'])) }}</b> refresh</span><span>{{ $runtime['refresh_finished_at'] ? 'Finished '.\Illuminate\Support\Carbon::parse($runtime['refresh_finished_at'])->diffForHumans() : ($runtime['health_checked_at'] ? 'Health checked '.\Illuminate\Support\Carbon::parse($runtime['health_checked_at'])->diffForHumans() : 'Health check pending') }}</span></div>
 </div>
 <div class="card discovery-filter-card">
 <form method="GET" class="discovery-filters">
@@ -43,7 +43,7 @@
 @else<form method="POST" action="{{ route('admin.discovery.restore',$item->id) }}">@csrf<button class="btn btn-secondary btn-xs"><i data-lucide="rotate-ccw"></i>Restore to Pending</button></form>@endif
 <a class="btn btn-ghost btn-xs" href="{{ route('admin.discovery.show',$item->id) }}"><i data-lucide="arrow-up-right"></i>Review</a>
 </div></div></article>
-@empty<div class="discovery-empty"><i data-lucide="radar"></i><h3>No discoveries match these filters</h3><p>New RSS entries are analyzed automatically after collection. You can also run <code>php artisan discovery:scan</code> once to analyze existing news.</p></div>@endforelse
+@empty<div class="discovery-empty"><i data-lucide="radar"></i><h3>No discoveries match these filters</h3><p>No pending discoveries yet. Use <b>Refresh Market</b> to fetch fresh RSS entries first; the scheduler will keep doing the same automatically when it is running.</p></div>@endforelse
 @if($discoveries->hasPages())<div class="discovery-pagination">{{ $discoveries->links() }}</div>@endif
 </section>
 <aside class="card discovery-source-card"><div class="discovery-card-head"><div><span class="discovery-eyebrow">SOURCE CONTROL</span><h2>RSS discovery rules</h2></div></div><p class="discovery-source-intro">These settings control discovery only. They do not disable normal news collection.</p>

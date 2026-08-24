@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Report;
+use App\Models\AiDiscovery;
 use App\Models\Review;
 use App\Models\Submission;
 use App\Models\CommunityComment;
@@ -109,7 +110,28 @@ class AppServiceProvider extends ServiceProvider
                 $counts['contacts'] = ContactMessage::where('status', 'new')->count();
             }
 
+            $discoveryCounts = [
+                'models' => 0,
+                'tools' => 0,
+                'updates' => 0,
+                'total' => 0,
+            ];
+
+            if (Schema::hasTable('ai_discoveries')) {
+                $grouped = AiDiscovery::query()
+                    ->where('status', 'pending')
+                    ->selectRaw('entity_type, COUNT(*) as aggregate')
+                    ->groupBy('entity_type')
+                    ->pluck('aggregate', 'entity_type');
+
+                $discoveryCounts['models'] = (int) ($grouped['model'] ?? 0);
+                $discoveryCounts['tools'] = (int) ($grouped['tool'] ?? 0);
+                $discoveryCounts['updates'] = (int) (($grouped['model_update'] ?? 0) + ($grouped['tool_update'] ?? 0));
+                $discoveryCounts['total'] = $discoveryCounts['models'] + $discoveryCounts['tools'] + $discoveryCounts['updates'];
+            }
+
             $view->with('communityNavCounts', $counts);
+            $view->with('discoveryNavCounts', $discoveryCounts);
         });
     }
 }
