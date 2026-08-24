@@ -92,13 +92,20 @@ class PricingDetectionService
                 'User-Agent' => 'AI-Orbit-Pricing-Monitor/1.0 (+pricing verification)',
                 'Accept-Language' => 'en-US,en;q=0.9',
             ])
-            ->connectTimeout(8)
-            ->timeout(18)
-            ->retry(2, 500, throw: false)
+            ->connectTimeout(5)
+            ->timeout(12)
             ->get($source->source_url);
 
         if (! $response->successful()) {
-            throw new RuntimeException("Source returned HTTP {$response->status()}.");
+            $status = $response->status();
+
+            $message = match ($status) {
+                401, 403 => "Source returned HTTP {$status}; the provider blocks automated monitoring. Verify this source manually or replace it with an accessible official endpoint.",
+                429 => 'Source returned HTTP 429 (rate limited). Try again later or reduce monitoring frequency.',
+                default => "Source returned HTTP {$status}.",
+            };
+
+            throw new RuntimeException($message);
         }
 
         return match ($source->source_type) {

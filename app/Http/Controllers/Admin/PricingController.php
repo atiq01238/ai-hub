@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\CheckPricingSource;
 use App\Models\DetectedPriceChange;
 use App\Models\PricingHistory;
 use App\Models\PricingPlan;
@@ -102,17 +103,18 @@ class PricingController extends Controller
         return back()->with('status', 'Pricing source removed.');
     }
 
-    public function checkSource(int $id, int $sourceId, PricingDetectionService $service)
+    public function checkSource(int $id, int $sourceId)
     {
         $plan = PricingPlan::findOrFail($id);
         $source = $plan->sources()->findOrFail($sourceId);
-        $stats = $service->scan($source->id, null);
 
-        $message = $stats['failed'] > 0
-            ? 'Source check failed. See the source status for details.'
-            : ($stats['changes'] > 0 ? 'Change detected and sent to review.' : 'Source checked successfully; no change detected.');
+        if (! $source->enabled) {
+            return back()->with('error', 'This pricing source is disabled. Enable it before running a check.');
+        }
 
-        return back()->with($stats['failed'] > 0 ? 'error' : 'status', $message);
+        CheckPricingSource::dispatch($source->id);
+
+        return back()->with('status', 'Pricing source check queued. The result will appear here after the queue worker processes it.');
     }
 
     public function changes(Request $request)
@@ -138,13 +140,24 @@ class PricingController extends Controller
         return view('pricing.changes', compact('changes', 'counts', 'status'));
     }
 
-    public function runDetection(PricingDetectionService $service)
+    public function runDetection()
     {
-        $stats = $service->scan();
+        $sourceIds = PricingSource::query()
+            ->where('enabled', true)
+            ->orderBy('id')
+            ->pluck('id');
+
+        if ($sourceIds->isEmpty()) {
+            return back()->with('error', 'No enabled pricing sources are available to scan.');
+        }
+
+        foreach ($sourceIds as $sourceId) {
+            CheckPricingSource::dispatch((int) $sourceId);
+        }
 
         return back()->with(
             'status',
-            "Pricing scan complete: {$stats['checked']} checked, {$stats['changes']} change(s), {$stats['unchanged']} unchanged, {$stats['failed']} failed."
+            'Queued ' . $sourceIds->count() . ' pricing source checks. Keep the queue worker running; results update in the background.'
         );
     }
 

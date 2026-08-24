@@ -18,7 +18,7 @@
                 @csrf
                 <button class="btn btn-primary" type="submit">
                     <i data-lucide="radar"></i>
-                    Scan All Sources
+                    Queue All Source Checks
                 </button>
             </form>
         </x-slot:actions>
@@ -26,6 +26,9 @@
 
     @if(session('status'))
         <div class="alert alert-success pricing-flash"><i data-lucide="check-circle-2"></i><span>{{ session('status') }}</span></div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-danger pricing-flash"><i data-lucide="circle-alert"></i><span>{{ session('error') }}</span></div>
     @endif
 
     <section class="pricing-review-summary">
