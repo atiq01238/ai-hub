@@ -30,7 +30,6 @@ class SearchController extends Controller
         $articles = $payload['results']['articles'];
         $comparisons = $payload['results']['comparisons'];
         $benchmarks = $payload['results']['benchmarks'];
-        $tests = $payload['results']['tests'];
 
         if ($query !== '') {
             SearchEvent::create([
@@ -62,7 +61,7 @@ class SearchController extends Controller
         $correction = $query !== '' && $total === 0 ? $search->suggestCorrection($query) : null;
 
         return view('frontend.search.index', compact(
-            'query', 'type', 'counts', 'tools', 'models', 'news', 'companies', 'articles', 'comparisons', 'benchmarks', 'tests',
+            'query', 'type', 'counts', 'tools', 'models', 'news', 'companies', 'articles', 'comparisons', 'benchmarks',
             'popularCategories', 'trendingTools', 'recentSearches', 'savedSearches', 'trendingSearches',
             'discoveryPaths', 'correction', 'total'
         ));
@@ -84,7 +83,7 @@ class SearchController extends Controller
     {
         $data = $request->validate([
             'query' => 'required|string|max:180',
-            'type' => 'nullable|in:all,tools,models,news,companies,articles,comparisons,benchmarks,tests',
+            'type' => 'nullable|in:all,tools,models,news,companies,articles,comparisons,benchmarks',
         ]);
 
         SavedSearch::firstOrCreate([
@@ -108,7 +107,7 @@ class SearchController extends Controller
     {
         $data = $request->validate([
             'query' => 'required|string|max:180',
-            'target_type' => 'required|in:tool,model,news,company,article,comparison,benchmark,test',
+            'target_type' => 'required|in:tool,model,news,company,article,comparison,benchmark',
             'target_id' => 'required|integer|min:1',
         ]);
 

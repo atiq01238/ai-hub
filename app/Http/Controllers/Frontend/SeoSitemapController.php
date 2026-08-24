@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Models\AiModel;
-use App\Models\AiTest;
 use App\Models\Article;
 use App\Models\Benchmark;
 use App\Models\Comparison;
@@ -29,7 +28,6 @@ class SeoSitemapController extends Controller
             route('sitemap.comparisons'),
             route('sitemap.benchmarks'),
             route('sitemap.taxonomy'),
-            route('sitemap.testlab'),
             route('sitemap.pages'),
         ]);
 
@@ -90,8 +88,8 @@ class SeoSitemapController extends Controller
     {
         $routes = [
             'home', 'tools.index', 'models.index', 'news.index', 'comparisons.index',
-            'companies.index', 'articles.index', 'reviews.index', 'testlab.index',
-            'testlab.leaderboard', 'pricing.index', 'categories.index', 'features.index',
+            'companies.index', 'articles.index', 'reviews.index', 'pricing.index',
+            'categories.index', 'features.index',
             'use-cases.index', 'topics.index', 'benchmarks.index', 'trending.index',
             'about', 'methodology', 'contact', 'privacy', 'terms', 'cookies', 'disclosures',
         ];
@@ -107,13 +105,9 @@ class SeoSitemapController extends Controller
 
     public function testLab(): Response
     {
-        $items = AiTest::query()->published()
-            ->whereHas('completedResults')
-            ->select(['slug', 'updated_at'])
-            ->orderByDesc('published_at')
-            ->get();
-
-        return $this->xml($items, fn ($item) => route('testlab.show', $item));
+        // Kept as a named endpoint for backward compatibility while Test Lab is private.
+        abort_unless((bool) config('brand.features.public_test_lab', false), 404);
+        return response('', 404);
     }
 
     public function taxonomy(): Response

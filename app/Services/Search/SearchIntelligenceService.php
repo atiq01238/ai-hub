@@ -3,7 +3,6 @@
 namespace App\Services\Search;
 
 use App\Models\AiModel;
-use App\Models\AiTest;
 use App\Models\Article;
 use App\Models\Category;
 use App\Models\Comparison;
@@ -21,7 +20,7 @@ use Illuminate\Support\Str;
 
 class SearchIntelligenceService
 {
-    public const TYPES = ['tools', 'models', 'news', 'companies', 'articles', 'comparisons', 'benchmarks', 'tests'];
+    public const TYPES = ['tools', 'models', 'news', 'companies', 'articles', 'comparisons', 'benchmarks'];
 
     public function search(string $query, string $type = 'all'): array
     {
@@ -207,9 +206,6 @@ class SearchIntelligenceService
 
             'benchmarks' => Benchmark::query()->where('is_active', true)
                 ->where('name', 'like', $needle),
-
-            'tests' => AiTest::query()->with(['feature', 'useCase'])->withCount(['completedResults as results_count'])
-                ->published()->where('name', 'like', $needle),
         ];
     }
 
@@ -254,12 +250,6 @@ class SearchIntelligenceService
             'benchmarks' => Benchmark::query()
                 ->where('is_active', true)
                 ->where(fn (Builder $q) => $this->match($q, $tokens, ['name', 'category', 'description', 'version', 'variant'])),
-
-            'tests' => AiTest::query()
-                ->with(['feature', 'useCase'])
-                ->withCount(['completedResults as results_count'])
-                ->published()
-                ->where(fn (Builder $q) => $this->match($q, $tokens, ['name', 'short_description', 'prompt', 'criteria', 'category', 'test_type'], ['feature', 'useCase'])),
         ];
     }
 
@@ -332,9 +322,6 @@ class SearchIntelligenceService
             if ($item->published_at) $score += max(0, 16 - min(16, $item->published_at->diffInDays(now())));
         } elseif ($type === 'comparisons') {
             $score += min(20, log10(max(1, (int) ($item->views ?? 0))) * 5);
-        } elseif ($type === 'tests') {
-            $score += $item->is_featured ? 16 : 0;
-            $score += $item->is_verified ? 14 : 0;
         }
 
         return round($score, 3);
@@ -359,7 +346,6 @@ class SearchIntelligenceService
             'articles' => implode(' ', array_filter([$item->title, $item->summary, strip_tags((string) $item->content), $item->category, json_encode($item->tags)])),
             'comparisons' => implode(' ', array_filter([$item->title, $item->summary, $item->primary_intent, $item->comparable_type])),
             'benchmarks' => implode(' ', array_filter([$item->name, $item->category, $item->description, $item->version, $item->variant])),
-            'tests' => implode(' ', array_filter([$item->name, $item->short_description, $item->prompt, $item->criteria, $item->category, $item->test_type])),
             default => '',
         };
     }
@@ -381,7 +367,6 @@ class SearchIntelligenceService
                 ->merge($item->tagTerms?->pluck('name') ?? [])
                 ->merge($item->relatedToolTerms?->pluck('name') ?? [])
                 ->merge($item->relatedModelTerms?->pluck('name') ?? []),
-            'tests' => collect([$item->feature?->name, $item->useCase?->name]),
             default => collect(),
         };
 
@@ -397,7 +382,7 @@ class SearchIntelligenceService
             'url' => $this->urlFor($type, $item),
             'image' => $this->imageFor($type, $item),
             'score' => (float) $item->getAttribute('_search_score'),
-            'target_type' => Str::singular($type === 'tests' ? 'test' : $type),
+            'target_type' => Str::singular($type),
             'target_id' => (int) $item->getKey(),
         ];
     }
@@ -412,7 +397,6 @@ class SearchIntelligenceService
             'articles' => $item->categoryTerm?->name ?: ($item->category ?: 'Article'),
             'comparisons' => Str::headline((string) $item->comparable_type).' comparison',
             'benchmarks' => ($item->category ?: 'AI').' benchmark',
-            'tests' => ($item->category ?: 'Test Lab').' · '.$item->testTypeLabel(),
             default => Str::headline($type),
         };
     }
@@ -427,7 +411,6 @@ class SearchIntelligenceService
             'articles' => route('articles.show', $item),
             'comparisons' => route('comparisons.show', $item),
             'benchmarks' => route('benchmarks.show', $item),
-            'tests' => route('testlab.show', $item),
             default => route('search.index'),
         };
     }

@@ -20,7 +20,6 @@
         <a class="{{ request()->routeIs('account.following') ? 'active' : '' }}" href="{{ route('account.following') }}"><i data-lucide="bell-plus"></i><span>Following</span></a>
         <a class="{{ request()->routeIs('user.comparisons.index') ? 'active' : '' }}" href="{{ route('user.comparisons.index') }}"><i data-lucide="scale"></i><span>Saved Comparisons</span></a>
         <a class="{{ request()->routeIs('user.comparisons.history') ? 'active' : '' }}" href="{{ route('user.comparisons.history') }}"><i data-lucide="history"></i><span>Comparison History</span></a>
-        <a class="{{ request()->routeIs('user.testlab.history') ? 'active' : '' }}" href="{{ route('user.testlab.history') }}"><i data-lucide="flask-conical"></i><span>Test Lab History</span></a>
         <a class="{{ request()->routeIs('account.activity') ? 'active' : '' }}" href="{{ route('account.activity') }}"><i data-lucide="activity"></i><span>Recent Activity</span></a>
         <a class="{{ request()->routeIs('account.notifications*') ? 'active' : '' }}" href="{{ route('account.notifications') }}"><i data-lucide="bell"></i><span>Notifications</span></a>
         <a class="{{ request()->routeIs('account.email-preferences*') ? 'active' : '' }}" href="{{ route('account.email-preferences') }}"><i data-lucide="mail"></i><span>Email Preferences</span></a>

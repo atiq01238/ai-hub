@@ -119,7 +119,7 @@ class ComparisonController extends Controller
         $relatedComparisons = collect();
         $isPreview = true;
         $intelligence = $this->intelligence->build($items, $comparisonType);
-        $labComparison = $this->testLabComparison($items, $comparisonType);
+        $labComparison = ['stats' => collect(), 'shared' => collect(), 'has_data' => false];
 
         if ($request->user()) {
             $this->userHistory->fromPreview(
@@ -161,7 +161,7 @@ class ComparisonController extends Controller
         $title = $comparison->title;
         $isPreview = false;
         $intelligence = $this->intelligence->build($items, $comparisonType);
-        $labComparison = $this->testLabComparison($items, $comparisonType);
+        $labComparison = ['stats' => collect(), 'shared' => collect(), 'has_data' => false];
 
         if ($request->user()) {
             $this->userHistory->fromPublished($request->user(), $comparison, false);

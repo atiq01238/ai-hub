@@ -87,28 +87,6 @@
     </div>
     @endif
 
-    @if($comparisonType === 'model' && !empty($labComparison['has_data']))
-    <div class="comparison-table-card testlab-comparison-card">
-        <div class="table-title"><span><i data-lucide="flask-conical"></i></span><div><h2>AI Test Lab intelligence</h2><p>Controlled experiment averages use locked prompts, test-specific rubrics and completed run aggregates.</p></div></div>
-        <div class="comparison-table-scroll"><table class="comparison-table"><thead><tr><th>Test Lab signal</th>@foreach($items as $item)<th>{{ $item->name }}</th>@endforeach</tr></thead><tbody>
-            <tr><th>Average score</th>@foreach($items as $item)@php($lab=$labComparison['stats'][$item->id]??null)<td>@if($lab && $lab['average'] !== null)<strong class="score-value">{{ number_format((float)$lab['average'],1) }}</strong><small class="lab-coverage-note"> /100</small>@else<span class="muted">No published tests</span>@endif</td>@endforeach</tr>
-            <tr><th>Coverage</th>@foreach($items as $item)@php($lab=$labComparison['stats'][$item->id]??null)<td>@if($lab)<strong>{{ $lab['tests'] }}</strong> {{ Str::plural('experiment',$lab['tests']) }}<br><small>{{ $lab['runs'] }} controlled {{ Str::plural('run',$lab['runs']) }}</small>@else—@endif</td>@endforeach</tr>
-            <tr><th>Verified results</th>@foreach($items as $item)@php($lab=$labComparison['stats'][$item->id]??null)<td>{{ $lab['verified'] ?? 0 }}</td>@endforeach</tr>
-        </tbody></table></div>
-    </div>
-    @endif
-
-    @if($comparisonType === 'model' && $labComparison['shared']->isNotEmpty())
-    <div class="comparison-table-card testlab-comparison-card">
-        <div class="table-title"><span><i data-lucide="git-compare-arrows"></i></span><div><h2>Shared controlled experiments</h2><p>These models were evaluated inside the same published Test Lab experiment, making the row-level comparison stronger than unrelated averages.</p></div></div>
-        <div class="comparison-table-scroll"><table class="comparison-table"><thead><tr><th>Experiment</th>@foreach($items as $item)<th>{{ $item->name }}</th>@endforeach</tr></thead><tbody>
-            @foreach($labComparison['shared'] as $row)
-            <tr><th><a class="lab-test-link" href="{{ route('testlab.show',$row['test']) }}">{{ $row['test']?->name }}</a><small class="lab-coverage-note">{{ $row['test']?->testTypeLabel() }} · {{ $row['test']?->runModeLabel() }}</small></th>@foreach($items as $item)@php($r=$row['scores'][$item->id]??null)<td>@if($r)<strong class="score-value">{{ number_format((float)$r->overall_score,1) }}</strong><br><small>{{ $r->run_count }} {{ Str::plural('run',$r->run_count) }}@if($r->score_min !== null && $r->score_max !== null) · {{ number_format((float)$r->score_min,1) }}–{{ number_format((float)$r->score_max,1) }}@endif</small>@else—@endif</td>@endforeach</tr>
-            @endforeach
-        </tbody></table></div>
-    </div>
-    @endif
-
     @if($intelligence['valueWinner'])<div class="comparison-verdict"><div class="verdict-icon"><i data-lucide="badge-dollar-sign"></i></div><div><span>VALUE SIGNAL</span><h2>{{ $intelligence['valueWinner']->name }}</h2><p>Best current value signal from available benchmark score and structured pricing. Treat this as data guidance, not a universal winner.</p></div></div>@endif
 
     <div class="capability-comparison">

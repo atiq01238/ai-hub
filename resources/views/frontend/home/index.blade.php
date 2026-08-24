@@ -1,7 +1,7 @@
 @extends('frontend.layouts.app')
 
 @section('title', 'AI Orbit — Discover & Compare AI Tools, Models, Pricing & Benchmarks')
-@section('meta_description', 'Discover and compare AI tools and models, track pricing, explore verified benchmarks, follow AI news and review controlled Test Lab evaluations on AI Orbit.')
+@section('meta_description', 'Discover and compare AI tools and models, track pricing, explore verified benchmarks and follow AI news on AI Orbit.')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/frontend/home-hero-refined.css') }}">
@@ -121,33 +121,32 @@
                     </div>
                 </section>
 
-                <section id="comparisons" class="panel compare-panel">
-                    <div class="section-heading row-heading"><div class="heading-left"><div class="heading-icon purple"><i data-lucide="scale"></i></div><h2>AI Comparisons</h2></div><a class="text-link" href="{{ route('comparisons.index') }}">View All <i data-lucide="arrow-right"></i></a></div>
-                    @if($comparisons->first())
-                        @php($comparison = $comparisons->first())
-                        <div class="versus-card">
-                            @foreach($comparison->resolved_items->take(2) as $idx => $item)
-                                @if($idx === 1)<span class="vs">VS</span>@endif
-                                <div class="versus-item"><img src="{{ $item->logo_url }}" alt="{{ $item->name }}"><strong>{{ $item->name }}</strong></div>
-                            @endforeach
+                @for($comparisonSlot = 0; $comparisonSlot < 2; $comparisonSlot++)
+                    @php($comparison = $comparisons->get($comparisonSlot))
+                    <section id="{{ $comparisonSlot === 0 ? 'comparisons' : 'comparison-highlight-2' }}" class="panel compare-panel">
+                        <div class="section-heading row-heading">
+                            <div class="heading-left"><div class="heading-icon purple"><i data-lucide="scale"></i></div><h2>{{ $comparisonSlot === 0 ? 'AI Comparisons' : 'Trending Comparison' }}</h2></div>
+                            <a class="text-link" href="{{ route('comparisons.index') }}">View All <i data-lucide="arrow-right"></i></a>
                         </div>
-                        <p class="compare-copy">Which AI product is better for your workflow?</p>
-                        <a class="primary-pill" href="{{ route('comparisons.show', $comparison) }}">View Comparison</a>
-                        <div class="compare-chips"><span>Chatbots</span><span>Image Gen</span><span>Video Gen</span><span>Coding</span></div>
-                    @else
-                        <div class="empty-state">Seed comparisons to display this section.</div>
-                    @endif
-                </section>
-
-                <section id="test-lab" class="panel test-panel">
-                    <div class="section-heading row-heading"><div class="heading-left"><div class="heading-icon purple"><i data-lucide="flask-conical"></i></div><h2>AI Test Lab</h2></div><a class="text-link" href="{{ route('testlab.index') }}">View All <i data-lucide="arrow-right"></i></a></div>
-                    <div class="test-cover">
-                        @php($testImage = $testLab?->completedResults?->first()?->model?->cover_image_url ?: '/images/frontend/tool-hero-flow.jpg')
-                        <img src="{{ $testImage }}" alt="AI Test Lab">
-                        <div class="test-overlay"><span><i data-lucide="play"></i></span></div>
-                    </div>
-                    <h3>{{ $testLab?->name ?? 'AI Model Challenge' }}</h3><p>Same task. Different AI models. Compare measured results.</p><a class="primary-pill" href="{{ $testLab ? route('testlab.show',$testLab) : route('testlab.index') }}">View Test</a>
-                </section>
+                        @if($comparison)
+                            <div class="versus-card">
+                                @foreach($comparison->resolved_items->take(2) as $idx => $item)
+                                    @if($idx === 1)<span class="vs">VS</span>@endif
+                                    <div class="versus-item"><img src="{{ $item->logo_url }}" alt="{{ $item->name }}"><strong>{{ $item->name }}</strong></div>
+                                @endforeach
+                            </div>
+                            <p class="compare-copy">{{ $comparisonSlot === 0 ? 'Which AI product is better for your workflow?' : 'See how two popular AI choices compare side by side.' }}</p>
+                            <a class="primary-pill" href="{{ route('comparisons.show', $comparison) }}">View Comparison</a>
+                            <div class="compare-chips">
+                                @if($comparisonSlot === 0)<span>Features</span><span>Pricing</span><span>Benchmarks</span><span>Fit</span>
+                                @else<span>Popular</span><span>Head-to-head</span><span>Performance</span><span>Value</span>@endif
+                            </div>
+                        @else
+                            <div class="empty-state">More published comparisons will appear here.</div>
+                            <a class="primary-pill" href="{{ route('comparisons.builder') }}">Create a Comparison</a>
+                        @endif
+                    </section>
+                @endfor
             </div>
 
             <section id="models" class="panel models-panel">

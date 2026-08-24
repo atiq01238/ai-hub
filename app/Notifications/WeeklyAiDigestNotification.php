@@ -11,13 +11,13 @@ class WeeklyAiDigestNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public $afterCommit = true;
-
     public function __construct(
         public array $digest,
         public ?int $deliveryLogId = null,
         public ?string $unsubscribeUrl = null,
-    ) {}
+    ) {
+        $this->afterCommit = true;
+    }
 
     public function via(object $notifiable): array { return ['mail']; }
 

@@ -41,7 +41,7 @@
     <section class="intel-section leaderboard-section">
         <div class="intel-section-head">
             <div><span class="intel-kicker"><i data-lucide="trophy"></i> Composite leaderboard</span><h2>Top AI Models</h2><p>Weighted score across available benchmark results. More benchmark coverage increases confidence, not the score itself.</p></div>
-            <a href="{{ route('testlab.index') }}">Open Test Lab <i data-lucide="arrow-up-right"></i></a>
+            <a href="{{ route('methodology') }}#models">Benchmark Methodology <i data-lucide="arrow-up-right"></i></a>
         </div>
         <div class="podium-grid">
             @foreach($modelLeaderboard->take(3) as $rank=>$row)
@@ -104,6 +104,6 @@
         @endif
     </section>
 
-    <section class="methodology-banner"><span><i data-lucide="shield-check"></i></span><div><small>How to read these rankings</small><h2>Benchmark scores are evidence, not the whole product.</h2><p>AI Orbit keeps individual results, benchmark coverage and verification visible so a single leaderboard number never hides the underlying data.</p></div><a href="{{ route('testlab.index') }}">View testing methodology <i data-lucide="arrow-right"></i></a></section>
+    <section class="methodology-banner"><span><i data-lucide="shield-check"></i></span><div><small>How to read these rankings</small><h2>Benchmark scores are evidence, not the whole product.</h2><p>AI Orbit keeps individual results, benchmark coverage and verification visible so a single leaderboard number never hides the underlying data.</p></div><a href="{{ route('methodology') }}#models">View benchmark methodology <i data-lucide="arrow-right"></i></a></section>
 </div>
 @endsection

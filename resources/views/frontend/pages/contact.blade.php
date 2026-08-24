@@ -23,7 +23,7 @@
     </section>
     <aside class="inst-contact-side">
         <article class="inst-side-card"><i data-lucide="database-zap"></i><h3>Suggest a tool or correction</h3><p>Use the structured contribution form when you want a new tool, model or company added to the directory.</p><a href="{{ route('submissions.create') }}">Open contribution form <i data-lucide="arrow-right"></i></a></article>
-        <article class="inst-side-card"><i data-lucide="microscope"></i><h3>Question our methodology</h3><p>See how ratings, benchmarks, Test Lab results, pricing and news signals are handled before reporting a methodology concern.</p><a href="{{ route('methodology') }}">Read methodology <i data-lucide="arrow-right"></i></a></article>
+        <article class="inst-side-card"><i data-lucide="microscope"></i><h3>Question our methodology</h3><p>See how ratings, benchmarks, pricing and news signals are handled before reporting a methodology concern.</p><a href="{{ route('methodology') }}">Read methodology <i data-lucide="arrow-right"></i></a></article>
         <article class="inst-side-card"><i data-lucide="life-buoy"></i><h3>Useful context</h3><ul><li>Include the affected page URL when reporting data.</li><li>For pricing issues, mention the plan and billing period.</li><li>For benchmark issues, include the benchmark/test name.</li></ul></article>
     </aside>
 </div>

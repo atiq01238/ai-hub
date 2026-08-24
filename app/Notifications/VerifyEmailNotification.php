@@ -11,6 +11,10 @@ class VerifyEmailNotification extends VerifyEmail implements ShouldQueue
 {
     use Queueable;
 
+    public function __construct()
+    {
+        $this->afterCommit = true;
+    }
 
     public function toMail($notifiable): MailMessage
     {

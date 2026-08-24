@@ -4,7 +4,8 @@
 <body style="margin:0;background:#f3f5fa;font-family:Arial,sans-serif;color:#172033;padding:28px 12px;">
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center">
 <table role="presentation" width="620" cellspacing="0" cellpadding="0" style="width:100%;max-width:620px;background:#fff;border:1px solid #dfe4ee;border-radius:14px;overflow:hidden;">
-<tr><td style="padding:18px 28px;background:#050817;color:#fff;"><img src="{{ asset(config('brand.assets.wordmark')) }}" alt="AI Orbit" width="220" style="display:block;width:220px;max-width:100%;height:auto;"></td></tr>
+<tr><td style="padding:18px 28px;background:#050817;color:#fff;">@php($emailBrandLogo = isset($message) && is_file(public_path(config('brand.assets.wordmark'))) ? $message->embed(public_path(config('brand.assets.wordmark'))) : asset(config('brand.assets.wordmark')))
+<img src="{{ $emailBrandLogo }}" alt="AI Orbit" width="220" style="display:block;width:220px;max-width:100%;height:auto;border:0;outline:none;"></td></tr>
 <tr><td style="padding:28px;">
 <h1 style="font-size:22px;margin:0 0 12px;">Hello {{ $contactMessage->name }},</h1>
 <p style="line-height:1.7;color:#526078;">Thank you for contacting AI Orbit about <b>{{ $contactMessage->subject }}</b>. An administrator has replied:</p>

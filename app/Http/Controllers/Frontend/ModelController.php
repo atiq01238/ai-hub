@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Models\AiModel;
-use App\Models\AiTestResult;
 use App\Models\Company;
 use App\Models\Feature;
 use App\Models\NewsItem;
@@ -99,27 +98,8 @@ class ModelController extends Controller
 
         $benchmarks = collect($model->benchmarks ?? [])->map(fn ($score,$name) => ['name'=>$name,'score'=>(float)$score]);
         $capabilities = collect($model->capabilities ?? [])->filter()->values();
-
-        $allLabResults = AiTestResult::query()
-            ->with('test')
-            ->where('ai_model_id', $model->id)
-            ->complete()
-            ->whereHas('test', fn (Builder $q) => $q->published())
-            ->latest('tested_at')
-            ->get();
-        $labResults = $allLabResults->take(6);
-        $labStats = [
-            'average' => $allLabResults->isNotEmpty() ? round((float) $allLabResults->avg('overall_score'), 1) : null,
-            'tests' => $allLabResults->count(),
-            'runs' => (int) $allLabResults->sum('run_count'),
-            'verified' => $allLabResults->whereIn('verification_level', ['verified', 'high_confidence'])->count(),
-            'types' => $allLabResults->groupBy(fn (AiTestResult $result) => $result->test?->test_type ?: 'other')
-                ->map(fn ($rows) => [
-                    'label' => $rows->first()?->test?->testTypeLabel() ?: 'Other',
-                    'score' => round((float) $rows->avg('overall_score'), 1),
-                    'tests' => $rows->count(),
-                ])->sortByDesc('tests')->take(5),
-        ];
+        $labResults = collect();
+        $labStats = ['average' => null, 'tests' => 0, 'runs' => 0, 'verified' => 0, 'types' => collect()];
 
         $seo = $seoService->model($model);
         $seoSchemas = $seoService->schemas('model', $model, $seo);

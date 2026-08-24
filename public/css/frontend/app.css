@@ -470,22 +470,167 @@ html,body{max-width:100%;overflow-x:hidden}.page-body,.dashboard-grid,.main-colu
 /* Frontend notification bell */
 .front-notif-wrap{position:relative}.front-notif-btn{position:relative}.front-notif-count{position:absolute;right:-5px;top:-6px;min-width:17px;height:17px;padding:0 4px;display:grid;place-items:center;border-radius:999px;background:#7657ff;color:#fff;font-size:8px;font-weight:800;border:2px solid #080d19}.front-notif-menu{display:none;position:absolute;right:0;top:calc(100% + 12px);z-index:1200;width:min(370px,calc(100vw - 24px));border:1px solid #263354;border-radius:14px;background:#0b1223;box-shadow:0 24px 70px rgba(0,0,0,.48);overflow:hidden}.front-notif-menu.open{display:block}.front-notif-head{display:flex;justify-content:space-between;padding:13px 15px;border-bottom:1px solid #202b49}.front-notif-head strong{font-size:12px;color:#fff}.front-notif-head span{font-size:9px;color:#7987a5}.front-notif-row{display:grid;grid-template-columns:34px 1fr;gap:9px;padding:11px 14px;border-bottom:1px solid #18233d;color:inherit}.front-notif-row.is-unread{background:rgba(104,76,255,.07)}.front-notif-row>span{width:32px;height:32px;display:grid;place-items:center;border-radius:9px;background:#141e38;color:#927fff}.front-notif-row svg{width:14px}.front-notif-row b{display:block;color:#eaf0ff;font-size:10px}.front-notif-row p{margin:3px 0;color:#8996b1;font-size:9px;line-height:1.4}.front-notif-row small{color:#596985;font-size:8px}.front-notif-footer{display:flex;justify-content:center;align-items:center;gap:5px;padding:11px;color:#9a89ff;font-size:9px;font-weight:750}.front-notif-footer svg{width:12px}.front-notif-empty{padding:25px;text-align:center;color:#71809d;font-size:10px}
 
-/* Homepage category: keep only the long Agents & Automation label balanced. */
-.category-card[href$="/categories/agents-automation"] strong{
-  font-size:10px;
-  line-height:1.12;
-  text-align:center;
-}
-.category-card[href$="/categories/agents-automation"] span{
-  margin-top:1px;
+/* ==========================================================
+   AI Orbit homepage comparison row polish
+   - keeps both comparison cards visually equal
+   - restores centered comparison CTA after shared UI button rules
+   - prevents heading/action wrapping on desktop widths
+   - fixes the three-card responsive layout after Test Lab was hidden
+   ========================================================== */
+@media (min-width:1101px){
+  .lower-grid{
+    grid-template-columns:minmax(0,1.18fr) repeat(2,minmax(0,1fr));
+    align-items:stretch;
+  }
 }
 
-/* Homepage category: keep only the long Coding & Development label balanced. */
-.category-card[href$="/categories/coding-development"] strong{
-  font-size:10px;
-  line-height:1.12;
-  text-align:center;
+.compare-panel{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+  height:100%;
+  overflow:hidden;
 }
-.category-card[href$="/categories/coding-development"] span{
-  margin-top:1px;
+
+.compare-panel .section-heading{
+  width:100%;
+  min-width:0;
+  gap:8px;
+}
+
+.compare-panel .heading-left{
+  min-width:0;
+  flex:1 1 auto;
+}
+
+.compare-panel .section-heading h2{
+  min-width:0;
+  font-size:16px;
+  line-height:1.2;
+  white-space:nowrap;
+}
+
+.compare-panel .text-link{
+  flex:0 0 auto;
+  white-space:nowrap;
+}
+
+.compare-panel .versus-card{
+  width:100%;
+  min-height:118px;
+  padding:12px 14px 8px;
+}
+
+.compare-panel .versus-item{
+  min-width:0;
+  flex:0 1 88px;
+}
+
+.compare-panel .versus-item strong{
+  width:100%;
+  text-align:center;
+  line-height:1.25;
+  overflow-wrap:anywhere;
+}
+
+.compare-panel .compare-copy{
+  width:calc(100% - 28px);
+  min-height:30px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin:0 14px 12px;
+  line-height:1.45;
+}
+
+/* ui-polish.css turns shared buttons into inline-flex; this explicit
+   flex-item alignment keeps the homepage comparison CTA centered. */
+.compare-panel .primary-pill{
+  display:inline-flex;
+  align-self:center;
+  width:auto;
+  max-width:calc(100% - 28px);
+  margin:0 auto;
+  padding-left:18px;
+  padding-right:18px;
+  white-space:nowrap;
+}
+
+.compare-panel .compare-chips{
+  width:100%;
+  min-height:28px;
+  margin-top:12px;
+  padding:0 10px;
+}
+
+@media (max-width:1100px) and (min-width:761px){
+  .lower-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    align-items:stretch;
+  }
+
+  .lower-grid > .news-panel{
+    grid-column:1 / -1;
+  }
+
+  .compare-panel .section-heading h2{
+    font-size:16px;
+  }
+}
+
+@media (max-width:760px){
+  .lower-grid{
+    grid-template-columns:minmax(0,1fr);
+  }
+
+  .lower-grid > .news-panel,
+  .lower-grid > .compare-panel{
+    grid-column:auto;
+  }
+
+  .compare-panel .section-heading{
+    align-items:center;
+    flex-wrap:nowrap;
+  }
+
+  .compare-panel .section-heading h2{
+    font-size:17px;
+    white-space:normal;
+  }
+
+  .compare-panel .versus-card{
+    min-height:108px;
+  }
+
+  .compare-panel .compare-copy{
+    min-height:0;
+  }
+}
+
+@media (max-width:390px){
+  .compare-panel .section-heading{
+    align-items:flex-start;
+  }
+
+  .compare-panel .heading-left{
+    align-items:flex-start;
+  }
+
+  .compare-panel .text-link{
+    font-size:10px;
+  }
+
+  .compare-panel .versus-card{
+    gap:12px;
+  }
+
+  .compare-panel .versus-item img{
+    width:50px;
+    height:50px;
+  }
+
+  .compare-panel .vs{
+    width:34px;
+    height:34px;
+  }
 }

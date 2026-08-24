@@ -11,13 +11,12 @@ class WelcomeToAiHubNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public $afterCommit = true;
-
     public ?int $deliveryLogId;
 
     public function __construct(?int $deliveryLogId = null)
     {
         $this->deliveryLogId = $deliveryLogId;
+        $this->afterCommit = true;
     }
 
     public function via(object $notifiable): array { return ['mail']; }

@@ -38,7 +38,6 @@ class AccountController extends Controller
             'reviews' => Review::where('user_id', $userId)->where('review_type', 'user')->count(),
             'following' => UserInteraction::where('user_id', $userId)->where('action', 'follow')->count(),
             'comparisons' => UserComparison::where('user_id', $userId)->where('is_saved', true)->count(),
-            'tests' => UserInteraction::where('user_id', $userId)->where('action', 'test_viewed')->count(),
         ];
 
         $savedBreakdown = SavedItem::query()
@@ -237,27 +236,19 @@ class AccountController extends Controller
 
         UserInteraction::query()
             ->where('user_id', $userId)
-            ->whereIn('action', ['follow', 'helpful', 'test_viewed'])
+            ->whereIn('action', ['follow', 'helpful'])
             ->latest('updated_at')
             ->limit($limit)
             ->get()
             ->each(function (UserInteraction $interaction) use ($activities) {
                 $activities->push([
                     'kind' => $interaction->action,
-                    'icon' => match ($interaction->action) {
-                        'follow' => 'bell-plus',
-                        'helpful' => 'thumbs-up',
-                        default => 'flask-conical',
-                    },
-                    'title' => match ($interaction->action) {
-                        'follow' => 'Followed a ' . ucfirst($interaction->target_type),
-                        'helpful' => 'Marked a review helpful',
-                        default => 'Viewed a Test Lab experiment',
-                    },
+                    'icon' => $interaction->action === 'follow' ? 'bell-plus' : 'thumbs-up',
+                    'title' => $interaction->action === 'follow'
+                        ? 'Followed a ' . ucfirst($interaction->target_type)
+                        : 'Marked a review helpful',
                     'subtitle' => ucfirst(str_replace('_', ' ', $interaction->action)),
-                    'url' => $interaction->action === 'test_viewed'
-                        ? route('testlab.show', $interaction->target_id)
-                        : route('account.following'),
+                    'url' => route('account.following'),
                     'at' => $interaction->updated_at,
                 ]);
             });

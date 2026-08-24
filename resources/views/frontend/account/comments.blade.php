@@ -11,7 +11,7 @@
     <div>
         <span class="account-kicker"><i data-lucide="message-square"></i> COMMUNITY DISCUSSION</span>
         <h1>My comments & replies</h1>
-        <p>Track discussions you joined across News, Articles, Comparisons, Benchmarks and Test Lab.</p>
+        <p>Track discussions you joined across News, Articles, Comparisons and Benchmarks.</p>
     </div>
 </header>
 
@@ -42,7 +42,7 @@
 <div class="account-empty big">
     <i data-lucide="messages-square"></i>
     <strong>You have not joined a discussion yet.</strong>
-    <span>Comment on AI News, Articles, Comparisons, Benchmarks or Test Lab experiments.</span>
+    <span>Comment on AI News, Articles, Comparisons or Benchmarks.</span>
     <a href="{{ route('news.index') }}">Explore AI News</a>
 </div>
 @endforelse

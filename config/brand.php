@@ -7,7 +7,11 @@ return [
     'url' => rtrim(env('APP_URL', 'https://ai-orbit.online'), '/'),
     'tagline' => env('BRAND_TAGLINE', 'Explore • Compare • Stay Ahead'),
     'short_tagline' => env('BRAND_SHORT_TAGLINE', 'Discover • Compare • Decide'),
-    'description' => 'Independent AI discovery, comparisons, pricing intelligence, benchmarks, news and controlled model evaluations in one research-driven platform.',
+    'description' => 'Independent AI discovery, comparisons, pricing intelligence, benchmarks and news in one research-driven platform.',
+    'features' => [
+        // Keep the unfinished Test Lab available to admins while hiding it from all public surfaces.
+        'public_test_lab' => filter_var(env('PUBLIC_TEST_LAB', false), FILTER_VALIDATE_BOOL),
+    ],
     'assets' => [
         'logo' => 'images/brand/ai-orbit-logo.png',
         'wordmark' => 'images/brand/ai-orbit-wordmark.png',

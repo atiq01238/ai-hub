@@ -104,6 +104,7 @@ class UserInteractionController extends Controller
 
     public function testHistory(Request $request): View
     {
+        abort_unless((bool) config('brand.features.public_test_lab', false), 404);
         $history = UserInteraction::query()
             ->where('user_id', $request->user()->id)
             ->where('action', 'test_viewed')

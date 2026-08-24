@@ -14,6 +14,7 @@ class TestLabController extends Controller
 {
     public function index(Request $request)
     {
+        $this->ensurePublic();
         $filters = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
             'category' => ['nullable', 'string', 'max:80'],
@@ -74,6 +75,7 @@ class TestLabController extends Controller
 
     public function show(Request $request, AiTest $test)
     {
+        $this->ensurePublic();
         abort_unless($test->status === 'published' && $test->published_at?->lte(now()), 404);
 
         $test->load([
@@ -100,6 +102,7 @@ class TestLabController extends Controller
 
     public function leaderboard(Request $request)
     {
+        $this->ensurePublic();
         $filters = $request->validate([
             'category' => ['nullable', 'string', 'max:80'],
             'verified' => ['nullable', 'in:1'],
@@ -139,4 +142,9 @@ class TestLabController extends Controller
             ->orderByDesc('lab_tests')
             ->orderBy('name');
     }
+    private function ensurePublic(): void
+    {
+        abort_unless((bool) config('brand.features.public_test_lab', false), 404);
+    }
+
 }

@@ -11,8 +11,6 @@ class IntelligenceEmailAlert extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public $afterCommit = true;
-
     public function __construct(
         public string $subjectLine,
         public string $heading,
@@ -21,7 +19,9 @@ class IntelligenceEmailAlert extends Notification implements ShouldQueue
         public string $actionUrl,
         public ?int $deliveryLogId = null,
         public ?string $unsubscribeUrl = null,
-    ) {}
+    ) {
+        $this->afterCommit = true;
+    }
 
     public function via(object $notifiable): array { return ['mail']; }
 

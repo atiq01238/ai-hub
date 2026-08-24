@@ -1,2 +1,18 @@
 User-agent: *
-Disallow:
+Allow: /
+
+# Private, transactional and duplicate-content areas
+Disallow: /admin
+Disallow: /account
+Disallow: /login
+Disallow: /signup
+Disallow: /password
+Disallow: /email/verify
+Disallow: /auth/social
+Disallow: /saved
+Disallow: /compare/builder
+Disallow: /compare/preview
+Disallow: /submissions
+Disallow: /test-lab
+
+Sitemap: https://ai-orbit.online/sitemap.xml

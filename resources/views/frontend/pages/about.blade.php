@@ -25,7 +25,7 @@
         <div class="inst-value-grid">
             <article class="inst-value"><i data-lucide="search-check"></i><h3>Discover with context</h3><p>Find tools and models by category, company, capabilities, price signals and quality indicators—not only by name.</p></article>
             <article class="inst-value"><i data-lucide="scale"></i><h3>Compare consistently</h3><p>Use the same data structure across products so meaningful differences are easier to see.</p></article>
-            <article class="inst-value"><i data-lucide="flask-conical"></i><h3>Test transparently</h3><p>Test Lab and benchmark pages expose prompts, scoring criteria and recorded results where the underlying data is available.</p></article>
+            <article class="inst-value"><i data-lucide="bar-chart-3"></i><h3>Compare transparently</h3><p>Benchmark and comparison pages preserve methodology, source context and structured evidence where the underlying data is available.</p></article>
             <article class="inst-value"><i data-lucide="badge-dollar-sign"></i><h3>Track commercial reality</h3><p>Pricing Intelligence connects current plans, pricing history and detected changes rather than showing a single stale number.</p></article>
         </div>
     </section>
@@ -34,7 +34,7 @@
         <div class="inst-panel">
             <span class="inst-mini-title">What AI Orbit covers</span>
             <h2>A connected intelligence graph, not a list of links.</h2>
-            <div class="inst-check-list"><div><i data-lucide="check"></i><span><b>AI Tools</b> — discovery, categories, features, pricing and reviews.</span></div><div><i data-lucide="check"></i><span><b>AI Models</b> — providers, capabilities, context, API pricing and benchmarks.</span></div><div><i data-lucide="check"></i><span><b>AI News</b> — structured summaries, sources, verification and importance signals.</span></div><div><i data-lucide="check"></i><span><b>Companies</b> — linked tools, models and news activity.</span></div><div><i data-lucide="check"></i><span><b>Comparisons & Test Lab</b> — side-by-side evidence for practical decisions.</span></div></div>
+            <div class="inst-check-list"><div><i data-lucide="check"></i><span><b>AI Tools</b> — discovery, categories, features, pricing and reviews.</span></div><div><i data-lucide="check"></i><span><b>AI Models</b> — providers, capabilities, context, API pricing and benchmarks.</span></div><div><i data-lucide="check"></i><span><b>AI News</b> — structured summaries, sources, verification and importance signals.</span></div><div><i data-lucide="check"></i><span><b>Companies</b> — linked tools, models and news activity.</span></div><div><i data-lucide="check"></i><span><b>Comparisons & Benchmarks</b> — side-by-side evidence for practical decisions.</span></div></div>
         </div>
         <div class="inst-panel inst-principles">
             <span class="inst-mini-title">Product principles</span>

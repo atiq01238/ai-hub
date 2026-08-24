@@ -52,7 +52,6 @@
             <a class="{{ request()->routeIs('models.*') ? 'active' : '' }}" href="{{ route('models.index') }}"><i data-lucide="code-xml"></i>AI Models</a>
             <a class="{{ request()->routeIs('news.*') ? 'active' : '' }}" href="{{ route('news.index') }}"><i data-lucide="radio"></i>AI News</a>
             <a class="{{ request()->routeIs('comparisons.*') ? 'active' : '' }}" href="{{ route('comparisons.index') }}"><i data-lucide="scale"></i>Compare</a>
-            <a class="{{ request()->routeIs('testlab.*') ? 'active' : '' }}" href="{{ route('testlab.index') }}"><i data-lucide="flask-conical"></i>Test Lab</a>
             <a class="{{ request()->routeIs('pricing.*') ? 'active' : '' }}" href="{{ route('pricing.index') }}"><i data-lucide="badge-dollar-sign"></i>Pricing</a>
             <a class="{{ request()->routeIs('reviews.*') ? 'active' : '' }}" href="{{ route('reviews.index') }}"><i data-lucide="star"></i>Reviews</a>
             <a class="{{ request()->routeIs('articles.*') ? 'active' : '' }}" href="{{ route('articles.index') }}"><i data-lucide="newspaper"></i>Articles</a>
@@ -93,12 +92,19 @@
     <div class="mobile-nav" data-mobile-nav aria-hidden="true">
         @auth
             @if(!(auth()->user()->role === 'admin' && auth()->user()->status === 'active'))
-                <a href="{{ route('account.dashboard') }}">My AI Orbit</a>
-                <a href="{{ route('account.activity') }}">My Activity</a>
-                <a href="{{ route('account.notifications') }}">Notifications @if($frontUnread)({{ $frontUnread }})@endif</a>
+                <a class="{{ request()->routeIs('account.dashboard') ? 'active' : '' }}" href="{{ route('account.dashboard') }}">My AI Orbit</a>
+                <a class="{{ request()->routeIs('account.notifications*') ? 'active' : '' }}" href="{{ route('account.notifications') }}">Notifications @if($frontUnread)({{ $frontUnread }})@endif</a>
             @endif
         @endauth
-        <a href="{{ route('home') }}">Home</a><a href="{{ route('search.index') }}">Search</a><a href="{{ route('saved.index') }}">Saved</a><a href="{{ route('categories.index') }}">Categories</a><a href="{{ route('features.index') }}">Features</a><a href="{{ route('use-cases.index') }}">Use Cases</a><a href="{{ route('topics.index') }}">Topics</a><a href="{{ route('trending.index') }}">Trending</a><a href="{{ route('benchmarks.index') }}">Benchmarks</a><a href="{{ route('tools.index') }}">AI Tools</a><a href="{{ route('models.index') }}">AI Models</a><a href="{{ route('news.index') }}">AI News</a><a href="{{ route('comparisons.index') }}">Compare</a><a href="{{ route('testlab.index') }}">Test Lab</a><a href="{{ route('pricing.index') }}">Pricing</a><a href="{{ route('reviews.index') }}">Reviews</a><a href="{{ route('articles.index') }}">Articles</a><a href="{{ route('companies.index') }}">Companies</a><a href="{{ route('about') }}">About</a><a href="{{ route('methodology') }}">Methodology</a><a href="{{ route('contact') }}">Contact</a>
+        <a class="{{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}">Home</a>
+        <a class="{{ request()->routeIs('tools.*') ? 'active' : '' }}" href="{{ route('tools.index') }}">AI Tools</a>
+        <a class="{{ request()->routeIs('models.*') ? 'active' : '' }}" href="{{ route('models.index') }}">AI Models</a>
+        <a class="{{ request()->routeIs('companies.*') ? 'active' : '' }}" href="{{ route('companies.index') }}">Companies</a>
+        <a class="{{ request()->routeIs('news.*') ? 'active' : '' }}" href="{{ route('news.index') }}">AI News</a>
+        <a class="{{ request()->routeIs('articles.*') ? 'active' : '' }}" href="{{ route('articles.index') }}">Articles</a>
+        <a class="{{ request()->routeIs('comparisons.*') ? 'active' : '' }}" href="{{ route('comparisons.index') }}">Compare</a>
+        <a class="{{ request()->routeIs('pricing.*') ? 'active' : '' }}" href="{{ route('pricing.index') }}">Pricing</a>
+        <a class="{{ request()->routeIs('search.*') ? 'active' : '' }}" href="{{ route('search.index') }}">Search</a>
     </div>
 
     <div class="site-search-overlay" data-site-search-modal hidden aria-hidden="true">
@@ -152,13 +158,13 @@
                     <p>A research-driven hub for finding the right AI tools and models, understanding the latest AI news and comparing products with useful data.</p>
                     <div class="footer-proof">
                         <span><i data-lucide="shield-check"></i> Source-aware</span>
-                        <span><i data-lucide="flask-conical"></i> Test-driven</span>
+                        <span><i data-lucide="database"></i> Data-driven</span>
                         <span><i data-lucide="scale"></i> Comparison-ready</span>
                     </div>
                 </div>
 
                 <div class="footer-links">
-                    <div><h3>Explore</h3><a href="{{ route('search.index') }}">Global Search</a><a href="{{ route('categories.index') }}">AI Categories</a><a href="{{ route('features.index') }}">AI Features</a><a href="{{ route('use-cases.index') }}">Use Cases</a><a href="{{ route('tools.index') }}">AI Tools</a><a href="{{ route('models.index') }}">AI Models</a><a href="{{ route('news.index') }}">AI News</a><a href="{{ route('comparisons.index') }}">Comparisons</a><a href="{{ route('testlab.index') }}">Test Lab</a></div>
+                    <div><h3>Explore</h3><a href="{{ route('search.index') }}">Global Search</a><a href="{{ route('categories.index') }}">AI Categories</a><a href="{{ route('features.index') }}">AI Features</a><a href="{{ route('use-cases.index') }}">Use Cases</a><a href="{{ route('tools.index') }}">AI Tools</a><a href="{{ route('models.index') }}">AI Models</a><a href="{{ route('news.index') }}">AI News</a><a href="{{ route('comparisons.index') }}">Comparisons</a></div>
                     <div><h3>Intelligence</h3><a href="{{ route('pricing.index') }}">Pricing</a><a href="{{ route('benchmarks.index') }}">Benchmarks</a><a href="{{ route('trending.index') }}">Trending</a><a href="{{ route('reviews.index') }}">Reviews</a><a href="{{ route('articles.index') }}">Articles</a><a href="{{ route('companies.index') }}">Companies</a></div>
                     <div><h3>Company</h3><a href="{{ route('about') }}">About AI Orbit</a><a href="{{ route('methodology') }}">Methodology</a><a href="{{ route('methodology') }}#editorial">Editorial Policy</a><a href="{{ route('contact') }}">Contact</a><a href="{{ route('submissions.create') }}">Suggest a Tool</a></div>
                     <div><h3>Resources</h3><a href="{{ route('saved.index') }}">Saved Library</a><a href="{{ route('topics.index') }}">Editorial Topics</a><a href="{{ route('categories.index') }}">AI Categories</a><a href="{{ route('benchmarks.index') }}">Benchmark Data</a><a href="{{ route('pricing.index') }}">Pricing Intelligence</a><a href="{{ route('disclosures') }}">Data Disclosures</a><a href="{{ route('contact') }}">Help & Feedback</a></div>

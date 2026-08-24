@@ -1,7 +1,7 @@
 @extends('frontend.layouts.app')
 
 @section('title', $query !== '' ? 'Search: '.$query.' — AI Orbit' : 'Search AI Orbit')
-@section('meta_description', 'Search AI tools, models, companies, news, articles, comparisons, benchmarks and independent Test Lab experiments across AI Orbit.')
+@section('meta_description', 'Search AI tools, models, companies, news, articles, comparisons and benchmark data across AI Orbit.')
 @section('robots', 'noindex,follow')
 
 @push('styles')
@@ -30,7 +30,7 @@
     <div class="discovery-hero-copy">
         <span class="eyebrow"><i data-lucide="search"></i> Global AI Search</span>
         <h1>Search the entire <span>AI Orbit.</span></h1>
-        <p>Find tools, models, companies, news, guides, comparisons, benchmark data and independent Test Lab experiments from one research-driven index.</p>
+        <p>Find tools, models, companies, news, guides, comparisons and benchmark data from one research-driven index.</p>
         <form class="discovery-search search-intelligence-shell" action="{{ route('search.index') }}" method="get" data-search-shell>
             <i data-lucide="search"></i>
             <input name="q" type="search" value="{{ $query }}" placeholder="Search ChatGPT, Claude, image generators, AI news..." autocomplete="off" autofocus data-search-autocomplete>
@@ -46,7 +46,7 @@
 
 <div class="discovery-page">
     @if($query !== '')
-        @php($tabs=['all'=>'All','tools'=>'Tools','models'=>'Models','news'=>'News','companies'=>'Companies','articles'=>'Articles','comparisons'=>'Comparisons','benchmarks'=>'Benchmarks','tests'=>'Test Lab'])
+        @php($tabs=['all'=>'All','tools'=>'Tools','models'=>'Models','news'=>'News','companies'=>'Companies','articles'=>'Articles','comparisons'=>'Comparisons','benchmarks'=>'Benchmarks'])
         <nav class="result-tabs" aria-label="Search result types">
             @foreach($tabs as $key=>$label)
                 <a class="{{ $type === $key ? 'active' : '' }}" href="{{ route('search.index', ['q'=>$query,'type'=>$key]) }}">
@@ -192,24 +192,7 @@
                     </section>
                 @endif
 
-                @if(($type==='all'||$type==='tests') && $tests->isNotEmpty())
-                    <section class="result-section">
-                        <div class="section-bar"><div><span class="section-icon cyan"><i data-lucide="flask-conical"></i></span><h2>AI Test Lab</h2><small>{{ number_format($counts['tests']) }} matches</small></div><a href="{{ route('testlab.index',['q'=>$query]) }}">View all tests <i data-lucide="arrow-right"></i></a></div>
-                        <div class="entity-grid">
-                            @foreach($tests as $test)
-                                <article class="search-entity-card compact">
-                                    <a class="entity-top" href="{{ route('testlab.show',$test) }}" data-search-result data-search-query="{{ $query }}" data-search-target-type="test" data-search-target-id="{{ $test->id }}">
-                                        <span class="category-orb"><i data-lucide="flask-conical"></i></span>
-                                        <div><small>{{ $test->category }} · {{ config('test_lab.difficulties.'.$test->difficulty, ucfirst($test->difficulty)) }}</small><h3>{{ $test->name }}</h3><span>{{ $test->results_count }} completed model results</span></div>
-                                        <b>{{ $test->is_verified ? '✓' : '—' }}</b>
-                                    </a>
-                                    <p>{{ \Illuminate\Support\Str::limit($test->short_description ?: $test->prompt,112) }}</p>
-                                    <div class="entity-meta">@if($test->feature)<span><i data-lucide="sparkles"></i>{{ $test->feature->name }}</span>@endif @if($test->useCase)<span><i data-lucide="target"></i>{{ $test->useCase->name }}</span>@endif<a href="{{ route('testlab.show',$test) }}">View evidence <i data-lucide="arrow-up-right"></i></a></div>
-                                </article>
-                            @endforeach
-                        </div>
-                    </section>
-                @endif
+
             </div>
         @endif
     @else

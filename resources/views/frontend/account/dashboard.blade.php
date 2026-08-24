@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
 @section('title','My AI Orbit — Personal Dashboard')
-@section('meta_description','Your private AI Orbit dashboard for saved items, reviews, follows, comparisons and Test Lab history.')
+@section('meta_description','Your private AI Orbit dashboard for saved items, reviews, follows, comparisons and recent activity.')
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/account.css') }}">@endpush
 
 @section('content')
@@ -47,7 +47,6 @@
                 <a class="account-stat gold" href="{{ route('account.reviews') }}"><span><i data-lucide="star"></i></span><div><small>My Reviews</small><strong>{{ number_format($stats['reviews']) }}</strong><em>Ratings & moderation</em></div></a>
                 <a class="account-stat green" href="{{ route('account.following') }}"><span><i data-lucide="users-round"></i></span><div><small>Following</small><strong>{{ number_format($stats['following']) }}</strong><em>Tools, models & companies</em></div></a>
                 <a class="account-stat blue" href="{{ route('user.comparisons.index') }}"><span><i data-lucide="scale"></i></span><div><small>Comparisons</small><strong>{{ number_format($stats['comparisons']) }}</strong><em>Saved research</em></div></a>
-                <a class="account-stat pink" href="{{ route('user.testlab.history') }}"><span><i data-lucide="flask-conical"></i></span><div><small>Test History</small><strong>{{ number_format($stats['tests']) }}</strong><em>Experiments explored</em></div></a>
             </div>
 
             <div class="account-two-col">
@@ -119,8 +118,7 @@
                     <div class="quick-links">
                         <a href="{{ route('comparisons.builder') }}"><i data-lucide="scale"></i><span><strong>Compare AI</strong><small>Put tools or models side by side</small></span><b>›</b></a>
                         <a href="{{ route('news.index') }}"><i data-lucide="radio"></i><span><strong>Latest AI News</strong><small>Catch up on launches and research</small></span><b>›</b></a>
-                        <a href="{{ route('testlab.index') }}"><i data-lucide="flask-conical"></i><span><strong>Open Test Lab</strong><small>Explore independent experiments</small></span><b>›</b></a>
-                        <a href="{{ route('tools.index') }}"><i data-lucide="sparkles"></i><span><strong>Discover Tools</strong><small>Find something useful today</small></span><b>›</b></a>
+                                                <a href="{{ route('tools.index') }}"><i data-lucide="sparkles"></i><span><strong>Discover Tools</strong><small>Find something useful today</small></span><b>›</b></a>
                     </div>
                 </section>
             </div>

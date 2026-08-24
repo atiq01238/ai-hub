@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Models\AiModel;
-use App\Models\AiTest;
 use App\Models\Article;
 use App\Models\BenchmarkResult;
 use App\Models\Category;
@@ -139,8 +138,6 @@ class HomeController extends Controller
             ->map(fn ($rows) => $rows->take(3))
             ->take(4);
 
-        $testLab = AiTest::query()->published()->with(['completedResults.model'])->orderByDesc('is_featured')->latest('published_at')->first();
-
         $newsCategoryCounts = NewsItem::query()
             ->where('status', 'published')
             ->selectRaw('category, COUNT(*) as total')
@@ -165,7 +162,6 @@ class HomeController extends Controller
             'featuredArticles',
             'topCompanies',
             'benchmarkGroups',
-            'testLab',
             'newsCategoryCounts',
         ));
     }

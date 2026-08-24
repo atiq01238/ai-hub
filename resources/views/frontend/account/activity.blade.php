@@ -5,7 +5,7 @@
 <section class="account-page"><div class="account-shell">
 @include('frontend.account._sidebar')
 <div class="account-main">
-    <header class="account-subhead"><div><span class="account-kicker"><i data-lucide="activity"></i> ACTIVITY</span><h1>Your recent AI Orbit activity</h1><p>A private timeline of saved research, ratings, follows, comparisons and Test Lab exploration.</p></div></header>
+    <header class="account-subhead"><div><span class="account-kicker"><i data-lucide="activity"></i> ACTIVITY</span><h1>Your recent AI Orbit activity</h1><p>A private timeline of saved research, ratings, follows, comparisons and recent AI activity.</p></div></header>
     <section class="account-panel timeline-panel">
         <div class="activity-timeline">
             @forelse($activity as $item)

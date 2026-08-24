@@ -73,7 +73,7 @@ class CommunityTargetService
             return $target ? $this->context('comparison', $target) : null;
         }
 
-        if (preg_match('#^/test-lab/([^/]+)$#', $path, $m)) {
+        if ((bool) config('brand.features.public_test_lab', false) && preg_match('#^/test-lab/([^/]+)$#', $path, $m)) {
             if ($m[1] === 'leaderboard') return null;
             $value = rawurldecode($m[1]);
             $target = AiTest::query()->published()->where(function ($q) use ($value) {
