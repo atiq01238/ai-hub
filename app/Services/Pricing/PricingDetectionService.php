@@ -150,14 +150,15 @@ class PricingDetectionService
 
     private function extractAutomatically(string $html, PricingSource $source): string
     {
-        $text = html_entity_decode(strip_tags(preg_replace('/<(script|style)[^>]*>.*?<\/\\1>/is', ' ', $html) ?? $html));
+        $text = html_entity_decode(strip_tags(preg_replace('/<(script|style)[^>]*>.*?<\/\1>/is', ' ', $html) ?? $html));
         $text = preg_replace('/\s+/', ' ', $text) ?? $text;
-        $needle = trim($source->plan->plan_name);
-        $position = $needle !== '' ? stripos($text, $needle) : false;
+        $needle = trim((string) $source->plan->plan_name);
 
-        $window = $position !== false
-            ? substr($text, max(0, $position - 250), 900)
-            : substr($text, 0, 5000);
+        if ($needle === '') {
+            throw new RuntimeException('Automatic extraction requires a pricing plan name.');
+        }
+
+        $window = $this->planBoundedWindow($text, $source, $needle);
 
         if ($source->metric === 'api_price_label') {
             if (preg_match('/(?:USD\s*)?\$\s*\d+(?:\.\d+)?\s*\/(?:\s*1M|\s*million|\s*1K|\s*1k)?[^,.<]{0,30}/i', $window, $m)) {
@@ -173,7 +174,57 @@ class PricingDetectionService
             return $this->cleanValue($m[1]);
         }
 
-        throw new RuntimeException('Automatic extractor could not confidently find a price. Use Regex or JSON Path for this source.');
+        if (in_array($source->metric, ['monthly_price', 'yearly_price'], true)
+            && preg_match('/^\s*' . preg_quote($needle, '/') . '\b.{0,100}\bfree\b/i', $window)) {
+            return '0';
+        }
+
+        throw new RuntimeException(
+            'Automatic extractor could not confidently find a price inside the selected plan block. Use Regex or JSON Path for this source.'
+        );
+    }
+
+    private function planBoundedWindow(string $text, PricingSource $source, string $needle): string
+    {
+        $offset = 0;
+        $best = null;
+
+        while (($position = stripos($text, $needle, $offset)) !== false) {
+            $candidate = substr($text, $position, 520);
+
+            // Prefer an occurrence where a currency-marked price follows the plan name.
+            if (preg_match('/(?:USD\s*)?\$\s*[0-9]|[0-9][0-9,.]*\s*(?:USD|US dollars?)/i', $candidate)) {
+                $best = $position;
+                break;
+            }
+
+            $best ??= $position;
+            $offset = $position + max(1, strlen($needle));
+        }
+
+        if ($best === null) {
+            throw new RuntimeException("Plan '{$needle}' was not found on the pricing source page. Use Regex or JSON Path for this source.");
+        }
+
+        $end = min(strlen($text), $best + 520);
+        $tool = $source->plan->tool;
+
+        if ($tool) {
+            $tool->loadMissing('pricingPlans');
+            foreach ($tool->pricingPlans as $otherPlan) {
+                $otherName = trim((string) $otherPlan->plan_name);
+                if ($otherPlan->id === $source->plan->id || $otherName === '') {
+                    continue;
+                }
+
+                $next = stripos($text, $otherName, $best + strlen($needle));
+                if ($next !== false && $next < $end) {
+                    $end = $next;
+                }
+            }
+        }
+
+        return trim(substr($text, $best, max(0, $end - $best)));
     }
 
     private function cleanValue(string $value): string

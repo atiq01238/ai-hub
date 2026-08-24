@@ -163,17 +163,50 @@ class PricingController extends Controller
 
     public function approveChange(Request $request, int $id)
     {
-        $change = DetectedPriceChange::with(['plan', 'tool'])->findOrFail($id);
+        $change = DetectedPriceChange::with(['plan', 'tool', 'source'])->findOrFail($id);
         abort_unless($change->status === 'pending', 422, 'This change has already been reviewed.');
 
-        $request->validate(['review_note' => ['nullable', 'string', 'max:1000']]);
+        $request->validate([
+            'review_note' => ['nullable', 'string', 'max:1000'],
+            'confirm_high_risk' => ['nullable', 'boolean'],
+        ]);
 
-        DB::transaction(function () use ($change, $request) {
-            $plan = $change->plan;
-            $old = $plan->{$change->metric};
-            $new = $this->castDetectedValue($change->metric, $change->detected_value);
+        $plan = $change->plan;
+        $old = $plan->{$change->metric};
+        $new = $this->castDetectedValue($change->metric, $change->detected_value);
 
-            $plan->forceFill([$change->metric => $new])->saveQuietly();
+        if ($this->isNumericMetric($change->metric)) {
+            if ($new === null || ! is_numeric((string) $change->detected_value) || (float) $new < 0) {
+                return back()->with('error', 'This detected price is not a valid numeric value and was not published. Review the source/extraction rule.');
+            }
+
+            $paidToZero = $old !== null
+                && (float) $old > 0
+                && (float) $new === 0.0
+                && ! str_contains(mb_strtolower((string) $plan->plan_name), 'free');
+
+            if ($paidToZero && ! $request->boolean('confirm_high_risk')) {
+                return back()->with(
+                    'error',
+                    'Blocked a paid-to-free automatic price change. Open the official source, verify the plan is truly free, then confirm the high-risk change.'
+                );
+            }
+        }
+
+        DB::transaction(function () use ($change, $request, $plan, $old, $new) {
+            $plan->forceFill([
+                $change->metric => $new,
+                'last_verified_at' => now(),
+            ])->saveQuietly();
+
+            if ($change->source) {
+                $change->source->forceFill([
+                    'last_checked_at' => now(),
+                    'last_check_status' => 'approved',
+                    'last_check_message' => 'Detected value reviewed and approved by an administrator.',
+                    'last_detected_value' => $change->detected_value,
+                ])->saveQuietly();
+            }
 
             $numeric = in_array($change->metric, ['monthly_price', 'yearly_price'], true);
             PricingHistory::create([
@@ -290,6 +323,11 @@ class PricingController extends Controller
             'limits' => ['nullable', 'string', 'max:100'],
             'last_verified_at' => ['nullable', 'date'],
         ]);
+    }
+
+    private function isNumericMetric(string $metric): bool
+    {
+        return in_array($metric, ['monthly_price', 'yearly_price'], true);
     }
 
     private function castDetectedValue(string $metric, ?string $value): mixed

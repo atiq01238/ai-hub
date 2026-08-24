@@ -87,11 +87,30 @@
                                 </td>
                                 <td><span class="pricing-metric-pill">{{ ucwords(str_replace('_',' ',$change->metric)) }}</span></td>
                                 <td>
+                                    @php
+                                        $numericMetric = in_array($change->metric, ['monthly_price', 'yearly_price'], true);
+                                        $currency = strtoupper($change->currency ?: 'USD');
+                                        $currentDisplay = $numericMetric && $change->current_value !== null
+                                            ? $currency.' '.rtrim(rtrim(number_format((float) $change->current_value, 2), '0'), '.')
+                                            : ($change->current_value ?? '—');
+                                        $detectedDisplay = $numericMetric && $change->detected_value !== null && is_numeric($change->detected_value)
+                                            ? $currency.' '.rtrim(rtrim(number_format((float) $change->detected_value, 2), '0'), '.')
+                                            : ($change->detected_value ?? '—');
+                                        $paidToZero = $numericMetric
+                                            && $change->current_value !== null
+                                            && (float) $change->current_value > 0
+                                            && is_numeric($change->detected_value)
+                                            && (float) $change->detected_value === 0.0
+                                            && !str_contains(mb_strtolower((string) ($change->plan->plan_name ?? '')), 'free');
+                                    @endphp
                                     <div class="pricing-change-values">
-                                        <div><small>Current</small><strong>{{ $change->current_value ?? '—' }}</strong></div>
+                                        <div><small>Current</small><strong>{{ $currentDisplay }}</strong></div>
                                         <i data-lucide="arrow-right"></i>
-                                        <div class="is-new"><small>Detected</small><strong>{{ $change->detected_value ?? '—' }}</strong></div>
+                                        <div class="is-new"><small>Detected</small><strong>{{ $detectedDisplay }}</strong></div>
                                     </div>
+                                    @if($change->source?->source_type === 'auto')
+                                        <small class="pricing-muted">Automatic extraction · verify against the official plan block before approval.</small>
+                                    @endif
                                 </td>
                                 <td>
                                     @if($change->source_url)
@@ -110,6 +129,12 @@
                                             <form method="POST" action="{{ route('admin.pricing.changes.approve', $change->id) }}" onsubmit="return confirm('Approve this detected value and update the live pricing plan?')">
                                                 @csrf
                                                 <input type="hidden" name="review_note" value="Approved from pricing review queue">
+                                                @if($paidToZero)
+                                                    <label style="display:flex;align-items:flex-start;gap:6px;margin:0 0 8px;color:#f6c76a;font-size:11px;line-height:1.35;max-width:220px">
+                                                        <input type="checkbox" name="confirm_high_risk" value="1" required style="margin-top:2px">
+                                                        <span>I verified on the official source that this paid plan is now free.</span>
+                                                    </label>
+                                                @endif
                                                 <button class="btn btn-primary btn-sm" type="submit"><i data-lucide="check"></i>Approve</button>
                                             </form>
                                             <form method="POST" action="{{ route('admin.pricing.changes.reject', $change->id) }}" onsubmit="return confirm('Reject this detected pricing change?')">
