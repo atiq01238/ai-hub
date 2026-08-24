@@ -69,6 +69,11 @@
     </button>
 
     <div class="topbar-right">
+        <a href="{{ route('home') }}" class="console-pill" title="View public AI Orbit site">
+            <i data-lucide="globe-2"></i>
+            <span>View Site</span>
+        </a>
+
         @if($headerUser?->canAccessModule('Security','View'))
         <a href="{{ route('admin.system.overview') }}" class="console-pill" title="Open system overview">
             <span class="console-pill__dot"></span>
@@ -129,6 +134,7 @@
                     <div><strong>{{ $headerUser?->name ?? 'Administrator' }}</strong><small>{{ $headerRole }}</small><span>{{ $headerUser?->email }}</span></div>
                 </div>
                 <div class="dropdown-divider-custom"></div>
+                <a href="{{ route('home') }}"><i data-lucide="globe-2"></i><span>View Public Site</span></a>
                 <a href="{{ route('admin.system.2fa') }}"><i data-lucide="shield-check"></i><span>Two-Factor Authentication</span></a>
                 @if($headerUser?->canAccessModule('Security','View'))
                     <a href="{{ route('admin.system.security') }}"><i data-lucide="lock-keyhole"></i><span>Security Center</span></a>

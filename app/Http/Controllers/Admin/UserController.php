@@ -163,22 +163,51 @@ class UserController extends Controller
             abort_unless($this->hasOtherActiveSuperAdmin($user), 422, 'The final active Super Admin cannot be reassigned.');
         }
 
-        $user->update(['role_id' => $targetRole->id]);
+        if ((int) $user->role_id === (int) $targetRole->id) {
+            return back()->with('status', "{$user->name} already has the {$targetRole->name} permission role. No sessions were revoked.");
+        }
 
+        DB::transaction(function () use ($user, $targetRole) {
+            $user->forceFill(['role_id' => $targetRole->id])->save();
+        });
+
+        // Permission changes are security-sensitive. Revoke the target user's
+        // existing database sessions so the new permission set is enforced on
+        // the next login instead of leaving an old session active.
+        DB::table(config('session.table', 'sessions'))->where('user_id', $user->id)->delete();
+
+        $user->refresh()->load('roleModel');
         $this->logAction($request->user()->id, 'role_updated', $user, $targetRole->name);
 
-        return back()->with('status', "Permission role updated to {$targetRole->name}.");
+        return back()->with('status', "{$user->name}'s permission role is now {$targetRole->name}. Active sessions were revoked.");
     }
 
     public function updateAccess(Request $request, int $id)
     {
         $data = $request->validate([
             'access_level' => ['required', 'in:admin,user'],
-            'role_id' => ['nullable', 'required_if:access_level,admin', 'exists:roles,id'],
+            'role_id' => ['nullable', 'exists:roles,id'],
         ]);
 
+        $requestedRoleId = $request->filled('role_id') ? (int) $data['role_id'] : null;
+
+        // Never silently discard a selected permission role. This was the old
+        // bug: a Member could select a role, receive a success message, get
+        // signed out, and still end up with role_id = null.
+        if ($data['access_level'] === 'admin' && ! $requestedRoleId) {
+            return back()->withErrors([
+                'role_id' => 'Choose a permission role when granting Administrator access.',
+            ])->withInput();
+        }
+
+        if ($data['access_level'] === 'user' && $requestedRoleId) {
+            return back()->withErrors([
+                'role_id' => 'Permission roles require Administrator access. Select Administrator first.',
+            ])->withInput();
+        }
+
         $user = User::findOrFail($id);
-        $targetRole = $data['access_level'] === 'admin' ? Role::findOrFail($data['role_id']) : null;
+        $targetRole = $data['access_level'] === 'admin' ? Role::findOrFail($requestedRoleId) : null;
 
         abort_if($request->user()->is($user), 422, 'You cannot change your own access level.');
         abort_if($user->isSuperAdmin() && ! $request->user()->isSuperAdmin(), 403, 'Only a Super Admin can modify another Super Admin.');
@@ -196,15 +225,38 @@ class UserController extends Controller
             abort_if($otherActiveAdmins === 0, 422, 'The final active admin cannot be demoted.');
         }
 
-        $user->forceFill([
-            'role' => $data['access_level'],
-            'role_id' => $data['access_level'] === 'admin' ? $targetRole?->id : null,
-        ])->save();
+        $newRoleId = $data['access_level'] === 'admin' ? (int) $targetRole->id : null;
+        $currentRoleId = $user->role_id !== null ? (int) $user->role_id : null;
+        $hasChanged = $user->role !== $data['access_level'] || $currentRoleId !== $newRoleId;
 
-        DB::table('sessions')->where('user_id', $user->id)->delete();
+        if (! $hasChanged) {
+            $label = $user->role === 'admin'
+                ? 'Administrator with ' . ($user->roleModel?->name ?? 'the current permission role')
+                : 'Member';
+
+            return back()->with('status', "{$user->name} is already {$label}. No sessions were revoked.");
+        }
+
+        DB::transaction(function () use ($user, $data, $newRoleId) {
+            $user->forceFill([
+                'role' => $data['access_level'],
+                'role_id' => $newRoleId,
+            ])->save();
+        });
+
+        // Access/permission changes should invalidate existing sessions, but
+        // only after a real persisted change. This avoids logging a user out
+        // when an admin simply re-saves unchanged values.
+        DB::table(config('session.table', 'sessions'))->where('user_id', $user->id)->delete();
+
+        $user->refresh()->load('roleModel');
         $this->logAction($request->user()->id, 'access_updated', $user, $data['access_level']);
 
-        return back()->with('status', "{$user->name}'s access level was updated and active sessions were revoked.");
+        $status = $user->role === 'admin'
+            ? "{$user->name} is now an Administrator with {$user->roleModel->name} permissions. Active sessions were revoked."
+            : "{$user->name} is now a Member. Administrator permissions were removed and active sessions were revoked.";
+
+        return back()->with('status', $status);
     }
 
 

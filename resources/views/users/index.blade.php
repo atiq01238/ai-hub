@@ -122,14 +122,14 @@
                             </td>
                             <td>
                                 @if(! $user->trashed() && auth()->id() !== $user->id && auth()->user()->canAccessModule('Users','Edit') && auth()->user()->canAccessModule('Roles & Permissions','Edit'))
-                                    <form action="{{ route('admin.users.access',$user->id) }}" method="POST" class="uc-access-form" onsubmit="return confirm('Update {{ addslashes($user->name) }} access and revoke active sessions?')">
+                                    <form action="{{ route('admin.users.access',$user->id) }}" method="POST" class="uc-access-form" data-user-access-form onsubmit="return confirm('Update {{ addslashes($user->name) }} access and revoke active sessions?')">
                                         @csrf @method('PATCH')
-                                        <select class="select" name="access_level">
+                                        <select class="select" name="access_level" data-access-level>
                                             <option value="user" @selected($user->role==='user')>Member</option>
                                             <option value="admin" @selected($user->role==='admin')>Administrator</option>
                                         </select>
-                                        <select class="select" name="role_id">
-                                            <option value="" disabled {{ $user->role !== 'admin' ? 'selected' : '' }}>Permission role</option>
+                                        <select class="select" name="role_id" data-permission-role>
+                                            <option value="" @selected(!$user->role_id)>Choose permission role</option>
                                             @foreach($roles as $role)
                                                 @continue($role->isSystemRole() && !auth()->user()->isSuperAdmin())
                                                 <option value="{{ $role->id }}" @selected($user->role_id==$role->id)>{{ $role->name }}</option>
@@ -178,3 +178,7 @@
     </section>
 </div>
 @endsection
+@push('scripts')
+<script src="{{ asset('js/admin/user-access-control.js') }}" defer></script>
+@endpush
+

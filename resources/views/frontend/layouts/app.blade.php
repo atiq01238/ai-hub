@@ -1,7 +1,8 @@
 @php
     $frontNotifications = collect();
     $frontUnread = 0;
-    if (auth()->check() && auth()->user()->role !== 'admin') {
+    $frontHasAdminAccess = auth()->check() && auth()->user()->hasAdminPanelAccess();
+    if (auth()->check() && ! $frontHasAdminAccess) {
         try {
             $frontNotifications = \App\Models\AppNotification::where('user_id', auth()->id())->latest()->limit(5)->get();
             $frontUnread = \App\Models\AppNotification::where('user_id', auth()->id())->unread()->count();
@@ -62,7 +63,7 @@
             <a class="icon-btn {{ request()->routeIs('search.*') ? 'active' : '' }}" href="{{ route('search.index') }}" aria-label="Search AI Orbit" data-global-search-open><i data-lucide="search"></i></a>
             <a class="icon-btn {{ request()->routeIs('saved.*') ? 'active' : '' }}" href="{{ route('saved.index') }}" aria-label="Saved library"><i data-lucide="bookmark"></i></a>
             @auth
-                @if(auth()->user()->role !== 'admin')
+                @if(! $frontHasAdminAccess)
                     <div class="front-notif-wrap">
                         <button class="icon-btn front-notif-btn" type="button" data-front-notif-toggle aria-label="Notifications"><i data-lucide="bell"></i>@if($frontUnread)<span class="front-notif-count">{{ $frontUnread > 99 ? '99+' : $frontUnread }}</span>@endif</button>
                         <div class="front-notif-menu" data-front-notif-menu>
@@ -76,8 +77,8 @@
                         </div>
                     </div>
                 @endif
-                @if(auth()->user()->role === 'admin' && auth()->user()->status === 'active')
-                    <a class="signin-btn" href="{{ route('admin.dashboard') }}"><span class="avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>Admin<i data-lucide="chevron-right"></i></a>
+                @if($frontHasAdminAccess)
+                    <a class="signin-btn" href="{{ route('admin.dashboard') }}" aria-label="Open admin panel"><span class="avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>Admin Panel<i data-lucide="chevron-right"></i></a>
                 @else
                     <a class="signin-btn {{ request()->routeIs('account.*') ? 'active' : '' }}" href="{{ route('account.dashboard') }}"><span class="avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>My AI Orbit<i data-lucide="chevron-right"></i></a>
                 @endif
@@ -91,7 +92,9 @@
     <div class="mobile-nav-backdrop" data-mobile-nav-backdrop aria-hidden="true"></div>
     <div class="mobile-nav" data-mobile-nav aria-hidden="true">
         @auth
-            @if(!(auth()->user()->role === 'admin' && auth()->user()->status === 'active'))
+            @if($frontHasAdminAccess)
+                <a href="{{ route('admin.dashboard') }}"><i data-lucide="shield-check"></i>Admin Panel</a>
+            @else
                 <a class="{{ request()->routeIs('account.dashboard') ? 'active' : '' }}" href="{{ route('account.dashboard') }}">My AI Orbit</a>
                 <a class="{{ request()->routeIs('account.notifications*') ? 'active' : '' }}" href="{{ route('account.notifications') }}">Notifications @if($frontUnread)({{ $frontUnread }})@endif</a>
             @endif

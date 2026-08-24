@@ -132,10 +132,10 @@
     <section class="card uc-action-card">
         <span class="uc-eyebrow">Access Control</span>
         <h3>Update account access</h3>
-        <form action="{{ route('admin.users.access',$user->id) }}" method="POST" onsubmit="return confirm('Update access and revoke active sessions?')">
+        <form action="{{ route('admin.users.access',$user->id) }}" method="POST" data-user-access-form onsubmit="return confirm('Update access and revoke active sessions?')">
             @csrf @method('PATCH')
-            <label><span>Access level</span><select class="select" name="access_level"><option value="user" @selected($user->role==='user')>Member</option><option value="admin" @selected($user->role==='admin')>Administrator</option></select></label>
-            <label><span>Permission role</span><select class="select" name="role_id"><option value="" disabled {{ $user->role!=='admin'?'selected':'' }}>Choose role</option>@foreach($roles as $role)@continue($role->isSystemRole() && !auth()->user()->isSuperAdmin())<option value="{{ $role->id }}" @selected($user->role_id==$role->id)>{{ $role->name }}</option>@endforeach</select></label>
+            <label><span>Access level</span><select class="select" name="access_level" data-access-level><option value="user" @selected($user->role==='user')>Member</option><option value="admin" @selected($user->role==='admin')>Administrator</option></select></label>
+            <label><span>Permission role</span><select class="select" name="role_id" data-permission-role><option value="" @selected(!$user->role_id)>Choose permission role</option>@foreach($roles as $role)@continue($role->isSystemRole() && !auth()->user()->isSuperAdmin())<option value="{{ $role->id }}" @selected($user->role_id==$role->id)>{{ $role->name }}</option>@endforeach</select></label>
             <button class="btn btn-secondary" type="submit"><i data-lucide="shield-cog"></i>Update Access</button>
         </form>
     </section>
@@ -215,3 +215,7 @@
 </div>
 </div>
 @endsection
+@push('scripts')
+<script src="{{ asset('js/admin/user-access-control.js') }}" defer></script>
+@endpush
+

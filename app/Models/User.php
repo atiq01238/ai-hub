@@ -143,6 +143,11 @@ class User extends Authenticatable implements MustVerifyEmailContract
             && $this->roleModel?->isSystemRole();
     }
 
+    public function hasAdminPanelAccess(): bool
+    {
+        return $this->role === 'admin' && $this->status === 'active';
+    }
+
     public function canAccessModule(string $module, string $action): bool
     {
         if ($this->role !== 'admin' || $this->status !== 'active') {
