@@ -1,5 +1,5 @@
 @extends('frontend.layouts.app')
-@section('title','Comparison History | AI Hub')
+@section('title','Comparison History | AI Orbit')
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/comparisons.css') }}">@endpush
 @section('content')
 <section class="builder-hero"><div class="compare-container builder-hero-inner">

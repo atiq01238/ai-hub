@@ -119,7 +119,7 @@ class Tool extends Model
         if ($description !== '') {
             $parts[] = $description;
         } else {
-            $parts[] = $this->name . ' is an AI tool listed in the AI Hub catalog.';
+            $parts[] = $this->name . ' is an AI tool listed in the AI Orbit catalog.';
         }
 
         $needsContext = mb_strlen($description) < 180 || ($short !== '' && $description === $short);
@@ -138,7 +138,7 @@ class Tool extends Model
 
             $platforms = collect($this->platforms ?? [])->filter()->take(6)->values();
             if ($platforms->isNotEmpty()) {
-                $parts[] = 'AI Hub currently lists support for ' . $platforms->join(', ', ' and ') . '.';
+                $parts[] = 'AI Orbit currently lists support for ' . $platforms->join(', ', ' and ') . '.';
             }
 
             $pricing = collect($this->pricing_models ?? [])->filter()->values();

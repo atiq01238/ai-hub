@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
-@section('title', 'Suggest an AI Tool, Model or Company — AI Hub')
-@section('meta_description', 'Suggest a new AI tool, model or company, or submit a structured data correction to the AI Hub moderation queue.')
+@section('title', 'Suggest an AI Tool, Model or Company — AI Orbit')
+@section('meta_description', 'Suggest a new AI tool, model or company, or submit a structured data correction to the AI Orbit moderation queue.')
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/institutional.css') }}">@endpush
 @section('content')
 <section class="inst-hero inst-hero-compact"><div class="inst-wrap"><span class="inst-eyebrow"><i data-lucide="lightbulb"></i> Community contribution</span><h1>Help improve the <span>AI directory.</span></h1><p>Suggest a tool, model or company—or submit a correction. Every contribution enters a moderation queue before publication.</p></div></section>
@@ -21,6 +21,6 @@
 </div>
 <div class="inst-form-footer"><span><i data-lucide="shield-check"></i> Human moderation • duplicate protection • contact used only for clarification</span><button class="inst-btn primary" type="submit">Send for review <i data-lucide="send"></i></button></div>
 </form></section>
-<aside class="inst-contact-side"><article class="inst-side-card"><i data-lucide="scan-search"></i><h3>Verification helps</h3><p>Official product pages, provider documentation and clear correction details make moderation faster.</p></article><article class="inst-side-card"><i data-lucide="message-square"></i><h3>General feedback?</h3><p>Use the contact form for product feedback, partnerships, press or technical questions.</p><a href="{{ route('contact') }}">Contact AI Hub <i data-lucide="arrow-right"></i></a></article><article class="inst-side-card"><i data-lucide="microscope"></i><h3>How data is handled</h3><p>Read the methodology before submitting a concern about rankings, benchmarks or pricing.</p><a href="{{ route('methodology') }}">Read methodology <i data-lucide="arrow-right"></i></a></article></aside>
+<aside class="inst-contact-side"><article class="inst-side-card"><i data-lucide="scan-search"></i><h3>Verification helps</h3><p>Official product pages, provider documentation and clear correction details make moderation faster.</p></article><article class="inst-side-card"><i data-lucide="message-square"></i><h3>General feedback?</h3><p>Use the contact form for product feedback, partnerships, press or technical questions.</p><a href="{{ route('contact') }}">Contact AI Orbit <i data-lucide="arrow-right"></i></a></article><article class="inst-side-card"><i data-lucide="microscope"></i><h3>How data is handled</h3><p>Read the methodology before submitting a concern about rankings, benchmarks or pricing.</p><a href="{{ route('methodology') }}">Read methodology <i data-lucide="arrow-right"></i></a></article></aside>
 </div>
 @endsection

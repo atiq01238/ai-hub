@@ -1,9 +1,7 @@
 @extends('frontend.layouts.app')
-@section('title','AI Test Lab — Independent AI Model Tests | AI Hub')
+@section('title','AI Test Lab — Independent AI Model Tests | AI Orbit')
 @section('meta_description','Explore controlled AI model experiments with locked prompts, test-specific rubrics, multi-run scoring, evidence and transparent verification.')
 @push('head')
-<link rel="canonical" href="{{ route('testlab.index') }}">
-<meta name="robots" content="{{ request()->query() ? 'noindex,follow' : 'index,follow,max-image-preview:large' }}">
 <script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'CollectionPage','name'=>'AI Test Lab','description'=>'Independent AI model experiments with shared prompts, transparent scoring and evidence.','url'=>route('testlab.index')], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
 @endpush
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/testlab.css') }}">@endpush

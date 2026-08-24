@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
-@section('title','Saved AI Library | AI Hub')
-@section('meta_description','Your personal AI Hub library for saved AI tools, models, news, articles and companies.')
+@section('title','Saved AI Library | AI Orbit')
+@section('meta_description','Your personal AI Orbit library for saved AI tools, models, news, articles and companies.')
 
 @section('content')
 @php
@@ -68,9 +68,9 @@
                                 'tool' => ($item->company?->name ?? 'Independent').' · '.($item->category?->name ?? 'AI Tool'),
                                 'model' => ($item->company?->name ?? 'Independent').' · '.($item->version ?: 'AI Model'),
                                 'news' => ($item->source ?: $item->company?->name ?: 'AI News').' · '.optional($item->published_at)->diffForHumans(),
-                                'article' => ($item->company?->name ?? 'AI Hub Editorial').' · '.optional($item->published_at)->format('M j, Y'),
+                                'article' => ($item->company?->name ?? 'AI Orbit Editorial').' · '.optional($item->published_at)->format('M j, Y'),
                                 'company' => $item->founded_year ? 'Founded '.$item->founded_year : 'AI Company',
-                                default => 'AI Hub',
+                                default => 'AI Orbit',
                             };
                             $description = $item->short_description ?? $item->ai_summary ?? $item->summary ?? $item->description ?? '';
                             $image = match($itemType) {
@@ -111,7 +111,7 @@
                 @endif
             @else
                 <div class="saved-empty">
-                    <div><i data-lucide="bookmark"></i></div><span class="saved-kicker">NOTHING HERE YET</span><h2>{{ $type === 'all' ? 'Start building your AI library.' : 'No '.$typeLabels[$type].' saved yet.' }}</h2><p>Use the bookmark action across AI Hub to keep useful research within reach.</p><a class="saved-primary" href="{{ route('search.index') }}">Explore AI Hub <i data-lucide="compass"></i></a>
+                    <div><i data-lucide="bookmark"></i></div><span class="saved-kicker">NOTHING HERE YET</span><h2>{{ $type === 'all' ? 'Start building your AI library.' : 'No '.$typeLabels[$type].' saved yet.' }}</h2><p>Use the bookmark action across AI Orbit to keep useful research within reach.</p><a class="saved-primary" href="{{ route('search.index') }}">Explore AI Orbit <i data-lucide="compass"></i></a>
                 </div>
             @endif
         @endguest

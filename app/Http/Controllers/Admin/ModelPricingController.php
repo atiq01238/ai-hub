@@ -42,7 +42,7 @@ class ModelPricingController extends Controller
     {
         abort_unless($source->ai_model_id===$model->id,404);
         try {
-            $response=Http::timeout(18)->withHeaders(['User-Agent'=>'AI-Hub-Pricing-Monitor/2.0'])->get($source->source_url);
+            $response=Http::timeout(18)->withHeaders(['User-Agent'=>'AI-Orbit-Pricing-Monitor/2.0'])->get($source->source_url);
             abort_unless($response->successful(),422,'Pricing source request failed.');
             $detected=$this->extract($response->body(),$response->json(),$source);
             $current=$model->{$source->metric};

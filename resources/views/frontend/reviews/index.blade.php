@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
-@section('title','Independent AI Tool & Model Reviews | AI Hub')
-@section('meta_description','Browse AI Hub editorial and community reviews for leading AI tools and models, with ratings, verdicts, strengths and trade-offs.')
+@section('title','Independent AI Tool & Model Reviews | AI Orbit')
+@section('meta_description','Browse AI Orbit editorial and community reviews for leading AI tools and models, with ratings, verdicts, strengths and trade-offs.')
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/content.css') }}">@endpush
 
 @section('content')
@@ -94,9 +94,9 @@
                                 </div>
                                 <span class="review-type type-{{ $review->review_type }}">{{ $review->review_type==='editorial'?'Editorial review':'Community review' }}</span>
                                 <h4>{{ $review->verdict ?: 'Review for '.$reviewedItem?->name }}</h4>
-                                <p>{{ \Illuminate\Support\Str::limit($review->body ?: 'A published rating from the AI Hub review system.',155) }}</p>
+                                <p>{{ \Illuminate\Support\Str::limit($review->body ?: 'A published rating from the AI Orbit review system.',155) }}</p>
                                 <div class="directory-review-foot">
-                                    <span>{{ $review->user?->name ?? 'AI Hub Editorial' }} · {{ $review->created_at->diffForHumans() }}</span>
+                                    <span>{{ $review->user?->name ?? 'AI Orbit Editorial' }} · {{ $review->created_at->diffForHumans() }}</span>
                                     <a href="{{ route('reviews.show',$review) }}">Read review <i data-lucide="arrow-right"></i></a>
                                 </div>
                             </article>

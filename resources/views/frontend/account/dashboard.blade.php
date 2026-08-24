@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
-@section('title','My AI Hub — Personal Dashboard')
-@section('meta_description','Your private AI Hub dashboard for saved items, reviews, follows, comparisons and Test Lab history.')
+@section('title','My AI Orbit — Personal Dashboard')
+@section('meta_description','Your private AI Orbit dashboard for saved items, reviews, follows, comparisons and Test Lab history.')
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/account.css') }}">@endpush
 
 @section('content')
@@ -28,7 +28,7 @@
 
             @unless($onboardingComplete)
             <section class="account-personalize-banner">
-                <div><span><i data-lucide="wand-sparkles"></i> PERSONALIZE AI HUB</span><h2>Make discovery work for you.</h2><p>Choose your AI interests and use cases. It takes about 20 seconds.</p></div>
+                <div><span><i data-lucide="wand-sparkles"></i> PERSONALIZE AI ORBIT</span><h2>Make discovery work for you.</h2><p>Choose your AI interests and use cases. It takes about 20 seconds.</p></div>
                 <a href="{{ route('account.onboarding') }}">Personalize now <i data-lucide="arrow-right"></i></a>
             </section>
             @endunless
@@ -38,7 +38,7 @@
                 <div class="account-rec-grid">
                     @forelse($recommendations['tools'] as $tool)
                     <a class="account-rec-card" href="{{ url('/ai-tools/'.$tool->slug) }}"><span>{{ strtoupper(substr($tool->name,0,2)) }}</span><div><b>{{ $tool->name }}</b><small>{{ $tool->company?->name ?: 'AI Tool' }}</small><p>{{ \Illuminate\Support\Str::limit($tool->short_description ?: $tool->description,90) }}</p></div><i data-lucide="arrow-up-right"></i></a>
-                    @empty<div class="account-empty">More recommendations will appear as you use AI Hub.</div>@endforelse
+                    @empty<div class="account-empty">More recommendations will appear as you use AI Orbit.</div>@endforelse
                 </div>
             </section>
 
@@ -78,7 +78,7 @@
                                 <b>Open <i data-lucide="arrow-up-right"></i></b>
                             </a>
                         @empty
-                            <div class="account-empty wide"><i data-lucide="bookmark-plus"></i><strong>No saved research yet.</strong><span>Explore AI Hub and save items you want to revisit.</span></div>
+                            <div class="account-empty wide"><i data-lucide="bookmark-plus"></i><strong>No saved research yet.</strong><span>Explore AI Orbit and save items you want to revisit.</span></div>
                         @endforelse
                     </div>
                 </section>
@@ -115,7 +115,7 @@
                 </section>
 
                 <section class="account-panel quick-panel">
-                    <div class="account-panel-head"><div><span>QUICK START</span><h2>Jump back into AI Hub</h2></div></div>
+                    <div class="account-panel-head"><div><span>QUICK START</span><h2>Jump back into AI Orbit</h2></div></div>
                     <div class="quick-links">
                         <a href="{{ route('comparisons.builder') }}"><i data-lucide="scale"></i><span><strong>Compare AI</strong><small>Put tools or models side by side</small></span><b>›</b></a>
                         <a href="{{ route('news.index') }}"><i data-lucide="radio"></i><span><strong>Latest AI News</strong><small>Catch up on launches and research</small></span><b>›</b></a>

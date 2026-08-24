@@ -116,6 +116,9 @@ Route::get('/sitemap-tools.xml', [SeoSitemapController::class, 'tools'])->name('
 Route::get('/sitemap-models.xml', [SeoSitemapController::class, 'models'])->name('sitemap.models');
 Route::get('/sitemap-news.xml', [SeoSitemapController::class, 'news'])->name('sitemap.news');
 Route::get('/sitemap-articles.xml', [SeoSitemapController::class, 'articles'])->name('sitemap.articles');
+Route::get('/sitemap-comparisons.xml', [SeoSitemapController::class, 'comparisons'])->name('sitemap.comparisons');
+Route::get('/sitemap-benchmarks.xml', [SeoSitemapController::class, 'benchmarks'])->name('sitemap.benchmarks');
+Route::get('/sitemap-pages.xml', [SeoSitemapController::class, 'pages'])->name('sitemap.pages');
 Route::get('/sitemap-taxonomy.xml', [SeoSitemapController::class, 'taxonomy'])->name('sitemap.taxonomy');
 Route::get('/sitemap-testlab.xml', [SeoSitemapController::class, 'testLab'])->name('sitemap.testlab');
 Route::get('/companies', [FrontendCompanyController::class, 'index'])->name('companies.index');
@@ -207,7 +210,7 @@ Route::get('/email/verify', fn () => view('auth.verify-email'))
     ->middleware('auth')->name('verification.notice');
 Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
     $request->fulfill();
-    return redirect()->route('account.onboarding')->with('status', 'Email verified. Welcome to AI Hub!');
+    return redirect()->route('account.onboarding')->with('status', 'Email verified. Welcome to AI Orbit!');
 })->middleware(['auth','signed','throttle:6,1'])->name('verification.verify');
 Route::post('/email/verification-notification', function (Request $request) {
     if ($request->user()->hasVerifiedEmail()) return redirect()->route('home');

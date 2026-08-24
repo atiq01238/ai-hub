@@ -21,7 +21,7 @@
         $reports = [
             ['Review on "Midjourney" by j.reviewer_92','Review','Spam / promotional content','anon_884','Aug 5','Pending'],
             ['Comment on "GPT-5.2 Turbo Explained"','Comment','Harassment','m.dev@mail.com','Aug 4','Pending'],
-            ['User: fake_account_212','User','Impersonation','sarah@aihub.io','Aug 3','Resolved'],
+            ['User: fake_account_212','User','Impersonation','sarah@example.com','Aug 3','Resolved'],
             ['Tool submission "ScamGPT"','Submission','Fraudulent tool','k.reviewer@mail.com','Aug 2','Resolved'],
         ];
         @endphp

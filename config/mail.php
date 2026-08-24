@@ -120,7 +120,7 @@ return [
     | Contact inbox recipient
     |--------------------------------------------------------------------------
     | Optional comma-separated override for public Contact Us alerts. When it
-    | is empty, AI Hub notifies active administrators who can view Users.
+    | is empty, AI Orbit notifies active administrators who can view Users.
     */
     'contact_to' => env('CONTACT_ADMIN_EMAIL'),
 

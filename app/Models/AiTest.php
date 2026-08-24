@@ -177,7 +177,7 @@ class AiTest extends Model
 
     public function getSeoTitleAttribute($value): string
     {
-        return $value ?: $this->name.' AI Model Test — Test Lab | AI Hub';
+        return $value ?: $this->name.' AI Model Test — Test Lab | AI Orbit';
     }
 
     public function getSeoDescriptionAttribute(): string

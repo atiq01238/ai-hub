@@ -2,20 +2,11 @@
 
 @section('title', $seo['title'])
 @section('meta_description', $seo['description'])
+@section('canonical', $seo['canonical'])
+@section('og_type', 'profile')
+@section('og_image', $seo['logo'])
 
 @push('head')
-<link rel="canonical" href="{{ $seo['canonical'] }}">
-<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
-<meta property="og:type" content="profile">
-<meta property="og:site_name" content="AI Hub">
-<meta property="og:title" content="{{ $seo['title'] }}">
-<meta property="og:description" content="{{ $seo['description'] }}">
-<meta property="og:url" content="{{ $seo['canonical'] }}">
-<meta property="og:image" content="{{ $seo['logo'] }}">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="{{ $seo['title'] }}">
-<meta name="twitter:description" content="{{ $seo['description'] }}">
-<meta name="twitter:image" content="{{ $seo['logo'] }}">
 <script type="application/ld+json">{!! json_encode($seo['organization'], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
 <script type="application/ld+json">{!! json_encode($seo['webPage'], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
 <script type="application/ld+json">{!! json_encode($seo['breadcrumb'], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
@@ -116,7 +107,7 @@
                         <div><span>Status</span><strong>{{ ucfirst($company->status) }}</strong></div>
                         <div><span>Founded</span><strong>{{ $company->founded_year ?: 'Not listed' }}</strong></div>
                         <div><span>Website</span><strong>{{ $company->website ? parse_url($company->website, PHP_URL_HOST) : 'Not listed' }}</strong></div>
-                        <div><span>AI Hub coverage</span><strong>{{ $company->published_tools_count + $company->active_models_count }} products & models</strong></div>
+                        <div><span>AI Orbit coverage</span><strong>{{ $company->published_tools_count + $company->active_models_count }} products & models</strong></div>
                     </div>
                     <div class="company-knowledge-summary">
                         <div class="company-knowledge-copy">
@@ -172,7 +163,7 @@
                     @if($lastUpdated)
                         <div class="company-verification-note">
                             <i data-lucide="database"></i>
-                            <span><strong>AI Hub profile data</strong> · Last updated {{ $lastUpdated->format('F j, Y') }} from linked company, model, tool and intelligence records.</span>
+                            <span><strong>AI Orbit profile data</strong> · Last updated {{ $lastUpdated->format('F j, Y') }} from linked company, model, tool and intelligence records.</span>
                         </div>
                     @endif
                 </section>

@@ -21,8 +21,12 @@
     <meta name="search-suggest-url" content="{{ route('search.suggest') }}">
     <meta name="search-click-url" content="{{ route('search.click') }}">
     <meta name="auth-status" content="{{ auth()->check() ? '1' : '0' }}">
-    <title>@yield('title', 'AI Hub — Discover, Compare, Master AI')</title>
-    <meta name="description" content="@yield('meta_description', 'Discover AI tools, models, news, comparisons, pricing and independent test results in one place.')">
+    @include('frontend.partials.seo')
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset(config('brand.assets.favicon_32')) }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset(config('brand.assets.favicon_16')) }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset(config('brand.assets.apple_touch_icon')) }}">
+    <meta name="theme-color" content="#070a17">
+    <link rel="manifest" href="{{ asset('site.webmanifest') }}">
     @stack('head')
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -37,9 +41,9 @@
 <body>
 <div class="site-shell">
     <header class="topbar">
-        <a class="brand" href="{{ route('home') }}" aria-label="AI Hub home">
-            <span class="brand-mark"><i data-lucide="brain-circuit"></i></span>
-            <span><strong>AI Hub</strong><small>Discover • Compare • Master AI</small></span>
+        <a class="brand" href="{{ route('home') }}" aria-label="AI Orbit home">
+            <span class="brand-mark brand-orbit-mark"><img src="{{ asset(config('brand.assets.icon')) }}" alt="" aria-hidden="true"></span>
+            <span><strong>AI Orbit</strong><small>Explore • Compare • Stay Ahead</small></span>
         </a>
 
         <nav class="main-nav" aria-label="Main navigation">
@@ -56,7 +60,7 @@
         </nav>
 
         <div class="nav-actions">
-            <a class="icon-btn {{ request()->routeIs('search.*') ? 'active' : '' }}" href="{{ route('search.index') }}" aria-label="Search AI Hub" data-global-search-open><i data-lucide="search"></i></a>
+            <a class="icon-btn {{ request()->routeIs('search.*') ? 'active' : '' }}" href="{{ route('search.index') }}" aria-label="Search AI Orbit" data-global-search-open><i data-lucide="search"></i></a>
             <a class="icon-btn {{ request()->routeIs('saved.*') ? 'active' : '' }}" href="{{ route('saved.index') }}" aria-label="Saved library"><i data-lucide="bookmark"></i></a>
             @auth
                 @if(auth()->user()->role !== 'admin')
@@ -76,7 +80,7 @@
                 @if(auth()->user()->role === 'admin' && auth()->user()->status === 'active')
                     <a class="signin-btn" href="{{ route('admin.dashboard') }}"><span class="avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>Admin<i data-lucide="chevron-right"></i></a>
                 @else
-                    <a class="signin-btn {{ request()->routeIs('account.*') ? 'active' : '' }}" href="{{ route('account.dashboard') }}"><span class="avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>My AI Hub<i data-lucide="chevron-right"></i></a>
+                    <a class="signin-btn {{ request()->routeIs('account.*') ? 'active' : '' }}" href="{{ route('account.dashboard') }}"><span class="avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>My AI Orbit<i data-lucide="chevron-right"></i></a>
                 @endif
             @else
                 <a class="signin-btn" href="{{ route('login') }}"><span class="avatar"><i data-lucide="user"></i></span>Sign In<i data-lucide="chevron-right"></i></a>
@@ -89,7 +93,7 @@
     <div class="mobile-nav" data-mobile-nav aria-hidden="true">
         @auth
             @if(!(auth()->user()->role === 'admin' && auth()->user()->status === 'active'))
-                <a href="{{ route('account.dashboard') }}">My AI Hub</a>
+                <a href="{{ route('account.dashboard') }}">My AI Orbit</a>
                 <a href="{{ route('account.activity') }}">My Activity</a>
                 <a href="{{ route('account.notifications') }}">Notifications @if($frontUnread)({{ $frontUnread }})@endif</a>
             @endif
@@ -99,9 +103,9 @@
 
     <div class="site-search-overlay" data-site-search-modal hidden aria-hidden="true">
         <button class="site-search-backdrop" type="button" data-global-search-close aria-label="Close search"></button>
-        <section class="site-search-panel" role="dialog" aria-modal="true" aria-label="Search AI Hub">
+        <section class="site-search-panel" role="dialog" aria-modal="true" aria-label="Search AI Orbit">
             <div class="site-search-panel-head">
-                <div><span><i data-lucide="sparkles"></i> Search Intelligence</span><strong>Search across AI Hub</strong></div>
+                <div><span><i data-lucide="sparkles"></i> Search Intelligence</span><strong>Search across AI Orbit</strong></div>
                 <button type="button" data-global-search-close aria-label="Close search"><i data-lucide="x"></i></button>
             </div>
             <form class="site-search-form" action="{{ route('search.index') }}" method="get" data-search-shell>
@@ -142,8 +146,8 @@
             <div class="footer-main">
                 <div class="footer-about">
                     <a class="footer-logo" href="{{ route('home') }}">
-                        <span class="brand-mark"><i data-lucide="brain-circuit"></i></span>
-                        <span><strong>AI Hub</strong><small>Discover • Compare • Master AI</small></span>
+                        <span class="brand-mark brand-orbit-mark"><img src="{{ asset(config('brand.assets.icon')) }}" alt="" aria-hidden="true"></span>
+                        <span><strong>AI Orbit</strong><small>Explore • Compare • Stay Ahead</small></span>
                     </a>
                     <p>A research-driven hub for finding the right AI tools and models, understanding the latest AI news and comparing products with useful data.</p>
                     <div class="footer-proof">
@@ -156,13 +160,13 @@
                 <div class="footer-links">
                     <div><h3>Explore</h3><a href="{{ route('search.index') }}">Global Search</a><a href="{{ route('categories.index') }}">AI Categories</a><a href="{{ route('features.index') }}">AI Features</a><a href="{{ route('use-cases.index') }}">Use Cases</a><a href="{{ route('tools.index') }}">AI Tools</a><a href="{{ route('models.index') }}">AI Models</a><a href="{{ route('news.index') }}">AI News</a><a href="{{ route('comparisons.index') }}">Comparisons</a><a href="{{ route('testlab.index') }}">Test Lab</a></div>
                     <div><h3>Intelligence</h3><a href="{{ route('pricing.index') }}">Pricing</a><a href="{{ route('benchmarks.index') }}">Benchmarks</a><a href="{{ route('trending.index') }}">Trending</a><a href="{{ route('reviews.index') }}">Reviews</a><a href="{{ route('articles.index') }}">Articles</a><a href="{{ route('companies.index') }}">Companies</a></div>
-                    <div><h3>Company</h3><a href="{{ route('about') }}">About AI Hub</a><a href="{{ route('methodology') }}">Methodology</a><a href="{{ route('methodology') }}#editorial">Editorial Policy</a><a href="{{ route('contact') }}">Contact</a><a href="{{ route('submissions.create') }}">Suggest a Tool</a></div>
+                    <div><h3>Company</h3><a href="{{ route('about') }}">About AI Orbit</a><a href="{{ route('methodology') }}">Methodology</a><a href="{{ route('methodology') }}#editorial">Editorial Policy</a><a href="{{ route('contact') }}">Contact</a><a href="{{ route('submissions.create') }}">Suggest a Tool</a></div>
                     <div><h3>Resources</h3><a href="{{ route('saved.index') }}">Saved Library</a><a href="{{ route('topics.index') }}">Editorial Topics</a><a href="{{ route('categories.index') }}">AI Categories</a><a href="{{ route('benchmarks.index') }}">Benchmark Data</a><a href="{{ route('pricing.index') }}">Pricing Intelligence</a><a href="{{ route('disclosures') }}">Data Disclosures</a><a href="{{ route('contact') }}">Help & Feedback</a></div>
                 </div>
             </div>
 
             <div class="footer-bottom">
-                <p>© {{ date('Y') }} AI Hub. All rights reserved.</p>
+                <p>© {{ date('Y') }} AI Orbit. All rights reserved.</p>
                 <div class="footer-legal"><a href="{{ route('privacy') }}">Privacy</a><a href="{{ route('terms') }}">Terms</a><a href="{{ route('cookies') }}">Cookies</a><a href="{{ route('disclosures') }}">Disclosures</a></div>
                 <div class="footer-status"><i data-lucide="database"></i> Public AI intelligence <b>•</b> English</div>
             </div>

@@ -1,19 +1,7 @@
 @extends('frontend.layouts.app')
-@section('title','AI Companies Directory — Leading AI Labs & Providers | AI Hub')
+@section('title','AI Companies Directory — Leading AI Labs & Providers | AI Orbit')
 @section('meta_description','Explore leading AI companies, research labs and product providers by tools, models, founding year and latest AI activity.')
 @push('head')
-<link rel="canonical" href="{{ request()->query() ? route('companies.index') : url()->current() }}">
-@if(request()->query())
-<meta name="robots" content="noindex,follow">
-@else
-<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
-@endif
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="AI Hub">
-<meta property="og:title" content="AI Companies Directory — Leading AI Labs & Providers | AI Hub">
-<meta property="og:description" content="Explore leading AI companies, research labs and product providers by tools, models, founding year and latest AI activity.">
-<meta property="og:url" content="{{ route('companies.index') }}">
-<meta name="twitter:card" content="summary">
 <script type="application/ld+json">{!! json_encode([
     '@context' => 'https://schema.org',
     '@type' => 'CollectionPage',

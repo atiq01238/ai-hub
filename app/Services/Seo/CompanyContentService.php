@@ -19,12 +19,12 @@ class CompanyContentService
 
         $intro = trim(strip_tags((string) $company->description));
         if ($intro === '') {
-            $intro = $company->name.' is an artificial intelligence company tracked by AI Hub for its models, products and industry activity.';
+            $intro = $company->name.' is an artificial intelligence company tracked by AI Orbit for its models, products and industry activity.';
         }
 
         $portfolioSummary = $this->portfolioSummary($company->name, $toolCount, $modelCount, $toolNames, $modelNames);
         $focusSummary = $categories->isNotEmpty()
-            ? $company->name.' is currently represented in AI Hub across '.$this->naturalList($categories->all()).'.'
+            ? $company->name.' is currently represented in AI Orbit across '.$this->naturalList($categories->all()).'.'
             : null;
 
         $modelSummary = null;
@@ -41,7 +41,7 @@ class CompanyContentService
 
         $latestSignal = $news->first();
         $latestNewsSummary = $latestSignal
-            ? 'The latest published '.$company->name.' intelligence item tracked by AI Hub is “'.\Illuminate\Support\Str::limit($latestSignal->headline, 110, '…').'”.'
+            ? 'The latest published '.$company->name.' intelligence item tracked by AI Orbit is “'.\Illuminate\Support\Str::limit($latestSignal->headline, 110, '…').'”.'
             : ($newsCount === 0 ? 'No published '.$company->name.' news items are currently linked to this profile.' : null);
 
         $facts = collect([
@@ -67,7 +67,7 @@ class CompanyContentService
 
         if ($toolNames->isNotEmpty()) {
             $faq[] = [
-                'question' => 'Which AI tools or products from '.$company->name.' are listed on AI Hub?',
+                'question' => 'Which AI tools or products from '.$company->name.' are listed on AI Orbit?',
                 'answer' => $toolSummary.' Each linked product has its own profile with available features and product information.',
             ];
         }
@@ -75,13 +75,13 @@ class CompanyContentService
         if ($company->founded_year) {
             $faq[] = [
                 'question' => 'When was '.$company->name.' founded?',
-                'answer' => $company->name.' is listed in AI Hub as founded in '.$company->founded_year.'.',
+                'answer' => $company->name.' is listed in AI Orbit as founded in '.$company->founded_year.'.',
             ];
         }
 
         $faq[] = [
             'question' => 'Where can I follow '.$company->name.' models, tools and news?',
-            'answer' => 'This AI Hub company profile connects '.$company->name.' with its linked AI models, tools, published news and research so you can move between related records from one page.',
+            'answer' => 'This AI Orbit company profile connects '.$company->name.' with its linked AI models, tools, published news and research so you can move between related records from one page.',
         ];
 
         return [
@@ -106,10 +106,10 @@ class CompanyContentService
         if ($toolCount > 0) $parts[] = $toolCount.' AI tool'.($toolCount === 1 ? '' : 's');
 
         if ($parts === []) {
-            return 'AI Hub does not yet have published model or tool records linked to this company.';
+            return 'AI Orbit does not yet have published model or tool records linked to this company.';
         }
 
-        $sentence = 'On AI Hub, '.$companyName.' is currently connected to '.$this->naturalList($parts).'.';
+        $sentence = 'On AI Orbit, '.$companyName.' is currently connected to '.$this->naturalList($parts).'.';
 
         $examples = [];
         if ($modelNames->isNotEmpty()) $examples[] = 'models such as '.$this->naturalList($modelNames->take(3)->all());

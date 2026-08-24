@@ -11,6 +11,7 @@ class WelcomeToAiHubNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    public $afterCommit = true;
 
     public ?int $deliveryLogId;
 
@@ -24,10 +25,10 @@ class WelcomeToAiHubNotification extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Welcome to AI Hub')
+            ->subject('Welcome to AI Orbit')
             ->greeting('You’re in, '.$notifiable->name.'!')
-            ->line('Your AI Hub account is ready. Discover AI tools, models, verified benchmarks, pricing intelligence, comparisons, and breaking AI news in one place.')
-            ->action('Personalize My AI Hub', route('account.onboarding'))
+            ->line('Your AI Orbit account is ready. Discover AI tools, models, verified benchmarks, pricing intelligence, comparisons, and breaking AI news in one place.')
+            ->action('Personalize My AI Orbit', route('account.onboarding'))
             ->line('You can control Breaking News, new model/tool alerts, pricing, benchmarks, followed-entity updates, and the weekly digest from Email Preferences.');
     }
 }

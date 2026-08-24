@@ -9,11 +9,11 @@ class CompanySeoService
 {
     public function build(Company $company, int $toolCount, int $modelCount, int $newsCount, $lastUpdated = null): array
     {
-        $title = $company->name.' AI Company Profile: Models, Tools & Latest News | AI Hub';
+        $title = $company->name.' AI Company Profile: Models, Tools & Latest News | AI Orbit';
 
         $base = trim(strip_tags((string) $company->description));
         if ($base === '') {
-            $base = 'Research '.$company->name.' on AI Hub with linked AI models, tools, company information and industry updates.';
+            $base = 'Research '.$company->name.' on AI Orbit with linked AI models, tools, company information and industry updates.';
         }
 
         $signals = [];
@@ -23,7 +23,7 @@ class CompanySeoService
 
         $description = Str::limit($base, 118, '');
         if ($signals) {
-            $description = Str::limit($description.' AI Hub tracks '.implode(', ', $signals).'.', 158, '');
+            $description = Str::limit($description.' AI Orbit tracks '.implode(', ', $signals).'.', 158, '');
         } else {
             $description = Str::limit($description, 158, '');
         }
@@ -56,7 +56,7 @@ class CompanySeoService
             'dateModified' => $updated?->toAtomString(),
             'isPartOf' => [
                 '@type' => 'WebSite',
-                'name' => 'AI Hub',
+                'name' => 'AI Orbit',
                 'url' => route('home'),
             ],
             'mainEntity' => ['@id' => $organizationId],

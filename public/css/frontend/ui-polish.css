@@ -1,5 +1,5 @@
 /* =========================================================
-   AI Hub Frontend UI Polish — readable, consistent, responsive
+   AI Orbit Frontend UI Polish — readable, consistent, responsive
    Loaded after page-specific styles. Hero artwork is untouched.
    ========================================================= */
 :root{
@@ -273,3 +273,8 @@ a{overflow-wrap:anywhere}
 .seo-faq-list summary svg{width:16px;height:16px;flex:0 0 auto}
 .seo-faq-list details[open] summary svg{transform:rotate(180deg)}
 .seo-faq-list details p{margin:0;padding:0 0 15px;color:var(--text-muted,#94a3b8);line-height:1.7}
+
+/* AI Orbit brand assets */
+.brand-orbit-mark{overflow:hidden;padding:0;background:#050817;border-color:rgba(86,92,255,.55)}
+.brand-orbit-mark img{width:100%;height:100%;object-fit:cover;display:block;transform:scale(1.08)}
+.footer-logo .brand-orbit-mark{box-shadow:0 0 28px rgba(84,73,255,.28)}

@@ -6,9 +6,8 @@
         ? 'Explore normalized AI capabilities across tools and models, from reasoning and research to image, audio, coding and agents.'
         : 'Find AI tools and models by the work you want to accomplish, from research and coding to creative production and automation.';
 @endphp
-@section('title',$title.' — AI Hub')
+@section('title',$title.' — AI Orbit')
 @section('meta_description',$description)
-@push('head')<link rel="canonical" href="{{ $isFeature ? route('features.index') : route('use-cases.index') }}">@endpush
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/discovery.css') }}">@endpush
 @section('content')
 <section class="category-directory-hero"><div class="category-directory-inner"><span class="eyebrow"><i data-lucide="{{ $isFeature ? 'sparkles':'target' }}"></i> Taxonomy v2</span><h1>{{ $title }}</h1><p>{{ $description }}</p><div class="category-hero-actions"><a class="primary-action" href="{{ route('tools.index') }}">Browse AI tools <i data-lucide="arrow-right"></i></a><a class="secondary-action" href="{{ $isFeature ? route('use-cases.index') : route('features.index') }}">{{ $isFeature ? 'Explore use cases':'Explore features' }}</a></div></div></section>

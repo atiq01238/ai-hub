@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\AiModel;
 use App\Models\AiTest;
 use App\Models\Article;
+use App\Models\Benchmark;
+use App\Models\Comparison;
 use App\Models\Category;
 use App\Models\Feature;
 use App\Models\NewsItem;
@@ -24,8 +26,11 @@ class SeoSitemapController extends Controller
             route('sitemap.models'),
             route('sitemap.news'),
             route('sitemap.articles'),
+            route('sitemap.comparisons'),
+            route('sitemap.benchmarks'),
             route('sitemap.taxonomy'),
             route('sitemap.testlab'),
+            route('sitemap.pages'),
         ]);
 
         $body = view('frontend.sitemaps.index', compact('sitemaps'))->render();
@@ -56,6 +61,49 @@ class SeoSitemapController extends Controller
         return $this->xml($items, fn($item)=>route('articles.show',$item));
     }
 
+
+    public function comparisons(): Response
+    {
+        $items = Comparison::query()
+            ->where('status', 'published')
+            ->whereNotNull('slug')
+            ->select(['slug', 'updated_at'])
+            ->orderByDesc('updated_at')
+            ->get();
+
+        return $this->xml($items, fn ($item) => route('comparisons.show', $item));
+    }
+
+    public function benchmarks(): Response
+    {
+        $items = Benchmark::query()
+            ->where('is_active', true)
+            ->whereHas('results')
+            ->select(['slug', 'updated_at'])
+            ->orderBy('name')
+            ->get();
+
+        return $this->xml($items, fn ($item) => route('benchmarks.show', $item));
+    }
+
+    public function pages(): Response
+    {
+        $routes = [
+            'home', 'tools.index', 'models.index', 'news.index', 'comparisons.index',
+            'companies.index', 'articles.index', 'reviews.index', 'testlab.index',
+            'testlab.leaderboard', 'pricing.index', 'categories.index', 'features.index',
+            'use-cases.index', 'topics.index', 'benchmarks.index', 'trending.index',
+            'about', 'methodology', 'contact', 'privacy', 'terms', 'cookies', 'disclosures',
+        ];
+
+        $items = collect($routes)->map(fn (string $name) => (object) [
+            'url' => route($name),
+            'updated_at' => null,
+        ]);
+
+        $body = view('frontend.sitemaps.urls', compact('items'))->render();
+        return response($body, 200)->header('Content-Type', 'application/xml; charset=UTF-8');
+    }
 
     public function testLab(): Response
     {

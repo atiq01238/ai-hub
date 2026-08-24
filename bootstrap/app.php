@@ -16,6 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth/social/apple/callback',
         ]);
 
+        // Keep public GET/HEAD requests on the canonical non-www production host.
+        $middleware->appendToGroup('web', \App\Http\Middleware\CanonicalDomain::class);
+
          $middleware->alias([
         'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
     ]);

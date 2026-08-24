@@ -1,10 +1,8 @@
 @extends('frontend.layouts.app')
-@section('title','AI Models Directory — Compare Leading AI Models | AI Hub')
+@section('title','AI Models Directory — Compare Leading AI Models | AI Orbit')
 @section('meta_description','Explore and compare leading AI models by provider, context window, API pricing, capabilities and benchmark score.')
 
 @push('head')
-<link rel="canonical" href="{{ route('models.index') }}">
-<meta name="robots" content="{{ request()->query() ? 'noindex,follow' : 'index,follow,max-image-preview:large' }}">
 @endpush
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/models.css') }}">@endpush
 @section('content')
@@ -205,7 +203,7 @@
 
                                 <div class="model-benchmark-panel">
                                     <div class="model-benchmark-head">
-                                        <span><i data-lucide="gauge"></i> AI Hub Benchmark</span>
+                                        <span><i data-lucide="gauge"></i> AI Orbit Benchmark</span>
                                         <strong>{{ $model->benchmark_score !== null ? number_format((float)$model->benchmark_score,1) : '—' }}<small>{{ $model->benchmark_score !== null ? '/100' : 'Not verified' }}</small></strong>
                                     </div>
                                     <div class="model-benchmark-track" role="progressbar" aria-label="{{ $model->name }} benchmark score" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ $model->benchmark_score !== null ? min(100,(float)$model->benchmark_score) : 0 }}">

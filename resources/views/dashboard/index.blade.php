@@ -16,7 +16,7 @@
         <div class="dashboard-command__content">
             <div class="dashboard-command__eyebrow">
                 <span class="dashboard-live-dot" aria-hidden="true"></span>
-                <span>AI Hub Command Center</span>
+                <span>AI Orbit Command Center</span>
                 <span class="dashboard-command__divider" aria-hidden="true"></span>
                 <span class="dashboard-command__status">Live platform overview</span>
             </div>

@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
 
-@section('title', 'AI Comparisons — Compare AI Tools & Models | AI Hub')
+@section('title', 'AI Comparisons — Compare AI Tools & Models | AI Orbit')
 @section('meta_description', 'Compare leading AI tools and models side by side using pricing, capabilities, benchmark scores, ratings and practical product data.')
 
 @push('styles')

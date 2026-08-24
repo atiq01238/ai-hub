@@ -9,7 +9,7 @@ class Setting extends Model
     protected $fillable = ['key', 'value'];
 
     /**
-     * Read one setting, e.g. Setting::get('site_name', 'AI Hub').
+     * Read one setting, e.g. Setting::get('site_name', 'AI Orbit').
      */
     public static function get(string $key, $default = null)
     {

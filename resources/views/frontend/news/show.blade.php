@@ -1,13 +1,12 @@
 @extends('frontend.layouts.app')
 
-@section('title', $news->headline . ' | AI Hub News')
+@section('title', $news->headline . ' | AI Orbit News')
 @section('meta_description', Str::limit(strip_tags($news->ai_summary ?: $news->summary ?: $news->headline), 155, ''))
+@section('og_type', 'article')
+@section('og_image', $news->image_url ?: asset(config('brand.assets.og_default')))
 
 @push('head')
-<link rel="canonical" href="{{ route('news.show',$news) }}">
-<meta property="og:type" content="article"><meta property="og:title" content="{{ $news->headline }}"><meta property="og:description" content="{{ Str::limit(strip_tags($news->ai_summary ?: $news->summary ?: $news->headline),155,'') }}"><meta property="og:url" content="{{ route('news.show',$news) }}">
-<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="{{ $news->headline }}">
-<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'NewsArticle','headline'=>$news->headline,'description'=>Str::limit(strip_tags($news->ai_summary ?: $news->summary ?: ''),300,''),'datePublished'=>optional($news->published_at)->toIso8601String(),'dateModified'=>optional($news->updated_at)->toIso8601String(),'mainEntityOfPage'=>route('news.show',$news),'publisher'=>['@type'=>'Organization','name'=>'AI Hub','url'=>route('home')],'isBasedOn'=>$news->canonical_url ?: $news->source_url], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
+<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'NewsArticle','headline'=>$news->headline,'description'=>Str::limit(strip_tags($news->ai_summary ?: $news->summary ?: ''),300,''),'datePublished'=>optional($news->published_at)->toIso8601String(),'dateModified'=>optional($news->updated_at)->toIso8601String(),'mainEntityOfPage'=>route('news.show',$news),'publisher'=>['@type'=>'Organization','name'=>'AI Orbit','url'=>route('home')],'isBasedOn'=>$news->canonical_url ?: $news->source_url], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
 <script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'BreadcrumbList','itemListElement'=>[['@type'=>'ListItem','position'=>1,'name'=>'Home','item'=>route('home')],['@type'=>'ListItem','position'=>2,'name'=>'AI News','item'=>route('news.index')],['@type'=>'ListItem','position'=>3,'name'=>$news->headline,'item'=>route('news.show',$news)]]],JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
 @endpush
 
@@ -28,20 +27,20 @@ $why = $news->ai_why_it_matters ?: $news->why_it_matters;
         <h1>{{ $news->headline }}</h1>
         @if($summary)<p class="news-deck">{{ $summary }}</p>@endif
         <div class="news-byline">
-            <div class="source-identity">@if($news->company)<img src="{{ $news->company->logo_url }}" alt="{{ $news->company->name }}">@else<span><i data-lucide="radio"></i></span>@endif<div><strong>{{ $news->source ?: ($news->company?->name ?? 'AI Hub News Desk') }}</strong><small>@if($news->published_at)Published {{ $news->published_at->format('M j, Y \a\t g:i A') }}@endif</small></div></div>
+            <div class="source-identity">@if($news->company)<img src="{{ $news->company->logo_url }}" alt="{{ $news->company->name }}">@else<span><i data-lucide="radio"></i></span>@endif<div><strong>{{ $news->source ?: ($news->company?->name ?? 'AI Orbit News Desk') }}</strong><small>@if($news->published_at)Published {{ $news->published_at->format('M j, Y \a\t g:i A') }}@endif</small></div></div>
             <div class="news-detail-actions"><button type="button" data-save-item data-save-type="news" data-save-id="{{ $news->id }}" aria-pressed="false"><i data-lucide="bookmark"></i><span data-save-label data-default-label="Save">Save</span></button><button type="button" data-copy-url><i data-lucide="link-2"></i>Copy link</button>@if($news->source_url)<a href="{{ $news->source_url }}" target="_blank" rel="noopener noreferrer">Original source<i data-lucide="external-link"></i></a>@endif</div>
         </div>
     </header>
 
     <div class="news-detail-layout">
         <main class="news-article">
-            <figure class="news-hero-image">@if($image)<img src="{{ $image }}" alt="{{ $news->headline }}">@else<div class="news-media-placeholder news-media-placeholder--detail"><i data-lucide="image-off"></i><strong>No story image provided</strong><span>This article was published without a selected image.</span></div>@endif<figcaption>AI Hub intelligence brief • Source context preserved below.</figcaption></figure>
+            <figure class="news-hero-image">@if($image)<img src="{{ $image }}" alt="{{ $news->headline }}">@else<div class="news-media-placeholder news-media-placeholder--detail"><i data-lucide="image-off"></i><strong>No story image provided</strong><span>This article was published without a selected image.</span></div>@endif<figcaption>AI Orbit intelligence brief • Source context preserved below.</figcaption></figure>
 
-            <section class="intelligence-summary"><div class="intelligence-icon"><i data-lucide="sparkles"></i></div><div><span>AI HUB SUMMARY</span><h2>What happened</h2><p>{{ $summary ?: 'A concise summary is not available for this item yet. Open the original source for the complete report.' }}</p></div>@if($news->ai_confidence)<div class="confidence"><strong>{{ (int)$news->ai_confidence }}%</strong><small>processing confidence</small></div>@endif</section>
+            <section class="intelligence-summary"><div class="intelligence-icon"><i data-lucide="sparkles"></i></div><div><span>AI ORBIT SUMMARY</span><h2>What happened</h2><p>{{ $summary ?: 'A concise summary is not available for this item yet. Open the original source for the complete report.' }}</p></div>@if($news->ai_confidence)<div class="confidence"><strong>{{ (int)$news->ai_confidence }}%</strong><small>processing confidence</small></div>@endif</section>
 
             @if($why)<section class="article-section"><span class="article-eyebrow">WHY IT MATTERS</span><h2>Why this deserves attention</h2><p>{{ $why }}</p></section>@endif
 
-            <section class="article-section"><span class="article-eyebrow">SOURCE & CONTEXT</span><h2>How to read this update</h2><p>AI Hub presents this page as an intelligence brief based on the stored source record. It does not reproduce a publisher's full article. Use the original source link for the complete reporting and primary context.</p></section>
+            <section class="article-section"><span class="article-eyebrow">SOURCE & CONTEXT</span><h2>How to read this update</h2><p>AI Orbit presents this page as an intelligence brief based on the stored source record. It does not reproduce a publisher's full article. Use the original source link for the complete reporting and primary context.</p></section>
 
             @if($tags->isNotEmpty())<div class="article-tags"><span>Topics</span>@foreach($tags as $tag)<a href="{{ route('news.index',['q'=>$tag]) }}">{{ $tag }}</a>@endforeach</div>@endif
 

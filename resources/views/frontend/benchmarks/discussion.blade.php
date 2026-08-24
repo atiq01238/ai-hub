@@ -1,5 +1,5 @@
 @extends('frontend.layouts.app')
-@section('title',$benchmark->name.' Discussion — AI Benchmarks | AI Hub')
+@section('title',$benchmark->name.' Discussion — AI Benchmarks | AI Orbit')
 @section('meta_description','Community discussion around the '.$benchmark->name.' benchmark, methodology and results.')
 
 @push('styles')

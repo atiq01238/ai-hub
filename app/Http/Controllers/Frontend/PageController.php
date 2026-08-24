@@ -78,6 +78,6 @@ class PageController extends Controller
         $message = ContactMessage::create($data);
         $contactMessages->notifyAdmins($message);
 
-        return redirect()->route('contact')->with('status', 'Message received. Thank you for helping us improve AI Hub.');
+        return redirect()->route('contact')->with('status', 'Message received. Thank you for helping us improve AI Orbit.');
     }
 }

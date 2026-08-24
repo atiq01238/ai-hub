@@ -9,7 +9,7 @@
 .news-hero{background-image:linear-gradient(90deg,rgba(6,10,24,.94) 0%,rgba(7,11,25,.76) 42%,rgba(7,11,25,.54) 72%,rgba(7,11,25,.84) 100%),url('../../images/hero-discovery/ai-news.webp');background-size:cover;background-position:center;background-repeat:no-repeat}
 @media(max-width:700px){.news-hero,.tools-hero,.model-hero,.company-hero,.comparison-hero,.intel-hero.benchmark-hero,.lab-hero,.pi-hero{background-position:62% center}}
 
-/* AI Hub show-page cinematic hero background */
+/* AI Orbit show-page cinematic hero background */
 .news-detail-header{position:relative;isolation:isolate;overflow:hidden;padding:30px;border:1px solid #202c48;border-radius:20px;background:#070b18 url('/images/frontend/show-heroes/news-show-hero.webp') right center/58% 100% no-repeat!important}
 .news-detail-header:after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(90deg,#070b18 0%,rgba(7,11,24,.96) 45%,rgba(7,11,24,.56) 74%,rgba(7,11,24,.2))}
 @media(max-width:760px){.news-detail-header{padding:22px 16px;background-size:auto 100%!important;background-position:72% center!important}.news-detail-header:after{background:linear-gradient(180deg,rgba(7,11,24,.75),#070b18 90%)}}

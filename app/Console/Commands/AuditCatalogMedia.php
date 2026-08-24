@@ -14,7 +14,7 @@ class AuditCatalogMedia extends Command
 {
     protected $signature = 'catalog:media-audit {--fix : Normalize legacy public-media paths when the target file exists}';
 
-    protected $description = 'Audit AI Hub catalog logo paths and optionally normalize legacy storage/ prefixes.';
+    protected $description = 'Audit AI Orbit catalog logo paths and optionally normalize legacy storage/ prefixes.';
 
     public function handle(): int
     {

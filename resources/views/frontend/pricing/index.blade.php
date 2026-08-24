@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
 
-@section('title', 'AI Pricing Intelligence — Compare AI Tool Prices | AI Hub')
+@section('title', 'AI Pricing Intelligence — Compare AI Tool Prices | AI Orbit')
 @section('meta_description', 'Track AI tool pricing, compare free and paid plans, API pricing and recent price changes.')
 
 @push('styles')
@@ -179,7 +179,7 @@
                 <span class="pi-panel-title">
                     <span><i data-lucide="shield-check"></i> How pricing works</span>
                 </span>
-                <p>AI Hub separates live plan data from detected changes. Automatic detections can be reviewed before they become published pricing history.</p>
+                <p>AI Orbit separates live plan data from detected changes. Automatic detections can be reviewed before they become published pricing history.</p>
 
                 <div>
                     <i data-lucide="scan-search"></i>

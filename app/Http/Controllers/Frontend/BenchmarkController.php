@@ -97,7 +97,7 @@ class BenchmarkController extends Controller
         abort_unless($benchmark->is_active, 404);
         $results = BenchmarkResult::with('benchmarkable')->where('benchmark_id',$benchmark->id)->where('verified',true)->where('status','verified')->orderByDesc('tested_at')->orderByDesc('id')->get()->unique(fn($r)=>$r->benchmarkable_type.'|'.$r->benchmarkable_id)->sortBy(fn($r)=>$benchmark->higher_is_better ? -(float)$r->score : (float)$r->score)->values();
         $title=$benchmark->name.' AI Benchmark Leaderboard'.($benchmark->version?' '.$benchmark->version:'').' (2026)';
-        $description='Explore verified '.$benchmark->name.' AI benchmark results, rankings, methodology, sources and tested models on AI Hub.';
+        $description='Explore verified '.$benchmark->name.' AI benchmark results, rankings, methodology, sources and tested models on AI Orbit.';
         return view('frontend.benchmarks.show',compact('benchmark','results','title','description'));
     }
 

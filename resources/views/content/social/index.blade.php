@@ -11,7 +11,7 @@ $platformIcons=['x'=>'twitter','facebook'=>'facebook','instagram'=>'instagram','
 $platformLabels=['x'=>'X','facebook'=>'Facebook','instagram'=>'Instagram','linkedin'=>'LinkedIn','youtube'=>'YouTube','tiktok'=>'TikTok'];
 @endphp
 <div class="content-page">
-<x-page-header title="Social Content" subtitle="Draft, schedule and track social distribution derived from AI Hub intelligence." :breadcrumb="['Content','Social Posts']">
+<x-page-header title="Social Content" subtitle="Draft, schedule and track social distribution derived from AI Orbit intelligence." :breadcrumb="['Content','Social Posts']">
 <x-slot:actions>@if(auth()->user()->canAccessModule('Content','Add'))<a href="{{ route('admin.content.social.create') }}" class="btn btn-primary"><i data-lucide="share-2"></i>New Post</a>@endif</x-slot:actions>
 </x-page-header>
 @if(session('status'))<div class="alert alert-success content-flash"><i data-lucide="check-circle-2"></i><span>{{ session('status') }}</span></div>@endif

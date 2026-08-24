@@ -89,7 +89,7 @@ class PricingDetectionService
     public function fetchValue(PricingSource $source): string
     {
         $response = Http::withHeaders([
-                'User-Agent' => 'AI-Hub-Pricing-Monitor/1.0 (+pricing verification)',
+                'User-Agent' => 'AI-Orbit-Pricing-Monitor/1.0 (+pricing verification)',
                 'Accept-Language' => 'en-US,en;q=0.9',
             ])
             ->connectTimeout(8)

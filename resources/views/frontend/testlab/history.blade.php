@@ -1,7 +1,7 @@
 @extends('frontend.layouts.app')
-@section('title','My Test Lab History | AI Hub')
+@section('title','My Test Lab History | AI Orbit')
 @section('meta_description','Your recently viewed AI Test Lab experiments.')
-@push('head')<meta name="robots" content="noindex,nofollow">@endpush
+@section('robots','noindex,nofollow')
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/testlab.css') }}">@endpush
 @section('content')
 <section class="lab-hero"><div class="lab-wrap"><div class="lab-hero-grid"><div class="lab-hero-copy"><span class="lab-eyebrow"><i data-lucide="history"></i> YOUR LAB HISTORY</span><h1>Tests you have <span>explored.</span></h1><p>A personal record of public Test Lab experiments viewed while signed in.</p><div class="lab-hero-links"><a href="{{ route('testlab.index') }}"><i data-lucide="flask-conical"></i>Browse Test Lab</a><a href="{{ route('testlab.leaderboard') }}"><i data-lucide="trophy"></i>Model leaderboard</a></div></div></div></div></section>

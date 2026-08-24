@@ -11,6 +11,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Pagination\Paginator;
 
 class AppServiceProvider extends ServiceProvider
@@ -29,6 +30,13 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Paginator::useBootstrapFive();
+
+        // Keep signed links, canonical URLs, verification emails and queued mail
+        // aligned with the production domain when AI Orbit is live behind a proxy.
+        if ($this->app->environment('production') && str_starts_with((string) config('app.url'), 'https://')) {
+            URL::forceRootUrl((string) config('app.url'));
+            URL::forceScheme('https');
+        }
 
         Event::listen(function (\SocialiteProviders\Manager\SocialiteWasCalled $event): void {
             $event->extendSocialite('apple', \SocialiteProviders\Apple\Provider::class);

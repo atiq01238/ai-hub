@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
 
-@section('title', 'AI Benchmarks & Leaderboards — AI Hub')
+@section('title', 'AI Benchmarks & Leaderboards — AI Orbit')
 @section('meta_description', 'Compare verified AI model and AI tool benchmark results across reasoning, coding, product quality and more.')
 
 @push('styles')
@@ -90,7 +90,7 @@
                     @php($benchmark=$row['benchmark'])
                     <article class="benchmark-card">
                         <div class="benchmark-card-head"><div><small>{{ $benchmark->category }}</small><h3><a href="{{ route('benchmarks.show',$benchmark) }}">{{ $benchmark->name }}</a></h3></div><span>{{ $benchmark->higher_is_better ? 'Higher is better' : 'Lower is better' }}</span></div>
-                        <p>{{ $benchmark->description ?: 'Structured performance benchmark tracked by AI Hub.' }}</p>
+                        <p>{{ $benchmark->description ?: 'Structured performance benchmark tracked by AI Orbit.' }}</p>
                         <div class="mini-ranking">
                             @foreach($row['results']->take(5) as $rank=>$result)
                                 @php($entity=$result->benchmarkable)
@@ -104,6 +104,6 @@
         @endif
     </section>
 
-    <section class="methodology-banner"><span><i data-lucide="shield-check"></i></span><div><small>How to read these rankings</small><h2>Benchmark scores are evidence, not the whole product.</h2><p>AI Hub keeps individual results, benchmark coverage and verification visible so a single leaderboard number never hides the underlying data.</p></div><a href="{{ route('testlab.index') }}">View testing methodology <i data-lucide="arrow-right"></i></a></section>
+    <section class="methodology-banner"><span><i data-lucide="shield-check"></i></span><div><small>How to read these rankings</small><h2>Benchmark scores are evidence, not the whole product.</h2><p>AI Orbit keeps individual results, benchmark coverage and verification visible so a single leaderboard number never hides the underlying data.</p></div><a href="{{ route('testlab.index') }}">View testing methodology <i data-lucide="arrow-right"></i></a></section>
 </div>
 @endsection

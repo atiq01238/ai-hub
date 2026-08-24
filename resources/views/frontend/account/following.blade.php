@@ -1,5 +1,5 @@
 @extends('frontend.layouts.app')
-@section('title','Following — My AI Hub')
+@section('title','Following — My AI Orbit')
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/frontend/account.css') }}">
 @endpush
@@ -58,7 +58,7 @@
                                 {{ \Illuminate\Support\Str::limit(
                                     $target->short_description
                                         ?? $target->description
-                                        ?? 'Followed on AI Hub.',
+                                        ?? 'Followed on AI Orbit.',
                                     120
                                 ) }}
                             </p>
@@ -82,7 +82,7 @@
                         <span>
                             Follow AI tools, models or companies and they will appear here.
                         </span>
-                        <a href="{{ route('tools.index') }}">Explore AI Hub</a>
+                        <a href="{{ route('tools.index') }}">Explore AI Orbit</a>
                     </div>
                 @endforelse
             </div>

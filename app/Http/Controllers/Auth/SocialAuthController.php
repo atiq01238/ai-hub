@@ -105,7 +105,7 @@ class SocialAuthController extends Controller
                 if (! $user) {
                     $displayName = trim((string) $providerUser->getName());
                     if ($displayName === '') {
-                        $displayName = Str::headline(Str::before($providerEmail, '@')) ?: 'AI Hub User';
+                        $displayName = Str::headline(Str::before($providerEmail, '@')) ?: 'AI Orbit User';
                     }
 
                     $user = new User([
@@ -137,7 +137,7 @@ class SocialAuthController extends Controller
 
             return redirect()
                 ->route($origin)
-                ->withErrors(['social' => 'We could not connect that '.ucfirst($provider).' account to AI Hub. Please try again.']);
+                ->withErrors(['social' => 'We could not connect that '.ucfirst($provider).' account to AI Orbit. Please try again.']);
         }
 
         $user->restoreIfSuspensionExpired();

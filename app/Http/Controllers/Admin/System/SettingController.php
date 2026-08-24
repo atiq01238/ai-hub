@@ -11,7 +11,7 @@ class SettingController extends Controller
     // The full list of settings this page manages, with sensible defaults.
     // Add a new field here whenever you want the page to control something new.
     private array $defaults = [
-        'site_name'                   => 'AI Hub',
+        'site_name'                   => 'AI Orbit',
         'tagline'                     => 'AI Research & Intelligence Platform',
         'timezone'                    => 'Asia/Karachi',
         'language'                    => 'en',

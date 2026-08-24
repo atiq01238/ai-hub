@@ -16,6 +16,6 @@ class RecommendationService {
   if($tools->count()<4)$tools=$tools->merge(Tool::with('company')->where('status','published')->whereNotIn('id',$exclude->merge($tools->pluck('id')))->orderByDesc('popularity')->take($limit-$tools->count())->get());
   $followCompanyIds=UserInteraction::where('user_id',$user->id)->where('action','follow')->where('target_type','company')->pluck('target_id');
   $models=AiModel::with('company')->whereIn('status',['active','preview'])->when($followCompanyIds->isNotEmpty(),fn($q)=>$q->whereIn('company_id',$followCompanyIds))->orderByDesc('benchmark_score')->take(4)->get();
-  return ['tools'=>$tools->take($limit),'models'=>$models,'reason'=>$seedIds->isNotEmpty()?'Based on your saves and follows':($interests->isNotEmpty()?'Based on your interests':'Popular on AI Hub')];
+  return ['tools'=>$tools->take($limit),'models'=>$models,'reason'=>$seedIds->isNotEmpty()?'Based on your saves and follows':($interests->isNotEmpty()?'Based on your interests':'Popular on AI Orbit')];
  }
 }

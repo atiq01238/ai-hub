@@ -36,11 +36,11 @@ class ForgotPasswordController extends Controller
         if ($status === Password::RESET_THROTTLED) {
             return back()
                 ->withInput($request->only('email'))
-                ->with('status', 'If an AI Hub account exists for that email, a reset link was already requested. Please check your inbox or try again shortly.');
+                ->with('status', 'If an AI Orbit account exists for that email, a reset link was already requested. Please check your inbox or try again shortly.');
         }
 
         return back()
             ->withInput($request->only('email'))
-            ->with('status', 'If an AI Hub account exists for that email, we sent a secure password reset link.');
+            ->with('status', 'If an AI Orbit account exists for that email, we sent a secure password reset link.');
     }
 }

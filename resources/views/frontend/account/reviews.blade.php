@@ -1,5 +1,5 @@
 @extends('frontend.layouts.app')
-@section('title','My Reviews — My AI Hub')
+@section('title','My Reviews — My AI Orbit')
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/account.css') }}">@endpush
 @section('content')
 <section class="account-page"><div class="account-shell">
@@ -17,7 +17,7 @@
         <article class="account-review-card">
             <div class="review-logo">{{ strtoupper(substr($review->model?->name ?? $review->tool?->name ?? 'AI',0,2)) }}</div>
             <div class="review-main">
-                <div class="review-top"><div><span>{{ $review->model?->company?->name ?? $review->tool?->company?->name ?? 'AI Hub' }}</span><h2>{{ $review->model?->name ?? $review->tool?->name ?? 'AI item' }}</h2></div><b class="status {{ $review->status }}">{{ ucfirst($review->status) }}</b></div>
+                <div class="review-top"><div><span>{{ $review->model?->company?->name ?? $review->tool?->company?->name ?? 'AI Orbit' }}</span><h2>{{ $review->model?->name ?? $review->tool?->name ?? 'AI item' }}</h2></div><b class="status {{ $review->status }}">{{ ucfirst($review->status) }}</b></div>
                 <div class="review-rating"><strong>★ {{ number_format((float)$review->rating,1) }}</strong><span>Updated {{ $review->updated_at->diffForHumans() }}</span></div>
                 <p>{{ $review->body ?: 'Rating submitted without a written review.' }}</p>
                 @if($review->moderation_note)<div class="moderation-note"><i data-lucide="message-square-warning"></i><span><b>Moderator note</b>{{ $review->moderation_note }}</span></div>@endif

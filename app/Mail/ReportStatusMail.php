@@ -21,7 +21,7 @@ class ReportStatusMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'AI Hub report case #' . $this->communityReport->id . ' update',
+            subject: 'AI Orbit report case #' . $this->communityReport->id . ' update',
         );
     }
 

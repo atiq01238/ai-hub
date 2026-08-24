@@ -69,7 +69,7 @@ class BackupService
             }
 
             $zip->addFromString('metadata.json', json_encode([
-                'application' => config('app.name', 'AI Hub'),
+                'application' => config('app.name', 'AI Orbit'),
                 'type' => $type,
                 'created_at' => now()->toIso8601String(),
                 'environment' => app()->environment(),

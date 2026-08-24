@@ -48,7 +48,7 @@ class FetchAiNews extends Command
         $totalSeen = 0;
         $failed = 0;
 
-        $this->info('AI Hub News Collection started.');
+        $this->info('AI Orbit News Collection started.');
         $this->line('Sources: ' . $sources->count());
 
         foreach ($sources as $source) {
@@ -187,7 +187,7 @@ class FetchAiNews extends Command
             ->retry(2, 500, throw: false)
             ->withHeaders([
                 'Accept' => 'application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.8',
-                'User-Agent' => 'AI-Hub-News-Fetcher/1.0 (+AI Intelligence)',
+                'User-Agent' => 'AI-Orbit-News-Fetcher/1.0 (+AI Intelligence)',
             ])
             ->get($source->url);
     }

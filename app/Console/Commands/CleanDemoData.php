@@ -41,7 +41,7 @@ class CleanDemoData extends Command
         $force = (bool) $this->option('force');
 
         $this->newLine();
-        $this->components->info('AI Hub demo-data cleanup');
+        $this->components->info('AI Orbit demo-data cleanup');
         $this->line('This command removes demo/catalog records, not Laravel/system configuration.');
         $this->newLine();
 

@@ -1,7 +1,8 @@
 @extends('frontend.layouts.app')
-@section('title',$category->meta_title ?: $category->name.' AI Tools & Models — AI Hub')
+@section('title',$category->meta_title ?: $category->name.' AI Tools & Models — AI Orbit')
 @section('meta_description',$category->meta_description ?: $category->short_description)
-@push('head')<link rel="canonical" href="{{ route('categories.show',$category) }}"><meta name="robots" content="{{ ($stats['tools'] + $stats['models'] + $stats['articles'] + $stats['news']) > 0 ? 'index,follow,max-image-preview:large' : 'noindex,follow' }}"><script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'CollectionPage','name'=>$category->name,'description'=>$category->description ?: $category->short_description,'url'=>route('categories.show',$category)], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>@endpush
+@section('robots', request()->query() ? 'noindex,follow' : (($stats['tools'] + $stats['models'] + $stats['articles'] + $stats['news']) > 0 ? 'index,follow,max-image-preview:large' : 'noindex,follow'))
+@push('head')<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'CollectionPage','name'=>$category->name,'description'=>$category->description ?: $category->short_description,'url'=>route('categories.show',$category)], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>@endpush
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/discovery.css') }}">@endpush
 @section('content')
 <section class="category-detail-hero">

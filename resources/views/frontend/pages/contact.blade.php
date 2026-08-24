@@ -1,9 +1,9 @@
 @extends('frontend.layouts.app')
-@section('title', 'Contact & Feedback — AI Hub')
-@section('meta_description', 'Contact AI Hub for feedback, data corrections, partnerships, press, technical issues or general questions.')
+@section('title', 'Contact & Feedback — AI Orbit')
+@section('meta_description', 'Contact AI Orbit for feedback, data corrections, partnerships, press, technical issues or general questions.')
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/institutional.css') }}">@endpush
 @section('content')
-<section class="inst-hero inst-hero-compact"><div class="inst-wrap"><span class="inst-eyebrow"><i data-lucide="messages-square"></i> Contact & feedback</span><h1>Help us make AI Hub <span>more useful.</span></h1><p>Send product feedback, flag data quality issues, discuss partnerships or reach out with a general question.</p></div></section>
+<section class="inst-hero inst-hero-compact"><div class="inst-wrap"><span class="inst-eyebrow"><i data-lucide="messages-square"></i> Contact & feedback</span><h1>Help us make AI Orbit <span>more useful.</span></h1><p>Send product feedback, flag data quality issues, discuss partnerships or reach out with a general question.</p></div></section>
 <div class="inst-wrap inst-contact-layout">
     <section class="inst-contact-form panel">
         <div class="inst-contact-head"><span class="inst-mini-title">Send a message</span><h2>What can we help with?</h2><p>Messages are stored for review. Please avoid including passwords, API keys or other sensitive credentials.</p></div>

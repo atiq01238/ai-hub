@@ -10,7 +10,7 @@ class MediaUrl
     /**
      * Resolve catalog media to a request-relative URL.
      *
-     * AI Hub historically stored public media in more than one format:
+     * AI Orbit historically stored public media in more than one format:
      *   storage/ai-hub/tools/logos/chatgpt.png
      *   /storage/ai-hub/tools/logos/chatgpt.png
      *   tools/logos/chatgpt-xxxx.png

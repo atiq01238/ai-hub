@@ -21,7 +21,7 @@ class ContactMessageReceivedMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'New AI Hub contact message #' . $this->contactMessage->id . ' — ' . $this->contactMessage->subject,
+            subject: 'New AI Orbit contact message #' . $this->contactMessage->id . ' — ' . $this->contactMessage->subject,
         );
     }
 

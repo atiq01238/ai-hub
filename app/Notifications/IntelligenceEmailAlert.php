@@ -11,6 +11,7 @@ class IntelligenceEmailAlert extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    public $afterCommit = true;
 
     public function __construct(
         public string $subjectLine,
@@ -31,7 +32,7 @@ class IntelligenceEmailAlert extends Notification implements ShouldQueue
             ->greeting($this->heading)
             ->line($this->message)
             ->action($this->actionLabel, $this->actionUrl)
-            ->line('Manage what AI Hub emails you receive from My AI Hub → Email Preferences.');
+            ->line('Manage what AI Orbit emails you receive from My AI Orbit → Email Preferences.');
 
         if ($this->unsubscribeUrl) {
             $mail->line('Unsubscribe from intelligence emails: '.$this->unsubscribeUrl);

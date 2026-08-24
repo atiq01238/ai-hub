@@ -11,7 +11,7 @@
 .content-hero{background-image:linear-gradient(90deg,rgba(6,10,24,.95) 0%,rgba(7,11,25,.72) 45%,rgba(7,11,25,.52) 74%,rgba(7,11,25,.86) 100%),url('../../images/hero-discovery/articles.webp');background-size:cover;background-position:center;background-repeat:no-repeat}
 @media(max-width:650px){.content-hero,.review-hero{background-position:62% center}}
 
-/* AI Hub show-page cinematic hero backgrounds */
+/* AI Orbit show-page cinematic hero backgrounds */
 .article-detail-hero,.review-detail-hero{position:relative;isolation:isolate;overflow:hidden}
 .article-detail-hero{background:#070b18 url('/images/frontend/show-heroes/articles-show-hero.webp') right center/58% 100% no-repeat!important}
 .review-detail-hero{background:#070b18 url('/images/frontend/show-heroes/reviews-show-hero.webp') right center/58% 100% no-repeat!important}

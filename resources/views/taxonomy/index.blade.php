@@ -12,7 +12,7 @@ $single=['categories'=>'Category','subcategories'=>'Subcategory','features'=>'Fe
 $isIndexableDefault=$tab!=='tags';
 @endphp
 <div class="fp-page">
-<x-page-header title="AI Management Taxonomy v2" subtitle="SEO-aware product, capability, use-case and editorial taxonomy shared across AI Hub." :breadcrumb="['AI Management',$labels[$tab]]">
+<x-page-header title="AI Management Taxonomy v2" subtitle="SEO-aware product, capability, use-case and editorial taxonomy shared across AI Orbit." :breadcrumb="['AI Management',$labels[$tab]]">
     <x-slot:actions><span class="fp-state is-good"><i data-lucide="network"></i> Normalized taxonomy</span></x-slot:actions>
 </x-page-header>
 @if(session('status'))<div class="alert alert-success fp-flash"><i data-lucide="check-circle-2"></i><span>{{ session('status') }}</span></div>@endif

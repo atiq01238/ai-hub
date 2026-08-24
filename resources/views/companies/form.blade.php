@@ -59,7 +59,7 @@
                         <div>
                             <span class="companies-eyebrow">Identity</span>
                             <h2>Company profile</h2>
-                            <p>Core organization information used throughout the AI Hub.</p>
+                            <p>Core organization information used throughout the AI Orbit.</p>
                         </div>
                     </div>
 

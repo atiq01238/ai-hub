@@ -3,12 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Two-Factor Verification · {{ config('app.name','AI Hub') }}</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" type="image/png" sizes="32x32" href="{{ asset(config('brand.assets.favicon_32')) }}">
+<title>Two-Factor Verification · {{ config('app.name','AI Orbit') }}</title>
 <link rel="stylesheet" href="{{ asset('css/pages/administration.css') }}">
 </head>
 <body class="ad-auth-body">
 <main class="ad-auth-shell">
-<section class="ad-auth-brand"><span class="ad-auth-brand__mark">AI</span><span>{{ config('app.name','AI Hub') }}</span></section>
+<section class="ad-auth-brand"><span class="ad-auth-brand__mark"><img src="{{ asset(config('brand.assets.icon')) }}" alt="" aria-hidden="true"></span><span>{{ config('app.name','AI Orbit') }}</span></section>
 <section class="ad-auth-card">
 <div class="ad-auth-icon">⌁</div>
 <span class="ad-eyebrow">Secure Login</span>

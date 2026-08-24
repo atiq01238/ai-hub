@@ -11,6 +11,7 @@ class WeeklyAiDigestNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    public $afterCommit = true;
 
     public function __construct(
         public array $digest,
@@ -23,15 +24,15 @@ class WeeklyAiDigestNotification extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         $mail = (new MailMessage)
-            ->subject('Your weekly AI Hub intelligence digest')
+            ->subject('Your weekly AI Orbit intelligence digest')
             ->greeting('Your AI week, '.$notifiable->name)
-            ->line('Here are the most important additions and updates from AI Hub this week.');
+            ->line('Here are the most important additions and updates from AI Orbit this week.');
 
         foreach ($this->digest['lines'] ?? [] as $line) {
             $mail->line('• '.$line);
         }
 
-        $mail->action('Open AI Hub', route('home'))
+        $mail->action('Open AI Orbit', route('home'))
             ->line('You can turn the weekly digest or individual alert categories on/off from Email Preferences.');
 
         if ($this->unsubscribeUrl) {

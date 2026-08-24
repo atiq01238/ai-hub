@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
 
-@section('title', 'AI News — Latest AI Updates, Research & Product Intelligence | AI Hub')
+@section('title', 'AI News — Latest AI Updates, Research & Product Intelligence | AI Orbit')
 @section('meta_description', 'Track important AI news, model releases, research, funding, pricing changes and security updates with source and verification context.')
 
 @push('styles')
@@ -63,7 +63,7 @@
                     <p>{{ $lead->ai_summary ?: $lead->summary }}</p>
                     <div class="news-source-row">
                         @if($lead->company)<img src="{{ $lead->company->logo_url }}" alt="{{ $lead->company->name }} logo">@endif
-                        <span>{{ $lead->source ?: ($lead->company?->name ?? 'AI Hub Desk') }}</span><b>•</b><time>{{ optional($lead->published_at)->diffForHumans() }}</time>
+                        <span>{{ $lead->source ?: ($lead->company?->name ?? 'AI Orbit Desk') }}</span><b>•</b><time>{{ optional($lead->published_at)->diffForHumans() }}</time>
                     </div>
                 </div>
             </a>
@@ -71,7 +71,7 @@
                 @foreach($featured->skip(1) as $item)
                 <a class="news-featured-mini" href="{{ route('news.show', $item) }}">
                     <div class="news-featured-mini-img">@if($imageFor($item))<img src="{{ $imageFor($item) }}" alt="{{ $item->headline }}">@else<div class="news-media-placeholder"><i data-lucide="image-off"></i></div>@endif<span>{{ $item->importance }}</span></div>
-                    <div><span class="news-category">{{ $item->category ?? 'AI Update' }}</span><h3>{{ $item->headline }}</h3><p>{{ Str::limit($item->ai_summary ?: $item->summary, 105) }}</p><small>{{ $item->source ?: ($item->company?->name ?? 'AI Hub') }} • {{ optional($item->published_at)->diffForHumans() }}</small></div>
+                    <div><span class="news-category">{{ $item->category ?? 'AI Update' }}</span><h3>{{ $item->headline }}</h3><p>{{ Str::limit($item->ai_summary ?: $item->summary, 105) }}</p><small>{{ $item->source ?: ($item->company?->name ?? 'AI Orbit') }} • {{ optional($item->published_at)->diffForHumans() }}</small></div>
                 </a>
                 @endforeach
             </div>
@@ -116,7 +116,7 @@
                             <h3><a href="{{ route('news.show', $item) }}">{{ $item->headline }}</a></h3>
                             <p>{{ Str::limit($item->ai_summary ?: $item->summary, 145) }}</p>
                             <div class="news-card-footer">
-                                <div class="news-source-row">@if($item->company)<img src="{{ $item->company->logo_url }}" alt="{{ $item->company->name }} logo">@endif<span>{{ $item->source ?: ($item->company?->name ?? 'AI Hub') }}</span></div>
+                                <div class="news-source-row">@if($item->company)<img src="{{ $item->company->logo_url }}" alt="{{ $item->company->name }} logo">@endif<span>{{ $item->source ?: ($item->company?->name ?? 'AI Orbit') }}</span></div>
                                 <time>{{ optional($item->published_at)->diffForHumans() }}</time>
                             </div>
                         </div>
@@ -147,7 +147,7 @@
                     <a class="topic-row" href="{{ route('news.index',['category'=>$category->category]) }}"><span>{{ $category->category }}</span><b>{{ $category->total }}</b></a>
                     @endforeach
                 </div>
-                <div class="news-method-card"><i data-lucide="shield-check"></i><h3>News you can inspect</h3><p>AI Hub keeps source, verification and processing context visible instead of presenting every headline as equally reliable.</p><a href="{{ route('methodology') }}">Our methodology <i data-lucide="arrow-up-right"></i></a></div>
+                <div class="news-method-card"><i data-lucide="shield-check"></i><h3>News you can inspect</h3><p>AI Orbit keeps source, verification and processing context visible instead of presenting every headline as equally reliable.</p><a href="{{ route('methodology') }}">Our methodology <i data-lucide="arrow-up-right"></i></a></div>
             </aside>
         </div>
     </section>

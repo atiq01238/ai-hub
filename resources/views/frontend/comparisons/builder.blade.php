@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
 
-@section('title', 'Build an AI Comparison | AI Hub')
+@section('title', 'Build an AI Comparison | AI Orbit')
 @section('meta_description', 'Select 2–4 AI tools or models and compare their pricing, capabilities, benchmark performance and product details side by side.')
 
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/comparisons.css') }}">@endpush
@@ -11,7 +11,7 @@
     <div class="compare-container builder-hero-inner">
         <span class="comparison-kicker"><i data-lucide="git-compare-arrows"></i> Comparison builder</span>
         <h1>Choose what you want to compare.</h1>
-        <p>Select between 2 and 4 products. AI Hub will build a clean side-by-side research view using the data already in your database.</p>
+        <p>Select between 2 and 4 products. AI Orbit will build a clean side-by-side research view using the data already in your database.</p>
     </div>
 </section>
 

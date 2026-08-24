@@ -200,14 +200,14 @@ class SyncTaxonomyV2 extends Command
 
     private function categoryPayload(array $definition, string $type, int $order): array
     {
-        $description = $definition['description'] ?? "Discover {$definition['name']} on AI Hub with structured product data, comparisons and independent intelligence.";
+        $description = $definition['description'] ?? "Discover {$definition['name']} on AI Orbit with structured product data, comparisons and independent intelligence.";
         return [
             'name' => $definition['name'],
             'slug' => $definition['slug'],
             'type' => $type,
             'short_description' => Str::limit($description, 260, ''),
             'description' => $description,
-            'meta_title' => Str::limit($definition['name'] . ($type === 'content' ? ' Articles & Analysis | AI Hub' : ' AI Tools & Models | AI Hub'), 80, ''),
+            'meta_title' => Str::limit($definition['name'] . ($type === 'content' ? ' Articles & Analysis | AI Orbit' : ' AI Tools & Models | AI Orbit'), 80, ''),
             'meta_description' => Str::limit($description, 175, ''),
             'is_active' => true,
             'is_indexable' => true,
@@ -230,7 +230,7 @@ class SyncTaxonomyV2 extends Command
                         'name' => $name,
                         'short_description' => Str::limit($description, 260, ''),
                         'description' => $description,
-                        'meta_title' => Str::limit($name . ' AI Tools | AI Hub', 80, ''),
+                        'meta_title' => Str::limit($name . ' AI Tools | AI Orbit', 80, ''),
                         'meta_description' => Str::limit($description, 175, ''),
                         'is_active' => true,
                         'is_indexable' => true,
@@ -269,7 +269,7 @@ class SyncTaxonomyV2 extends Command
                 'description' => $definition['description'],
                 'group' => $definition['group'],
                 'icon' => $definition['icon'],
-                'meta_title' => Str::limit($definition['name'] . ' AI Tools & Models | AI Hub', 80, ''),
+                'meta_title' => Str::limit($definition['name'] . ' AI Tools & Models | AI Orbit', 80, ''),
                 'meta_description' => Str::limit($definition['description'], 175, ''),
                 'is_active' => true,
                 'is_indexable' => true,
@@ -310,7 +310,7 @@ class SyncTaxonomyV2 extends Command
                     'short_description' => Str::limit($description, 260, ''),
                     'description' => $description,
                     'icon' => $definition['icon'] ?? 'sparkles',
-                    'meta_title' => Str::limit('Best AI for ' . $definition['name'] . ' | AI Hub', 80, ''),
+                    'meta_title' => Str::limit('Best AI for ' . $definition['name'] . ' | AI Orbit', 80, ''),
                     'meta_description' => Str::limit($description, 175, ''),
                     'is_active' => true,
                     'is_indexable' => true,
@@ -331,7 +331,7 @@ class SyncTaxonomyV2 extends Command
                     'name' => $definition['name'],
                     'short_description' => Str::limit($description, 260, ''),
                     'description' => $description,
-                    'meta_title' => Str::limit($definition['name'] . ' AI Tools | AI Hub', 80, ''),
+                    'meta_title' => Str::limit($definition['name'] . ' AI Tools | AI Orbit', 80, ''),
                     'meta_description' => Str::limit($description, 175, ''),
                     'is_active' => true,
                     'is_indexable' => false,

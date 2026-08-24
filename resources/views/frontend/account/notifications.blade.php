@@ -1,5 +1,5 @@
 @extends('frontend.layouts.app')
-@section('title','Notifications — My AI Hub')
+@section('title','Notifications — My AI Orbit')
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/account.css') }}">@endpush
 @section('content')
 <section class="account-page"><div class="account-shell">@include('frontend.account._sidebar')<div class="account-main">

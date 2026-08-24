@@ -25,10 +25,10 @@ class EntitySeoService
         ), 158, '');
 
         $faq = [
-            ['q' => 'What is '.$tool->name.'?', 'a' => Str::limit(strip_tags($tool->description ?: $tool->short_description ?: $tool->name.' is an AI tool listed in the AI Hub directory.'), 360)],
-            ['q' => 'Who makes '.$tool->name.'?', 'a' => $company ? $tool->name.' is associated with '.$company.' in the AI Hub directory.' : 'AI Hub currently lists '.$tool->name.' as an independent AI product.'],
+            ['q' => 'What is '.$tool->name.'?', 'a' => Str::limit(strip_tags($tool->description ?: $tool->short_description ?: $tool->name.' is an AI tool listed in the AI Orbit directory.'), 360)],
+            ['q' => 'Who makes '.$tool->name.'?', 'a' => $company ? $tool->name.' is associated with '.$company.' in the AI Orbit directory.' : 'AI Orbit currently lists '.$tool->name.' as an independent AI product.'],
             ['q' => 'What is '.$tool->name.' best for?', 'a' => $caps->isNotEmpty() ? $tool->name.' is listed for capabilities including '.$caps->join(', ').'.' : 'Its current use cases are described in the features and overview sections on this page.'],
-            ['q' => 'How much does '.$tool->name.' cost?', 'a' => $pricing ? 'AI Hub currently classifies '.$tool->name.' pricing as '.$pricing.'. Check the pricing section and official provider site for current rates.' : 'Detailed pricing may change; use the pricing section and official provider site for the latest rates.'],
+            ['q' => 'How much does '.$tool->name.' cost?', 'a' => $pricing ? 'AI Orbit currently classifies '.$tool->name.' pricing as '.$pricing.'. Check the pricing section and official provider site for current rates.' : 'Detailed pricing may change; use the pricing section and official provider site for the latest rates.'],
         ];
 
         return compact('title','description','faq','caps','platforms');
@@ -47,9 +47,9 @@ class EntitySeoService
 
         $faq = [
             ['q' => 'What is '.$model->name.'?', 'a' => Str::limit(strip_tags($model->capability_notes ?: $model->name.' is an AI model from '.$company.'.'), 360)],
-            ['q' => 'Who created '.$model->name.'?', 'a' => $model->company ? $model->name.' is provided by '.$model->company->name.'.' : 'The provider is not currently listed in AI Hub.'],
+            ['q' => 'Who created '.$model->name.'?', 'a' => $model->company ? $model->name.' is provided by '.$model->company->name.'.' : 'The provider is not currently listed in AI Orbit.'],
             ['q' => 'What can '.$model->name.' do?', 'a' => $caps->isNotEmpty() ? 'Its listed capabilities include '.$caps->join(', ').'.' : 'Capability details are shown on this model profile when verified data is available.'],
-            ['q' => 'What is the context window of '.$model->name.'?', 'a' => $model->context_window ? 'AI Hub currently lists the context window as '.$model->context_window.'.' : 'A verified context-window value is not currently listed.'],
+            ['q' => 'What is the context window of '.$model->name.'?', 'a' => $model->context_window ? 'AI Orbit currently lists the context window as '.$model->context_window.'.' : 'A verified context-window value is not currently listed.'],
             ['q' => 'How much does '.$model->name.' cost?', 'a' => ($model->input_price_per_million !== null || $model->output_price_per_million !== null)
                 ? 'The profile lists token pricing where available. Current values should be checked against the provider before production use.'
                 : 'Verified token pricing is not currently listed on this profile; check the provider for current rates.'],

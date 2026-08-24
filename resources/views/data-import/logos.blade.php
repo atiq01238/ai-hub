@@ -186,7 +186,7 @@
             </div>
             <small>
                 Upload an official PNG/JPG/WebP logo once and apply it to a single model or its whole family.
-                If no dedicated logo is saved, AI Hub continues using the company logo automatically.
+                If no dedicated logo is saved, AI Orbit continues using the company logo automatically.
             </small>
         </section>
     @endif

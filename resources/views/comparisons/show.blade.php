@@ -104,7 +104,7 @@
                 <div>
                     <span class="cb-eyebrow">Decision Matrix</span>
                     <h2>Side-by-side intelligence</h2>
-                    <p>Comparable attributes from the current AI Hub records.</p>
+                    <p>Comparable attributes from the current AI Orbit records.</p>
                 </div>
                 <i data-lucide="table-properties"></i>
             </div>

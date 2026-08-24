@@ -1,6 +1,7 @@
 @extends('frontend.layouts.app')
 
-@section('title', 'AI Hub — Discover, Compare, Master AI')
+@section('title', 'AI Orbit — Discover & Compare AI Tools, Models, Pricing & Benchmarks')
+@section('meta_description', 'Discover and compare AI tools and models, track pricing, explore verified benchmarks, follow AI news and review controlled Test Lab evaluations on AI Orbit.')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/frontend/home-hero-refined.css') }}">
@@ -294,7 +295,7 @@
                         @php($reviewedItem = $review->model ?: $review->tool)
                         <article class="review-card">
                             <div class="review-head"><img src="{{ $reviewedItem?->logo_url }}" alt="{{ $reviewedItem?->name }}"><div><h3>{{ $reviewedItem?->name }}</h3><span>{{ $reviewedItem?->company?->name }} · {{ $review->model ? 'Model' : 'Tool' }}</span></div><b>★ {{ number_format((float)$review->rating,1) }}</b></div>
-                            <h4>{{ $review->verdict ?: $reviewedItem?->name.' review' }}</h4><p>{{ $review->body ?: 'Published AI Hub review.' }}</p>
+                            <h4>{{ $review->verdict ?: $reviewedItem?->name.' review' }}</h4><p>{{ $review->body ?: 'Published AI Orbit review.' }}</p>
                             <div class="review-foot"><span><i data-lucide="badge-check"></i>{{ $review->review_type === 'editorial' ? 'Editorial' : 'Community' }}</span><a href="{{ route('reviews.show', $review) }}">Read review</a></div>
                         </article>
                     @endforeach
@@ -308,7 +309,7 @@
                         @php($articleImage = $article->featured_image_url ?: '/images/frontend/content-placeholder.svg')
                         <article class="article-card">
                             <div class="article-image"><img src="{{ $articleImage }}" alt="{{ $article->title }}"><span>{{ $article->category ?: 'Guide' }}</span></div>
-                            <div class="article-copy"><h3>{{ $article->title }}</h3><p>{{ $article->summary }}</p><div><span>{{ $article->company?->name ?? 'AI Hub' }} · {{ optional($article->published_at)->diffForHumans() }}</span><a href="{{ route('articles.show', $article) }}">Read <i data-lucide="arrow-right"></i></a></div></div>
+                            <div class="article-copy"><h3>{{ $article->title }}</h3><p>{{ $article->summary }}</p><div><span>{{ $article->company?->name ?? 'AI Orbit' }} · {{ optional($article->published_at)->diffForHumans() }}</span><a href="{{ route('articles.show', $article) }}">Read <i data-lucide="arrow-right"></i></a></div></div>
                         </article>
                     @endforeach
                 </div>

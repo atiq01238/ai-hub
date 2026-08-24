@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
 
-@section('title', $tool->name . ' Pricing & Plans | AI Hub')
+@section('title', $tool->name . ' Pricing & Plans | AI Orbit')
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/frontend/pricing-intelligence.css') }}">

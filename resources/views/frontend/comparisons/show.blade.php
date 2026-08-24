@@ -1,11 +1,8 @@
 @extends('frontend.layouts.app')
 
-@section('title', $title . ' — Benchmarks, Pricing & Features | AI Hub')
+@section('title', $title . ' — Benchmarks, Pricing & Features | AI Orbit')
 @section('meta_description', $comparison?->summary ?: ('Compare '.$items->pluck('name')->join(', ').' side by side across verified benchmarks, pricing, capabilities and product details.'))
-@if(!$isPreview)
-@push('head')<link rel="canonical" href="{{ route('comparisons.show',$comparison) }}"><meta name="robots" content="index,follow,max-image-preview:large"><meta property="og:type" content="website"><meta property="og:title" content="{{ $title }}"><meta property="og:description" content="{{ $comparison->summary }}"><meta property="og:url" content="{{ route('comparisons.show',$comparison) }}">@endpush
-@endif
-
+@section('robots', ($isPreview || request()->query()) ? 'noindex,nofollow' : 'index,follow,max-image-preview:large')
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/comparisons.css') }}">@endpush
 
 @section('content')
@@ -14,7 +11,7 @@
         <div class="detail-breadcrumbs"><a href="{{ route('comparisons.index') }}">Comparisons</a><i data-lucide="chevron-right"></i><span>{{ $comparisonType === 'tool' ? 'AI Tools' : 'AI Models' }}</span></div>
         <div class="detail-title-row">
             <div>
-                <span class="comparison-kicker"><i data-lucide="scale"></i> {{ $isPreview ? 'Live comparison' : 'AI Hub comparison' }}</span>
+                <span class="comparison-kicker"><i data-lucide="scale"></i> {{ $isPreview ? 'Live comparison' : 'AI Orbit comparison' }}</span>
                 <h1>{{ $title }}</h1>
                 <p>A practical side-by-side look at performance, pricing, capabilities and product fit.</p>
             </div>
@@ -49,7 +46,7 @@
 <div class="compare-container">
     <div class="comparison-verdict">
         <div class="verdict-icon"><i data-lucide="trophy"></i></div>
-        <div><span>OVERALL LEADER</span><h2>{{ $winner?->name ?? 'No clear leader yet' }}</h2><p>Based primarily on the benchmark score available in your AI Hub dataset{{ $comparisonType === 'tool' ? ', with rating used when benchmark data is unavailable' : '' }}.</p></div>
+        <div><span>OVERALL LEADER</span><h2>{{ $winner?->name ?? 'No clear leader yet' }}</h2><p>Based primarily on the benchmark score available in your AI Orbit dataset{{ $comparisonType === 'tool' ? ', with rating used when benchmark data is unavailable' : '' }}.</p></div>
         @if($winner)<strong>{{ number_format((float)($winner->benchmark_score ?: (($winner->rating ?? 0)*10)),1) }}<small>/100</small></strong>@endif
     </div>
 

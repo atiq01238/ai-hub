@@ -1,5 +1,5 @@
 @extends('frontend.layouts.app')
-@section('title','My Comments — My AI Hub')
+@section('title','My Comments — My AI Orbit')
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/account.css') }}">@endpush
 
 @section('content')

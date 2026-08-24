@@ -16,7 +16,7 @@ class RunNewsPipeline extends Command
                             {--skip-ai : Skip local AI processing}
                             {--source= : Fetch only one source}';
 
-    protected $description = 'Run the AI Hub news automation pipeline: fetch, deduplicate, and process.';
+    protected $description = 'Run the AI Orbit news automation pipeline: fetch, deduplicate, and process.';
 
     public function handle(): int
     {
@@ -37,7 +37,7 @@ class RunNewsPipeline extends Command
         try {
             $limit = max(1, (int) $this->option('limit'));
 
-            $this->info('AI Hub News Automation Pipeline started.');
+            $this->info('AI Orbit News Automation Pipeline started.');
             $this->newLine();
 
             $sourceCount = 1;

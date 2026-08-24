@@ -1,5 +1,5 @@
 /* ==========================================================================
-   AI HUB — ADMIN DESIGN SYSTEM
+   AI ORBIT — ADMIN DESIGN SYSTEM
    Theme: AI Intelligence Command Center
    Signature: segmented "score meter" used for Importance / Reliability /
    Security / Health scores — one consistent visual language for "a scored
@@ -391,3 +391,6 @@ table.data-table{ width:100%; border-collapse:collapse; font-size:13px; min-widt
   .global-search{ display:none; }
   .page-header{ align-items:flex-start; flex-direction:column; }
 }
+
+.sidebar-brand__mark--orbit{overflow:hidden;padding:0;background:#050817}
+.sidebar-brand__mark--orbit img{width:100%;height:100%;display:block;object-fit:cover;transform:scale(1.08)}

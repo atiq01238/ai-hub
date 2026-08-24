@@ -7,7 +7,7 @@
 
 @section('content')
 <div class="dr-page">
-<x-page-header title="Backup Center" subtitle="Create, retain and download protected local snapshots of critical AI Hub data." :breadcrumb="['System','Backups']">
+<x-page-header title="Backup Center" subtitle="Create, retain and download protected local snapshots of critical AI Orbit data." :breadcrumb="['System','Backups']">
 <x-slot:actions>
 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createBackup"><i data-lucide="database-backup"></i>Create Backup</button>
 </x-slot:actions>

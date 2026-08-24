@@ -24,7 +24,7 @@ class ContactMessageReplyMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Re: ' . $this->contactMessage->subject . ' — AI Hub',
+            subject: 'Re: ' . $this->contactMessage->subject . ' — AI Orbit',
         );
     }
 

@@ -21,7 +21,7 @@ class SubmissionStatusMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'AI Hub submission #' . $this->submission->id . ': ' . str_replace('_', ' ', $this->submission->status),
+            subject: 'AI Orbit submission #' . $this->submission->id . ': ' . str_replace('_', ' ', $this->submission->status),
         );
     }
 

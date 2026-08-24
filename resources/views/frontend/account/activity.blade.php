@@ -1,11 +1,11 @@
 @extends('frontend.layouts.app')
-@section('title','Recent Activity — My AI Hub')
+@section('title','Recent Activity — My AI Orbit')
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/account.css') }}">@endpush
 @section('content')
 <section class="account-page"><div class="account-shell">
 @include('frontend.account._sidebar')
 <div class="account-main">
-    <header class="account-subhead"><div><span class="account-kicker"><i data-lucide="activity"></i> ACTIVITY</span><h1>Your recent AI Hub activity</h1><p>A private timeline of saved research, ratings, follows, comparisons and Test Lab exploration.</p></div></header>
+    <header class="account-subhead"><div><span class="account-kicker"><i data-lucide="activity"></i> ACTIVITY</span><h1>Your recent AI Orbit activity</h1><p>A private timeline of saved research, ratings, follows, comparisons and Test Lab exploration.</p></div></header>
     <section class="account-panel timeline-panel">
         <div class="activity-timeline">
             @forelse($activity as $item)
@@ -15,7 +15,7 @@
                     <time title="{{ $item['at']->format('M j, Y g:i A') }}">{{ $item['at']->diffForHumans() }}</time>
                 </a>
             @empty
-                <div class="account-empty big"><i data-lucide="activity"></i><strong>No activity yet.</strong><span>Start exploring AI Hub and your private timeline will build automatically.</span></div>
+                <div class="account-empty big"><i data-lucide="activity"></i><strong>No activity yet.</strong><span>Start exploring AI Orbit and your private timeline will build automatically.</span></div>
             @endforelse
         </div>
     </section>

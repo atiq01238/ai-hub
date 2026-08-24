@@ -109,11 +109,11 @@
 
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
-        <div class="sidebar-brand__mark">
-            <i data-lucide="orbit"></i>
+        <div class="sidebar-brand__mark sidebar-brand__mark--orbit">
+            <img src="{{ asset(config('brand.assets.icon')) }}" alt="" aria-hidden="true">
         </div>
         <div class="sidebar-brand__text">
-            <div class="sidebar-brand__title">AI Hub</div>
+            <div class="sidebar-brand__title">AI Orbit</div>
             <div class="sidebar-brand__sub">AI Research &amp; Intelligence Platform</div>
         </div>
     </div>

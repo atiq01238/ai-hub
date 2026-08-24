@@ -97,7 +97,7 @@ class AiModel extends Model
         if ($this->version) $specs[] = 'version ' . $this->version;
         if ($this->context_window) $specs[] = 'a ' . $this->context_window . ' context window';
         if ($this->release_date) $specs[] = 'released ' . $this->release_date->format('F Y');
-        if ($specs) $parts[] = 'The current AI Hub profile lists ' . implode(', ', $specs) . '.';
+        if ($specs) $parts[] = 'The current AI Orbit profile lists ' . implode(', ', $specs) . '.';
 
         $caps = collect($this->capabilities ?? [])->filter()->take(6)->values();
         if ($caps->isNotEmpty()) {
@@ -108,7 +108,7 @@ class AiModel extends Model
             $pricing = [];
             if ($this->input_price_per_million !== null) $pricing[] = '$' . number_format((float) $this->input_price_per_million, 2) . ' input';
             if ($this->output_price_per_million !== null) $pricing[] = '$' . number_format((float) $this->output_price_per_million, 2) . ' output';
-            $parts[] = 'Verified API pricing currently stored in AI Hub is ' . implode(' and ', $pricing) . ' per 1M tokens.';
+            $parts[] = 'Verified API pricing currently stored in AI Orbit is ' . implode(' and ', $pricing) . ' per 1M tokens.';
         } else {
             $parts[] = 'Verified input and output token pricing has not yet been added to this model profile.';
         }

@@ -1,7 +1,6 @@
 @extends('frontend.layouts.app')
-@section('title','AI Categories — AI Hub')
+@section('title','AI Categories — AI Orbit')
 @section('meta_description','Browse AI tools and models across curated product categories with structured subcategories, capabilities, use cases and supporting intelligence.')
-@push('head')<link rel="canonical" href="{{ route('categories.index') }}">@endpush
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/discovery.css') }}">@endpush
 @section('content')
 <section class="discovery-hero category-hero">
@@ -10,11 +9,11 @@
         <span class="eyebrow"><i data-lucide="layout-grid"></i> AI Categories</span>
         <h1>Explore AI by <span>what you want to do.</span></h1>
         <p>Browse focused collections of tools, models, research, news and practical guides across the AI ecosystem.</p>
-        <form class="discovery-search" action="{{ route('search.index') }}" method="get"><i data-lucide="search"></i><input name="q" type="search" placeholder="Search across every AI category..."><button type="submit">Search AI Hub <i data-lucide="arrow-right"></i></button></form>
+        <form class="discovery-search" action="{{ route('search.index') }}" method="get"><i data-lucide="search"></i><input name="q" type="search" placeholder="Search across every AI category..."><button type="submit">Search AI Orbit <i data-lucide="arrow-right"></i></button></form>
     </div>
 </section>
 <div class="discovery-page">
-    <section class="category-directory-head"><div><span class="eyebrow"><i data-lucide="layers-3"></i> Directory</span><h2>{{ $categories->count() }} AI categories</h2><p>Each category combines the strongest products and intelligence from across AI Hub.</p></div><a href="{{ route('tools.index') }}" class="secondary-action">All AI Tools <i data-lucide="arrow-right"></i></a></section>
+    <section class="category-directory-head"><div><span class="eyebrow"><i data-lucide="layers-3"></i> Directory</span><h2>{{ $categories->count() }} AI categories</h2><p>Each category combines the strongest products and intelligence from across AI Orbit.</p></div><a href="{{ route('tools.index') }}" class="secondary-action">All AI Tools <i data-lucide="arrow-right"></i></a></section>
     <div class="category-directory-grid">
         @php($icons=['chat-assistants'=>'messages-square','coding-development'=>'code-2','image-design'=>'image','video-animation'=>'clapperboard','writing-content'=>'pen-line','voice-audio'=>'mic-2','music'=>'music-2','search-research'=>'search','agents-automation'=>'workflow','productivity-office'=>'zap','data-analytics'=>'chart-no-axes-combined','marketing-sales'=>'megaphone','customer-support'=>'headphones','education-learning'=>'graduation-cap'])
         @foreach($categories as $category)

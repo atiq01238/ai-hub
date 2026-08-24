@@ -1,18 +1,18 @@
 @extends('frontend.layouts.app')
-@section('title','Settings & Security — My AI Hub')
+@section('title','Settings & Security — My AI Orbit')
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/account.css') }}">@endpush
 @section('content')
 <section class="account-page"><div class="account-shell">
 @include('frontend.account._sidebar')
 <div class="account-main">
-    <header class="account-subhead"><div><span class="account-kicker"><i data-lucide="settings"></i> ACCOUNT</span><h1>Settings & security</h1><p>Manage your identity and account security without leaving AI Hub.</p></div></header>
+    <header class="account-subhead"><div><span class="account-kicker"><i data-lucide="settings"></i> ACCOUNT</span><h1>Settings & security</h1><p>Manage your identity and account security without leaving AI Orbit.</p></div></header>
 
     @if(session('status'))<div class="account-success"><i data-lucide="circle-check"></i>{{ session('status') }}</div>@endif
     @if($errors->any())<div class="account-error"><i data-lucide="triangle-alert"></i><div>@foreach($errors->all() as $error)<span>{{ $error }}</span>@endforeach</div></div>@endif
 
     <div class="settings-grid">
         <section class="account-panel settings-card">
-            <div class="settings-title"><span><i data-lucide="user-round"></i></span><div><h2>Profile information</h2><p>Your name is shown across your private AI Hub account.</p></div></div>
+            <div class="settings-title"><span><i data-lucide="user-round"></i></span><div><h2>Profile information</h2><p>Your name is shown across your private AI Orbit account.</p></div></div>
             <form method="POST" action="{{ route('account.profile.update') }}">
                 @csrf @method('PATCH')
                 <label><span>Name</span><input name="name" value="{{ old('name',$user->name) }}" maxlength="100" required></label>

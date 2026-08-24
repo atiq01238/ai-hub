@@ -12,7 +12,7 @@
         </div>
     </div>
 
-    <nav class="account-menu" aria-label="My AI Hub">
+    <nav class="account-menu" aria-label="My AI Orbit">
         <a class="{{ request()->routeIs('account.dashboard') ? 'active' : '' }}" href="{{ route('account.dashboard') }}"><i data-lucide="layout-dashboard"></i><span>Overview</span></a>
         <a class="{{ request()->routeIs('saved.*') ? 'active' : '' }}" href="{{ route('saved.index') }}"><i data-lucide="bookmark"></i><span>Saved Library</span></a>
         <a class="{{ request()->routeIs('account.reviews') ? 'active' : '' }}" href="{{ route('account.reviews') }}"><i data-lucide="star"></i><span>My Reviews</span></a>

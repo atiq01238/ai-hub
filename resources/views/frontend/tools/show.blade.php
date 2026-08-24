@@ -1,20 +1,11 @@
 @extends('frontend.layouts.app')
 
-@section('title', $seo['title'] . ' | AI Hub')
+@section('title', $seo['title'] . ' | AI Orbit')
 @section('meta_description', $seo['description'])
+@section('og_type', 'website')
+@section('og_image', $tool->og_image_url ?: $tool->logo_url)
 
 @push('head')
-<link rel="canonical" href="{{ route('tools.show', $tool) }}">
-<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
-<meta property="og:type" content="website">
-<meta property="og:title" content="{{ $seo['title'] }}">
-<meta property="og:description" content="{{ $seo['description'] }}">
-<meta property="og:url" content="{{ route('tools.show', $tool) }}">
-<meta property="og:image" content="{{ $tool->og_image_url ?: $tool->logo_url }}">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="{{ $seo['title'] }}">
-<meta name="twitter:description" content="{{ $seo['description'] }}">
-<meta name="twitter:image" content="{{ $tool->og_image_url ?: $tool->logo_url }}">
 @foreach($seoSchemas as $schema)
 <script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org'] + $schema, JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
 @endforeach
@@ -68,7 +59,7 @@
 
             <div class="tool-score-panel">
                 <div class="hero-rating"><i data-lucide="star"></i><strong>{{ number_format((float)$tool->rating, 1) }}</strong><span>/ 5</span></div>
-                <div class="hero-rating-copy"><b>AI Hub rating</b><small>{{ $reviewCount ? $reviewCount . ' published ' . Str::plural('review', $reviewCount) : 'Editorial profile' }}</small></div>
+                <div class="hero-rating-copy"><b>AI Orbit rating</b><small>{{ $reviewCount ? $reviewCount . ' published ' . Str::plural('review', $reviewCount) : 'Editorial profile' }}</small></div>
                 @if($tool->benchmark_score)<div class="hero-benchmark"><span>Benchmark</span><strong>{{ number_format((float)$tool->benchmark_score,1) }}</strong></div>@endif
             </div>
         </div>
@@ -138,7 +129,7 @@
         @endif
 
         <section class="detail-panel" id="pricing">
-            <div class="detail-section-head"><div><span>Pricing</span><h2>{{ $tool->name }} pricing plans</h2><p>Pricing stored in AI Hub's pricing database. Always verify final rates on the provider website.</p></div><i data-lucide="badge-dollar-sign"></i></div>
+            <div class="detail-section-head"><div><span>Pricing</span><h2>{{ $tool->name }} pricing plans</h2><p>Pricing stored in AI Orbit's pricing database. Always verify final rates on the provider website.</p></div><i data-lucide="badge-dollar-sign"></i></div>
             @if($pricingPlans->isNotEmpty())
             <div class="pricing-detail-grid">
                 @foreach($pricingPlans as $plan)
@@ -163,7 +154,7 @@
 
         @if($benchmarkResults->isNotEmpty() || $tool->benchmark_score)
         <section class="detail-panel" id="benchmarks">
-            <div class="detail-section-head"><div><span>Performance</span><h2>Benchmarks & scores</h2><p>Verified benchmark results and AI Hub scoring for this tool.</p></div><i data-lucide="gauge"></i></div>
+            <div class="detail-section-head"><div><span>Performance</span><h2>Benchmarks & scores</h2><p>Verified benchmark results and AI Orbit scoring for this tool.</p></div><i data-lucide="gauge"></i></div>
             @if($benchmarkResults->isNotEmpty())
             <div class="benchmark-detail-list">
                 @foreach($benchmarkResults->take(8) as $result)
@@ -172,7 +163,7 @@
                 @endforeach
             </div>
             @elseif($tool->benchmark_score)
-            <div class="single-score-card"><div class="score-ring" style="--score:{{ max(0,min(100,(float)$tool->benchmark_score)) }}"><span>{{ number_format((float)$tool->benchmark_score,1) }}</span></div><div><small>AI Hub benchmark score</small><h3>{{ $tool->name }} overall performance</h3><p>Detailed benchmark rows have not been published yet, but an aggregate score is available.</p></div></div>
+            <div class="single-score-card"><div class="score-ring" style="--score:{{ max(0,min(100,(float)$tool->benchmark_score)) }}"><span>{{ number_format((float)$tool->benchmark_score,1) }}</span></div><div><small>AI Orbit benchmark score</small><h3>{{ $tool->name }} overall performance</h3><p>Detailed benchmark rows have not been published yet, but an aggregate score is available.</p></div></div>
             @else
             <p class="detail-empty">No verified benchmark results are published for {{ $tool->name }} yet.</p>
             @endif
@@ -191,7 +182,7 @@
             @if($publishedReviews->isNotEmpty())
             <div class="review-detail-list">
                 @foreach($publishedReviews->take(4) as $review)
-                <article><div class="review-detail-head"><div class="review-avatar">{{ strtoupper(substr($review->user?->name ?: ($review->review_type === 'editorial' ? 'AI Hub' : 'R'),0,1)) }}</div><div><h3>{{ $review->user?->name ?: ($review->review_type === 'editorial' ? 'AI Hub Editorial' : 'Verified reviewer') }}</h3><span>{{ ucfirst($review->review_type) }} review • {{ $review->created_at?->format('M j, Y') }}</span></div><b><i data-lucide="star"></i>{{ number_format((float)$review->rating,1) }}</b></div>@if($review->verdict)<h4>{{ $review->verdict }}</h4>@endif<p>{{ $review->body }}</p></article>
+                <article><div class="review-detail-head"><div class="review-avatar">{{ strtoupper(substr($review->user?->name ?: ($review->review_type === 'editorial' ? 'AI Orbit' : 'R'),0,1)) }}</div><div><h3>{{ $review->user?->name ?: ($review->review_type === 'editorial' ? 'AI Orbit Editorial' : 'Verified reviewer') }}</h3><span>{{ ucfirst($review->review_type) }} review • {{ $review->created_at?->format('M j, Y') }}</span></div><b><i data-lucide="star"></i>{{ number_format((float)$review->rating,1) }}</b></div>@if($review->verdict)<h4>{{ $review->verdict }}</h4>@endif<p>{{ $review->body }}</p></article>
                 @endforeach
             </div>
             @else
@@ -271,7 +262,7 @@
 
 <section class="detail-panel seo-faq-panel" id="faq">
     <div class="detail-section-head">
-        <div><span>Common questions</span><h2>{{ $tool->name }} FAQ</h2><p>Quick answers based on the information currently available in this AI Hub profile.</p></div>
+        <div><span>Common questions</span><h2>{{ $tool->name }} FAQ</h2><p>Quick answers based on the information currently available in this AI Orbit profile.</p></div>
         <i data-lucide="circle-help"></i>
     </div>
     <div class="seo-faq-list">

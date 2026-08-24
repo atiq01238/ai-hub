@@ -139,7 +139,7 @@ class ImportCuratedTestLab extends Command
                         'status' => 'draft',
                         'is_featured' => (bool) ($definition['is_featured'] ?? false),
                         'is_verified' => false,
-                        'source_note' => $definition['source_note'] ?? "Curated AI Hub Test Lab dataset {$dataset}.",
+                        'source_note' => $definition['source_note'] ?? "Curated AI Orbit Test Lab dataset {$dataset}.",
                         'seo_title' => $definition['seo_title'] ?? null,
                         'meta_description' => $definition['meta_description'] ?? null,
                         'published_at' => null,

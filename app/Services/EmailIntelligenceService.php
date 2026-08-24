@@ -31,7 +31,7 @@ class EmailIntelligenceService
     {
         if (! $user->email_verified_at || ($user->status ?? 'active') !== 'active') return;
         $this->ensurePreferences($user);
-        $this->queueForUser($user, 'welcome', 'welcome:'.$user->id, 'Welcome to AI Hub',
+        $this->queueForUser($user, 'welcome', 'welcome:'.$user->id, 'Welcome to AI Orbit',
             fn ($log) => new WelcomeToAiHubNotification($log->id));
     }
 
@@ -40,7 +40,7 @@ class EmailIntelligenceService
         $tool->loadMissing('company');
         $this->broadcast(
             'new_tools', 'new_tool:'.$tool->id, 'New AI Tool: '.$tool->name,
-            'New AI tool on AI Hub', $tool->name.' is now available on AI Hub. Explore its capabilities, pricing, reviews, and related models.',
+            'New AI tool on AI Orbit', $tool->name.' is now available on AI Orbit. Explore its capabilities, pricing, reviews, and related models.',
             'View Tool', route('tools.show', $tool), 'sparkles', 'pos', 'new_tool',
             [['type'=>'company','id'=>$tool->company_id,'alert'=>'major_update']]
         );
@@ -51,7 +51,7 @@ class EmailIntelligenceService
         $model->loadMissing('company');
         $this->broadcast(
             'new_models', 'new_model:'.$model->id, 'New AI Model: '.$model->name,
-            'New AI model on AI Hub', $model->name.' is now active on AI Hub. See its capabilities, context window, pricing, benchmarks, and comparisons.',
+            'New AI model on AI Orbit', $model->name.' is now active on AI Orbit. See its capabilities, context window, pricing, benchmarks, and comparisons.',
             'View Model', route('models.show', $model), 'brain-circuit', 'pos', 'new_model',
             [['type'=>'company','id'=>$model->company_id,'alert'=>'major_update']]
         );
@@ -74,7 +74,7 @@ class EmailIntelligenceService
         $tool = $history->tool;
         if (! $tool || $tool->status !== 'published') return;
         $metric = Str::headline($history->metric ?: 'pricing');
-        $message = $tool->name.' pricing changed for '.$history->plan_name.' ('.$metric.'). Review the latest verified pricing intelligence on AI Hub.';
+        $message = $tool->name.' pricing changed for '.$history->plan_name.' ('.$metric.'). Review the latest verified pricing intelligence on AI Orbit.';
         $this->broadcast(
             'price_changes', 'price_change:'.$history->id, 'Price update: '.$tool->name,
             'AI pricing update', $message, 'View Pricing', route('pricing.show', $tool), 'tag', 'warn', 'price_change',
@@ -93,7 +93,7 @@ class EmailIntelligenceService
         $url = $type === 'tool' ? route('tools.show', $target) : route('models.show', $target);
         $this->broadcast(
             'benchmark_updates', 'benchmark_result:'.$result->id, 'Benchmark update: '.$target->name,
-            'Verified benchmark update', $target->name.' has a new verified '.$result->benchmark?->name.' result on AI Hub.',
+            'Verified benchmark update', $target->name.' has a new verified '.$result->benchmark?->name.' result on AI Orbit.',
             'View Benchmark Data', $url, 'bar-chart-3', 'info', 'benchmark_update',
             [['type'=>$type,'id'=>$target->id,'alert'=>'benchmark']]
         );
@@ -111,12 +111,12 @@ class EmailIntelligenceService
             'company' => route('companies.show', $model),
             default => route('home'),
         };
-        $subject = $name.' was updated on AI Hub';
+        $subject = $name.' was updated on AI Orbit';
         $this->usersQuery('followed_entities')->whereIn('id', $followers)->chunkById(200, function ($users) use ($model,$type,$event,$name,$url,$subject): void {
             foreach ($users as $user) {
                 $key = 'follow_'.$event.':'.$type.':'.$model->getKey().':'.($model->updated_at?->timestamp ?? time());
                 $this->queueAlert($user, 'followed_entities', $key, $subject, $name.' update',
-                    'A '.$type.' you follow has a '.str_replace('_',' ',$event).' update on AI Hub.', 'View Update', $url);
+                    'A '.$type.' you follow has a '.str_replace('_',' ',$event).' update on AI Orbit.', 'View Update', $url);
             }
         });
     }
@@ -125,7 +125,7 @@ class EmailIntelligenceService
     {
         $pref = $this->ensurePreferences($user);
         if (! $pref->email_enabled || ! $pref->weekly_digest || ! $user->email_verified_at) return;
-        $this->queueForUser($user, 'weekly_digest', 'weekly_digest:'.$weekKey, 'Your weekly AI Hub intelligence digest',
+        $this->queueForUser($user, 'weekly_digest', 'weekly_digest:'.$weekKey, 'Your weekly AI Orbit intelligence digest',
             fn ($log) => new WeeklyAiDigestNotification($digest, $log->id, $this->unsubscribeUrl($user)));
     }
 

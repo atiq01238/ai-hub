@@ -12,7 +12,7 @@ use Illuminate\Console\Command;
 class SendWeeklyAiDigest extends Command
 {
     protected $signature = 'email:weekly-digest {--user= : Send only to one user ID for testing}';
-    protected $description = 'Queue the weekly AI Hub intelligence digest for subscribed verified users.';
+    protected $description = 'Queue the weekly AI Orbit intelligence digest for subscribed verified users.';
 
     public function handle(EmailIntelligenceService $email): int
     {
@@ -22,7 +22,7 @@ class SendWeeklyAiDigest extends Command
             ->orderByDesc('importance')->limit(3)->pluck('headline')->each(fn($v)=>$lines[]='News: '.$v);
         AiModel::where('status','active')->where('created_at','>=',$since)->latest()->limit(3)->pluck('name')->each(fn($v)=>$lines[]='New model: '.$v);
         Tool::where('status','published')->where('published_at','>=',$since)->latest('published_at')->limit(3)->pluck('name')->each(fn($v)=>$lines[]='New tool: '.$v);
-        if (! $lines) $lines[] = 'No major catalog release this week — your AI Hub watchlist remains up to date.';
+        if (! $lines) $lines[] = 'No major catalog release this week — your AI Orbit watchlist remains up to date.';
         $digest = ['lines'=>array_slice($lines,0,8)];
         $weekKey = now()->startOfWeek()->toDateString();
 

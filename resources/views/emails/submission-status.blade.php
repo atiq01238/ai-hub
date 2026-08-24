@@ -4,10 +4,10 @@
 <body style="margin:0;background:#f3f5fa;font-family:Arial,sans-serif;color:#172033;padding:28px 12px;">
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center">
     <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px;background:#ffffff;border:1px solid #dfe4ee;border-radius:14px;overflow:hidden;">
-        <tr><td style="padding:24px 28px;background:linear-gradient(135deg,#5b7fff,#8b5cf6);color:#fff;"><b style="font-size:20px;">AI Hub</b><div style="font-size:12px;opacity:.85;margin-top:3px;">Community contribution update</div></td></tr>
+        <tr><td style="padding:24px 28px;background:linear-gradient(135deg,#5b7fff,#8b5cf6);color:#fff;"><b style="font-size:20px;">AI Orbit</b><div style="font-size:12px;opacity:.85;margin-top:3px;">Community contribution update</div></td></tr>
         <tr><td style="padding:28px;">
             <h1 style="font-size:22px;margin:0 0 12px;">Submission {{ ucfirst(str_replace('_', ' ', $submission->status)) }}</h1>
-            <p style="line-height:1.7;color:#526078;">Your {{ $submission->submission_type }} contribution <b>“{{ $submission->tool_name }}”</b> has been reviewed by the AI Hub moderation team.</p>
+            <p style="line-height:1.7;color:#526078;">Your {{ $submission->submission_type }} contribution <b>“{{ $submission->tool_name }}”</b> has been reviewed by the AI Orbit moderation team.</p>
             @if($submission->admin_notes)
                 <div style="background:#f7f8fc;border-left:4px solid #6d7cff;border-radius:7px;padding:14px 16px;margin:20px 0;line-height:1.65;color:#46536a;"><b>Moderator note</b><br>{{ $submission->admin_notes }}</div>
             @endif

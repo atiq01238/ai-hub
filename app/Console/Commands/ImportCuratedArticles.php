@@ -24,7 +24,7 @@ class ImportCuratedArticles extends Command
         {--refresh : Update existing articles with matching slugs}
         {--author= : Author email; defaults to the first active admin/user}';
 
-    protected $description = 'Import AI Hub curated evergreen articles with Taxonomy v2 topics, tags and related catalog entities.';
+    protected $description = 'Import AI Orbit curated evergreen articles with Taxonomy v2 topics, tags and related catalog entities.';
 
     public function handle(): int
     {
@@ -171,8 +171,8 @@ class ImportCuratedArticles extends Command
                     'to_status' => $publish ? 'approved' : 'draft',
                     'action' => $wasExisting ? 'curated_import_refreshed' : 'curated_imported',
                     'comment' => $publish
-                        ? 'Imported from curated AI Hub dataset and published by explicit command option.'
-                        : 'Imported from curated AI Hub dataset as a draft for editorial review.',
+                        ? 'Imported from curated AI Orbit dataset and published by explicit command option.'
+                        : 'Imported from curated AI Orbit dataset as a draft for editorial review.',
                 ]);
 
                 $wasExisting ? $updated++ : $created++;

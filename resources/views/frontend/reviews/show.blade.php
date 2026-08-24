@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
-@section('title',($review->verdict ?: $item->name.' Review').' | AI Hub')
-@section('meta_description',\Illuminate\Support\Str::limit($review->body ?: 'Independent AI Hub review of '.$item->name,155))
+@section('title',($review->verdict ?: $item->name.' Review').' | AI Orbit')
+@section('meta_description',\Illuminate\Support\Str::limit($review->body ?: 'Independent AI Orbit review of '.$item->name,155))
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/content.css') }}">@endpush
 
 @section('content')
@@ -31,7 +31,7 @@
             <div class="review-product-id">
                 <img src="{{ $logo }}" alt="{{ $item->name }} logo">
                 <div>
-                    <span class="review-type type-{{ $review->review_type }}">{{ $review->review_type==='editorial'?'AI Hub Editorial':'Community Review' }}</span>
+                    <span class="review-type type-{{ $review->review_type }}">{{ $review->review_type==='editorial'?'AI Orbit Editorial':'Community Review' }}</span>
                     <h1>{{ $review->verdict ?: $item->name.' Review' }}</h1>
                     <p>{{ $item->name }} · {{ $companyName }} · {{ $itemLabel }} · reviewed {{ $review->created_at->format('M j, Y') }}</p>
                 </div>
@@ -103,8 +103,8 @@
             </div>
             <div class="side-card">
                 <span class="side-label">REVIEWER</span>
-                <h3>{{ $review->user?->name ?? 'AI Hub Editorial' }}</h3>
-                <p>{{ $review->review_type==='editorial' ? 'Editorial review produced through AI Hub content workflow.' : 'Moderated community review published through AI Hub.' }}</p>
+                <h3>{{ $review->user?->name ?? 'AI Orbit Editorial' }}</h3>
+                <p>{{ $review->review_type==='editorial' ? 'Editorial review produced through AI Orbit content workflow.' : 'Moderated community review published through AI Orbit.' }}</p>
             </div>
             @auth
                 <a class="write-review-cta" href="{{ $writeReviewRoute }}"><i data-lucide="pen-line"></i><span><strong>Used {{ $item->name }}?</strong><small>Write or update your review</small></span><i data-lucide="arrow-right"></i></a>

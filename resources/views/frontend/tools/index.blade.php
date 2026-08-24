@@ -1,12 +1,10 @@
 @extends('frontend.layouts.app')
 
-@section('title', 'AI Tools Directory — Discover & Compare the Best AI Tools | AI Hub')
+@section('title', 'AI Tools Directory — Discover & Compare the Best AI Tools | AI Orbit')
 @section('meta_description', 'Explore AI tools by category, pricing, rating, company, platform and capability. Compare top AI products and find the right tool for your workflow.')
 
 
 @push('head')
-<link rel="canonical" href="{{ route('tools.index') }}">
-<meta name="robots" content="{{ request()->query() ? 'noindex,follow' : 'index,follow,max-image-preview:large' }}">
 @endpush
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/frontend/tools.css') }}">

@@ -3,25 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="robots" content="noindex,nofollow">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset(config('brand.assets.favicon_32')) }}">
     <meta name="color-scheme" content="dark">
-    <title>Sign In — AI Hub</title>
+    <title>Sign In — AI Orbit</title>
     <link rel="stylesheet" href="{{ asset('css/frontend/auth-unified.css') }}">
 </head>
 <body>
 <div class="auth-shell">
-    <section class="auth-hero is-login" aria-label="AI Hub discovery platform">
+    <section class="auth-hero is-login" aria-label="AI Orbit discovery platform">
         <div class="auth-grid" aria-hidden="true"></div>
 
-        <a class="auth-brand" href="{{ route('home') }}" aria-label="AI Hub home">
-            <span class="auth-logo" aria-hidden="true">
-                <svg viewBox="0 0 32 32" fill="none">
-                    <path d="M16 2.8 27.2 9.2v13.6L16 29.2 4.8 22.8V9.2L16 2.8Z" stroke="url(#g1)" stroke-width="2.1"/>
-                    <path d="m16 8 6.6 3.8v8.4L16 24l-6.6-3.8v-8.4L16 8Z" stroke="url(#g2)" stroke-width="2.1"/>
-                    <circle cx="16" cy="16" r="2.4" fill="#86A8FF"/>
-                    <defs><linearGradient id="g1" x1="5" y1="4" x2="27" y2="27"><stop stop-color="#24B6FF"/><stop offset="1" stop-color="#B24EFF"/></linearGradient><linearGradient id="g2" x1="10" y1="9" x2="22" y2="23"><stop stop-color="#6BE7FF"/><stop offset="1" stop-color="#7955FF"/></linearGradient></defs>
-                </svg>
-            </span>
-            <span class="auth-brand-name">AI Hub</span>
+        <a class="auth-brand" href="{{ route('home') }}" aria-label="AI Orbit home">
+            <span class="auth-logo auth-logo-orbit" aria-hidden="true"><img src="{{ asset(config('brand.assets.icon')) }}" alt=""></span>
+            <span class="auth-brand-name">AI Orbit</span>
         </a>
 
         <div class="auth-hero-copy">
@@ -53,7 +48,7 @@
     <main class="auth-panel">
         <a class="auth-home-link" href="{{ route('home') }}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
-            Back to AI Hub
+            Back to AI Orbit
         </a>
 
         <section class="auth-card" aria-labelledby="login-title">
@@ -63,7 +58,7 @@
             </nav>
 
             <h2 id="login-title">Welcome back</h2>
-            <p class="auth-subtitle">Sign in to continue to AI Hub.</p>
+            <p class="auth-subtitle">Sign in to continue to AI Orbit.</p>
 
             @if (session('success'))
                 <div class="auth-alert success">{{ session('success') }}</div>
@@ -120,7 +115,7 @@
                     Apple
                 </a>
             </div>
-            <p class="auth-social-legal">If this is your first visit, continuing with Google or Apple creates your AI Hub account and means you agree to our <a href="{{ route('terms') }}" target="_blank" rel="noopener">Terms</a> and <a href="{{ route('privacy') }}" target="_blank" rel="noopener">Privacy Policy</a>.</p>
+            <p class="auth-social-legal">If this is your first visit, continuing with Google or Apple creates your AI Orbit account and means you agree to our <a href="{{ route('terms') }}" target="_blank" rel="noopener">Terms</a> and <a href="{{ route('privacy') }}" target="_blank" rel="noopener">Privacy Policy</a>.</p>
 
             <p class="auth-switch-copy">Don’t have an account? <a href="{{ route('signup') }}">Create one</a></p>
         </section>

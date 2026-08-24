@@ -32,7 +32,7 @@ $statusType=match($contactMessage->status){'new'=>'warn','replied'=>'pos','spam'
 <div class="uc-case__description">{{ $contactMessage->message }}</div>
 </section>
 
-<section class="card uc-panel"><div class="uc-section-head"><div><span class="uc-eyebrow">Conversation History</span><h2>Administrator replies</h2><p>Replies sent from AI Hub are retained here for an audit trail.</p></div><i data-lucide="messages-square"></i></div>
+<section class="card uc-panel"><div class="uc-section-head"><div><span class="uc-eyebrow">Conversation History</span><h2>Administrator replies</h2><p>Replies sent from AI Orbit are retained here for an audit trail.</p></div><i data-lucide="messages-square"></i></div>
 @if($contactMessage->replies->count())
 <div class="uc-contact-thread">
 @foreach($contactMessage->replies as $reply)

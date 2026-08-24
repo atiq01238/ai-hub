@@ -1,18 +1,9 @@
 @extends('frontend.layouts.app')
-@section('title', $seo['title'] . ' | AI Hub')
+@section('title', $seo['title'] . ' | AI Orbit')
 @section('meta_description', $seo['description'])
+@section('og_type', 'article')
+@section('og_image', $model->logo_url)
 @push('head')
-<link rel="canonical" href="{{ route('models.show', $model) }}">
-<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
-<meta property="og:type" content="article">
-<meta property="og:title" content="{{ $seo['title'] }}">
-<meta property="og:description" content="{{ $seo['description'] }}">
-<meta property="og:url" content="{{ route('models.show', $model) }}">
-<meta property="og:image" content="{{ $model->logo_url }}">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="{{ $seo['title'] }}">
-<meta name="twitter:description" content="{{ $seo['description'] }}">
-<meta name="twitter:image" content="{{ $model->logo_url }}">
 @foreach($seoSchemas as $schema)
 <script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org'] + $schema, JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
 @endforeach
@@ -31,7 +22,7 @@
 @if($labStats['tests'] > 0)
 <section id="test-lab" class="detail-block model-lab-section">
     <div class="block-title-row"><div><span class="section-kicker">CONTROLLED EVALUATION</span><h2>AI Test Lab performance</h2></div><a href="{{ route('testlab.index') }}">Explore Test Lab <i data-lucide="arrow-right"></i></a></div>
-    <p class="block-intro">Scores below come from published AI Hub experiments that use a locked prompt and test-specific rubric. Multi-run experiments are aggregated before they reach this profile.</p>
+    <p class="block-intro">Scores below come from published AI Orbit experiments that use a locked prompt and test-specific rubric. Multi-run experiments are aggregated before they reach this profile.</p>
     <div class="model-lab-summary">
         <div class="model-lab-primary"><span>Test Lab average</span><strong>{{ number_format((float)$labStats['average'],1) }}</strong><small>/100 across {{ $labStats['tests'] }} {{ Str::plural('experiment',$labStats['tests']) }}</small></div>
         <div><span>Controlled runs</span><strong>{{ $labStats['runs'] }}</strong><small>Scored runs</small></div>

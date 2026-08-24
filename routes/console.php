@@ -12,7 +12,7 @@ Artisan::command('inspire', function () {
 
 /*
 |--------------------------------------------------------------------------
-| AI Hub News Automation
+| AI Orbit News Automation
 |--------------------------------------------------------------------------
 |
 | The server only needs Laravel's scheduler trigger. The actual news

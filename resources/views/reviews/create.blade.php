@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Review {{ $reviewable->name }} · AI Hub</title>
+<title>Review {{ $reviewable->name }} · AI Orbit</title>
 <link rel="stylesheet" href="{{ asset('css/pages/final-polish.css') }}">
 <style>
 .fp-review-context{display:inline-flex;gap:6px;align-items:center;margin-top:8px;padding:5px 8px;border:1px solid #313a61;border-radius:999px;color:#a9b2d0;font-size:11px}
@@ -12,7 +12,7 @@
 </head>
 <body class="fp-public-body">
 <main class="fp-public-shell fp-public-shell--review">
-<a href="{{ route('home') }}" class="fp-public-brand"><span>AI</span><div><strong>AI Hub</strong><small>Community Reviews</small></div></a>
+<a href="{{ route('home') }}" class="fp-public-brand"><span>AI</span><div><strong>AI Orbit</strong><small>Community Reviews</small></div></a>
 
 <section class="fp-public-card">
 <header class="fp-review-head">

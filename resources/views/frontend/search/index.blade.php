@@ -1,7 +1,8 @@
 @extends('frontend.layouts.app')
 
-@section('title', $query !== '' ? 'Search: '.$query.' — AI Hub' : 'Search AI Hub')
-@section('meta_description', 'Search AI tools, models, companies, news, articles, comparisons, benchmarks and independent Test Lab experiments across AI Hub.')
+@section('title', $query !== '' ? 'Search: '.$query.' — AI Orbit' : 'Search AI Orbit')
+@section('meta_description', 'Search AI tools, models, companies, news, articles, comparisons, benchmarks and independent Test Lab experiments across AI Orbit.')
+@section('robots', 'noindex,follow')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/frontend/discovery.css') }}">
@@ -13,7 +14,7 @@
 @if(session('status'))<div class="search-smart-flash">{{ session('status') }}</div>@endif
 @if(auth()->check() && $query)
 <div class="search-smartbar">
-    <div><strong>Search intelligence</strong><span>{{ number_format($total) }} results across AI Hub</span></div>
+    <div><strong>Search intelligence</strong><span>{{ number_format($total) }} results across AI Orbit</span></div>
     <form method="POST" action="{{ route('search.save') }}">@csrf<input type="hidden" name="query" value="{{ $query }}"><input type="hidden" name="type" value="{{ $type }}"><button type="submit"><i data-lucide="bookmark-plus"></i> Save this search</button></form>
 </div>
 @endif
@@ -28,7 +29,7 @@
     <div class="discovery-hero-grid"></div>
     <div class="discovery-hero-copy">
         <span class="eyebrow"><i data-lucide="search"></i> Global AI Search</span>
-        <h1>Search the entire <span>AI Hub.</span></h1>
+        <h1>Search the entire <span>AI Orbit.</span></h1>
         <p>Find tools, models, companies, news, guides, comparisons, benchmark data and independent Test Lab experiments from one research-driven index.</p>
         <form class="discovery-search search-intelligence-shell" action="{{ route('search.index') }}" method="get" data-search-shell>
             <i data-lucide="search"></i>
@@ -122,7 +123,7 @@
                             @foreach($news as $item)
                                 <article class="search-story-card">
                                     <a href="{{ route('news.show',$item) }}" class="story-image" data-search-result data-search-query="{{ $query }}" data-search-target-type="news" data-search-target-id="{{ $item->id }}"><img src="{{ $item->image_url ?: '/images/frontend/content-placeholder.svg' }}" alt="{{ $item->headline }}" onerror="this.style.display='none'"><span>{{ $item->category ?: 'AI News' }}</span></a>
-                                    <div><small>{{ $item->company?->name ?? $item->source ?? 'AI Hub' }} · {{ optional($item->published_at)->diffForHumans() }}</small><h3><a href="{{ route('news.show',$item) }}">{{ $item->headline }}</a></h3><p>{{ \Illuminate\Support\Str::limit($item->summary ?: $item->ai_summary, 125) }}</p></div>
+                                    <div><small>{{ $item->company?->name ?? $item->source ?? 'AI Orbit' }} · {{ optional($item->published_at)->diffForHumans() }}</small><h3><a href="{{ route('news.show',$item) }}">{{ $item->headline }}</a></h3><p>{{ \Illuminate\Support\Str::limit($item->summary ?: $item->ai_summary, 125) }}</p></div>
                                 </article>
                             @endforeach
                         </div>
@@ -147,7 +148,7 @@
                             @foreach($articles as $article)
                                 <article class="search-story-card article-result">
                                     <a href="{{ route('articles.show',$article) }}" class="story-image" data-search-result data-search-query="{{ $query }}" data-search-target-type="article" data-search-target-id="{{ $article->id }}"><img src="{{ $article->featured_image_url ?: '/images/frontend/content-placeholder.svg' }}" alt="{{ $article->title }}" onerror="this.style.display='none'"><span>{{ $article->categoryTerm?->name ?? $article->category ?? 'Guide' }}</span></a>
-                                    <div><small>{{ $article->author?->name ?? 'AI Hub Editorial' }} · {{ optional($article->published_at)->format('M j, Y') }}</small><h3><a href="{{ route('articles.show',$article) }}">{{ $article->title }}</a></h3><p>{{ \Illuminate\Support\Str::limit($article->summary, 125) }}</p></div>
+                                    <div><small>{{ $article->author?->name ?? 'AI Orbit Editorial' }} · {{ optional($article->published_at)->format('M j, Y') }}</small><h3><a href="{{ route('articles.show',$article) }}">{{ $article->title }}</a></h3><p>{{ \Illuminate\Support\Str::limit($article->summary, 125) }}</p></div>
                                 </article>
                             @endforeach
                         </div>
@@ -166,7 +167,7 @@
                                         <div><small>{{ ucfirst($comparison->comparable_type) }} comparison</small><h3>{{ $comparison->title }}</h3><span>{{ number_format((int)$comparison->views) }} views</span></div>
                                         <b>VS</b>
                                     </a>
-                                    <p>{{ \Illuminate\Support\Str::limit($comparison->summary ?: 'Side-by-side AI Hub comparison with structured product intelligence.',112) }}</p>
+                                    <p>{{ \Illuminate\Support\Str::limit($comparison->summary ?: 'Side-by-side AI Orbit comparison with structured product intelligence.',112) }}</p>
                                 </article>
                             @endforeach
                         </div>
@@ -216,7 +217,7 @@
         @if($trendingSearches->isNotEmpty())
             <section class="search-trending-queries">
                 <div><span><i data-lucide="trending-up"></i></span><strong>Trending searches</strong></div>
-                <nav aria-label="Trending AI Hub searches">
+                <nav aria-label="Trending AI Orbit searches">
                     @foreach($trendingSearches as $trend)
                         <a href="{{ route('search.index',['q'=>$trend->query]) }}">{{ $trend->query }} <small>{{ number_format($trend->searches) }}</small></a>
                     @endforeach
@@ -229,7 +230,7 @@
             @endforeach
         </div>
         <section class="result-section trending-discovery">
-            <div class="section-bar"><div><span class="section-icon"><i data-lucide="flame"></i></span><h2>Popular AI Tools</h2><small>High-interest products across AI Hub</small></div><a href="{{ route('tools.index',['sort'=>'popular']) }}">Explore directory <i data-lucide="arrow-right"></i></a></div>
+            <div class="section-bar"><div><span class="section-icon"><i data-lucide="flame"></i></span><h2>Popular AI Tools</h2><small>High-interest products across AI Orbit</small></div><a href="{{ route('tools.index',['sort'=>'popular']) }}">Explore directory <i data-lucide="arrow-right"></i></a></div>
             <div class="entity-grid entity-grid-tools">
                 @foreach($trendingTools as $tool)
                     <article class="search-entity-card"><a class="entity-top" href="{{ route('tools.show',$tool) }}" data-search-result data-search-query="{{ $query }}" data-search-target-type="tool" data-search-target-id="{{ $tool->id }}"><img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo"><div><small>{{ $tool->company?->name }}</small><h3>{{ $tool->name }}</h3><span>Popular AI Tool</span></div><b>{{ number_format((float)$tool->rating,1) }}</b></a><p>{{ \Illuminate\Support\Str::limit($tool->short_description, 105) }}</p></article>

@@ -103,7 +103,7 @@ Route::middleware(['auth', 'verified', EnsureAccountIsActive::class])->group(fun
         ->middleware('throttle:10,1')
         ->name('reviews.models.store');
 
-    // My AI Hub
+    // My AI Orbit
     Route::get('/account', [AccountController::class, 'dashboard'])
         ->name('account.dashboard');
 

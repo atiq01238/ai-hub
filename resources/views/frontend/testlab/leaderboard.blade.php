@@ -1,7 +1,6 @@
 @extends('frontend.layouts.app')
-@section('title','AI Test Lab Model Leaderboard | AI Hub')
-@section('meta_description','Rank AI models by average performance across published AI Hub Test Lab experiments, with test coverage and verification counts visible.')
-@push('head')<link rel="canonical" href="{{ route('testlab.leaderboard') }}"><meta name="robots" content="{{ request()->query() ? 'noindex,follow' : 'index,follow,max-image-preview:large' }}">@endpush
+@section('title','AI Test Lab Model Leaderboard | AI Orbit')
+@section('meta_description','Rank AI models by average performance across published AI Orbit Test Lab experiments, with test coverage and verification counts visible.')
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/testlab.css') }}">@endpush
 @section('content')
 <section class="lab-leader-hero"><div class="lab-wrap"><a class="lab-back" href="{{ route('testlab.index') }}"><i data-lucide="arrow-left"></i>AI Test Lab</a><span class="lab-eyebrow"><i data-lucide="trophy"></i> TEST LAB LEADERBOARD</span><h1>Model performance across <span>controlled experiments.</span></h1><p>Average scores are shown together with test coverage and verification counts so one isolated result does not look like broad evidence.</p></div></section>
