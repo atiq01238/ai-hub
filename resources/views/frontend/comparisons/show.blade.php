@@ -17,7 +17,7 @@
             </div>
             <div class="detail-actions">
                 <a href="{{ route('comparisons.builder', ['type'=>$comparisonType]) }}"><i data-lucide="refresh-cw"></i> New comparison</a>
-                @if(!$isPreview)<button type="button" onclick="navigator.clipboard?.writeText(window.location.href)"><i data-lucide="share-2"></i> Share</button>@endif
+                @if(!$isPreview)<button type="button" data-comparison-share aria-label="Share this comparison"><i data-lucide="share-2"></i><span data-comparison-share-label>Share</span></button>@endif
             </div>
         </div>
 
@@ -109,7 +109,22 @@
     </div>
 
     @if(!$isPreview && $comparison->seo_faq)
-    <div class="capability-comparison"><div class="table-title"><span><i data-lucide="circle-help"></i></span><div><h2>Comparison FAQ</h2><p>Quick answers about this comparison.</p></div></div><div class="decision-grid">@foreach($comparison->seo_faq as $faq)<div class="decision-card"><div><h3>{{ $faq['question'] }}</h3><p>{{ $faq['answer'] }}</p></div></div>@endforeach</div></div>
+    <div class="capability-comparison comparison-faq">
+        <div class="table-title">
+            <span><i data-lucide="circle-help"></i></span>
+            <div><h2>Comparison FAQ</h2><p>Quick answers about this comparison.</p></div>
+        </div>
+        <div class="decision-grid">
+            @foreach($comparison->seo_faq as $faq)
+                <article class="decision-card comparison-faq-card">
+                    <div>
+                        <h3>{{ $faq['question'] }}</h3>
+                        <p>{{ $faq['answer'] }}</p>
+                    </div>
+                </article>
+            @endforeach
+        </div>
+    </div>
     @endif
 
     @if(!$isPreview && $relatedComparisons->isNotEmpty())
@@ -125,3 +140,77 @@
 </div>
 </section>
 @endsection
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const shareButton = document.querySelector('[data-comparison-share]');
+    if (!shareButton) return;
+
+    const label = shareButton.querySelector('[data-comparison-share-label]');
+    const originalLabel = label?.textContent || 'Share';
+    let resetTimer = null;
+
+    const setFeedback = (text) => {
+        if (!label) return;
+        label.textContent = text;
+        window.clearTimeout(resetTimer);
+        resetTimer = window.setTimeout(() => {
+            label.textContent = originalLabel;
+        }, 1800);
+    };
+
+    const copyLink = async () => {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(window.location.href);
+            return true;
+        }
+
+        const textarea = document.createElement('textarea');
+        textarea.value = window.location.href;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        textarea.style.pointerEvents = 'none';
+        document.body.appendChild(textarea);
+        textarea.select();
+        textarea.setSelectionRange(0, textarea.value.length);
+        const copied = document.execCommand('copy');
+        textarea.remove();
+        return copied;
+    };
+
+    shareButton.addEventListener('click', async () => {
+        if (shareButton.disabled) return;
+        shareButton.disabled = true;
+
+        try {
+            const title = document.querySelector('.comparison-detail-hero h1')?.textContent?.trim() || document.title;
+            const shareData = {
+                title,
+                text: `Compare ${title} on AI Orbit`,
+                url: window.location.href
+            };
+
+            if (navigator.share) {
+                try {
+                    await navigator.share(shareData);
+                    setFeedback('Shared');
+                    return;
+                } catch (error) {
+                    if (error?.name === 'AbortError') return;
+                    // If native sharing is unavailable/fails, fall back to copying the URL.
+                }
+            }
+
+            const copied = await copyLink();
+            setFeedback(copied ? 'Link copied' : 'Copy failed');
+        } catch (_) {
+            setFeedback('Copy failed');
+        } finally {
+            shareButton.disabled = false;
+        }
+    });
+});
+</script>
+@endpush
+

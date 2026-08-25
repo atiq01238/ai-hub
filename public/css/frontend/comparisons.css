@@ -19,3 +19,24 @@
 
 /* Test Lab V3 comparison intelligence */
 .testlab-comparison-card .table-title>span{background:rgba(103,82,244,.17);color:#9b8cff}.lab-coverage-note{display:block;color:#74849d;font-size:11px;margin-top:3px}.lab-test-link{color:#dce5f7;font-weight:800}.lab-test-link:hover{color:#9b8cff}
+
+/* Comparison FAQ: FAQ cards do not have the logo column used by Quick Decision Guide. */
+.comparison-faq .decision-grid{grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}
+.comparison-faq-card{display:block;min-width:0;padding:18px 20px}
+.comparison-faq-card>div{min-width:0;width:100%}
+.comparison-faq-card h3{margin:0 0 8px;font-size:14px;line-height:1.45;letter-spacing:-.01em;white-space:normal;word-break:normal;overflow-wrap:break-word}
+.comparison-faq-card p{margin:0;color:#8291aa;font-size:12px;line-height:1.65;white-space:normal;word-break:normal;overflow-wrap:break-word}
+@media(max-width:760px){.comparison-faq .decision-grid{grid-template-columns:1fr}.comparison-faq-card{padding:16px}}
+
+/* Comparison detail hero actions: stable four-button desktop row + clean mobile grid. */
+.comparison-detail-hero .detail-title-row>div:first-child{min-width:0;flex:1 1 520px}
+.comparison-detail-hero .detail-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:min(100%,520px);flex:0 1 520px;gap:8px;align-items:stretch}
+.comparison-detail-hero .detail-actions>a,.comparison-detail-hero .detail-actions>button{width:100%;min-width:0;min-height:48px;padding:0 12px;justify-content:center;text-align:center;white-space:nowrap;line-height:1.2;cursor:pointer}
+.comparison-detail-hero .detail-actions>a span,.comparison-detail-hero .detail-actions>button span{white-space:nowrap}
+.comparison-detail-hero .detail-actions>button:disabled{opacity:.7;cursor:wait}
+.comparison-detail-hero .detail-actions>[data-save-comparison].active{border-color:#7461ff;background:rgba(116,97,255,.16);color:#fff}
+.comparison-detail-hero .detail-actions>[data-comparison-share]{transition:border-color .18s ease,background .18s ease,color .18s ease}
+.comparison-detail-hero .detail-actions>[data-comparison-share]:hover{border-color:#596b91;background:#151f34;color:#fff}
+@media(max-width:980px){.comparison-detail-hero .detail-title-row{display:block}.comparison-detail-hero .detail-actions{width:100%;max-width:620px;margin-top:18px}}
+@media(max-width:760px){.comparison-detail-hero .detail-actions{grid-template-columns:repeat(2,minmax(0,1fr));max-width:none;gap:9px}.comparison-detail-hero .detail-actions>a,.comparison-detail-hero .detail-actions>button{min-height:50px;padding:0 10px}.comparison-detail-hero .detail-actions svg{flex:0 0 auto}}
+@media(max-width:360px){.comparison-detail-hero .detail-actions{grid-template-columns:1fr}.comparison-detail-hero .detail-actions>a,.comparison-detail-hero .detail-actions>button{min-height:46px}}
