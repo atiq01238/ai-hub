@@ -46,6 +46,6 @@ class AnalyticsController extends Controller
     private function days(Request $request): int
     {
         $days = (int) $request->integer('days', 30);
-        return in_array($days, [7, 30, 90, 365], true) ? $days : 30;
+        return in_array($days, [1, 7, 30, 90, 365], true) ? $days : 30;
     }
 }

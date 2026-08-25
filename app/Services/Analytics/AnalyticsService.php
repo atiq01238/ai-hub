@@ -2,21 +2,26 @@
 
 namespace App\Services\Analytics;
 
+use App\Models\AiModel;
+use App\Models\AnalyticsPageView;
+use App\Models\AnalyticsSession;
+use App\Models\AnalyticsVisitor;
 use App\Models\Article;
 use App\Models\Comparison;
 use App\Models\Review;
+use App\Models\SearchEvent;
 use App\Models\SocialPost;
 use App\Models\Tool;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 class AnalyticsService
 {
     public function dashboard(string $tab, int $days = 30): array
     {
-        $days = in_array($days, [7, 30, 90, 365], true) ? $days : 30;
+        $days = in_array($days, [1, 7, 30, 90, 365], true) ? $days : 30;
         $to = now()->endOfDay();
         $from = now()->subDays($days - 1)->startOfDay();
         $previousTo = $from->copy()->subSecond();
@@ -30,7 +35,7 @@ class AnalyticsService
                 'to' => $to,
                 'previous_from' => $previousFrom,
                 'previous_to' => $previousTo,
-                'label' => $days === 365 ? 'Last 12 months' : "Last {$days} days",
+                'label' => $days === 1 ? 'Today' : ($days === 365 ? 'Last 12 months' : "Last {$days} days"),
             ],
         ];
 
@@ -73,13 +78,154 @@ class AnalyticsService
 
     private function website(Carbon $from, Carbon $to, Carbon $previousFrom, Carbon $previousTo): array
     {
+        if (! $this->visitorAnalyticsReady()) {
+            return $this->websiteWithoutTraffic($from, $to, $previousFrom, $previousTo);
+        }
+
+        $pageViews = AnalyticsPageView::query()->whereBetween('viewed_at', [$from, $to])->count();
+        $previousPageViews = AnalyticsPageView::query()->whereBetween('viewed_at', [$previousFrom, $previousTo])->count();
+
+        $uniqueVisitors = AnalyticsPageView::query()
+            ->whereBetween('viewed_at', [$from, $to])
+            ->distinct('visitor_id')
+            ->count('visitor_id');
+        $previousVisitors = AnalyticsPageView::query()
+            ->whereBetween('viewed_at', [$previousFrom, $previousTo])
+            ->distinct('visitor_id')
+            ->count('visitor_id');
+
+        $sessionsQuery = AnalyticsSession::query()->whereBetween('started_at', [$from, $to]);
+        $sessions = (clone $sessionsQuery)->count();
+        $previousSessions = AnalyticsSession::query()->whereBetween('started_at', [$previousFrom, $previousTo])->count();
+        $bounceSessions = (clone $sessionsQuery)->where('page_views', '<=', 1)->count();
+        $bounceRate = $sessions > 0 ? round(($bounceSessions / $sessions) * 100, 1) : 0.0;
+
+        $newVisitors = AnalyticsVisitor::query()->whereBetween('first_seen_at', [$from, $to])->count();
+        $newVisitors = min($newVisitors, $uniqueVisitors);
+        $returningVisitors = max(0, $uniqueVisitors - $newVisitors);
+        $pagesPerSession = $sessions > 0 ? round($pageViews / $sessions, 2) : 0.0;
+        $recentVisitors = AnalyticsSession::query()
+            ->where('last_seen_at', '>=', now()->subMinutes(5))
+            ->distinct('visitor_id')
+            ->count('visitor_id');
+
+        [$trend, $visitorTrend] = $this->visitorTrend($from, $to);
+
+        $topPages = AnalyticsPageView::query()
+            ->whereBetween('viewed_at', [$from, $to])
+            ->selectRaw('path, route_name, COUNT(*) as views, COUNT(DISTINCT visitor_id) as visitors')
+            ->groupBy('path', 'route_name')
+            ->orderByDesc('views')
+            ->limit(10)
+            ->get();
+
+        $activeSessions = AnalyticsSession::query()
+            ->where('started_at', '<=', $to)
+            ->where('last_seen_at', '>=', $from);
+
+        $sourceRows = (clone $activeSessions)
+            ->selectRaw('referrer_domain, COUNT(*) as aggregate')
+            ->groupBy('referrer_domain')
+            ->orderByDesc('aggregate')
+            ->limit(6)
+            ->get();
+        $deviceRows = (clone $activeSessions)
+            ->selectRaw('device_type, COUNT(*) as aggregate')
+            ->groupBy('device_type')
+            ->orderByDesc('aggregate')
+            ->get();
+        $browserRows = (clone $activeSessions)
+            ->selectRaw('browser, COUNT(*) as aggregate')
+            ->groupBy('browser')
+            ->orderByDesc('aggregate')
+            ->limit(6)
+            ->get();
+        $countryRows = (clone $activeSessions)
+            ->selectRaw('country_code, COUNT(*) as aggregate')
+            ->groupBy('country_code')
+            ->orderByDesc('aggregate')
+            ->limit(6)
+            ->get();
+
+        $entityRows = AnalyticsPageView::query()
+            ->whereBetween('viewed_at', [$from, $to])
+            ->whereIn('entity_type', ['tool', 'model'])
+            ->whereNotNull('entity_id')
+            ->selectRaw('entity_type, entity_id, COUNT(*) as aggregate')
+            ->groupBy('entity_type', 'entity_id')
+            ->orderByDesc('aggregate')
+            ->limit(8)
+            ->get();
+
+        $toolNames = Tool::query()
+            ->whereIn('id', $entityRows->where('entity_type', 'tool')->pluck('entity_id'))
+            ->pluck('name', 'id');
+        $modelNames = AiModel::query()
+            ->whereIn('id', $entityRows->where('entity_type', 'model')->pluck('entity_id'))
+            ->pluck('name', 'id');
+
+        $activeSessionCount = max(1, (clone $activeSessions)->count());
+
+        return [
+            'kpis' => [
+                $this->kpi('Unique Visitors', $uniqueVisitors, 'users', $this->delta($uniqueVisitors, $previousVisitors)),
+                $this->kpi('Page Views', $pageViews, 'eye', $this->delta($pageViews, $previousPageViews)),
+                $this->kpi('Sessions', $sessions, 'mouse-pointer-2', $this->delta($sessions, $previousSessions)),
+                $this->kpi('Bounce Rate', $bounceRate, 'corner-up-left', null, 1, number_format($bounceRate, 1) . '%'),
+            ],
+            'chart' => [
+                'title' => 'Traffic Trend',
+                'series_label' => 'Page views',
+                'points' => $trend,
+                'secondary_label' => 'Unique visitors',
+                'secondary_points' => $visitorTrend,
+            ],
+            'table' => [
+                'title' => 'Top Pages',
+                'headers' => ['Page', 'Views', 'Visitors', 'Route'],
+                'rows' => $topPages->map(fn ($row) => [
+                    'page' => $row->path,
+                    'views' => number_format((int) $row->views),
+                    'visitors' => number_format((int) $row->visitors),
+                    'route' => $row->route_name ?: '—',
+                ])->all(),
+            ],
+            'websiteBreakdown' => [
+                'recent_visitors' => $recentVisitors,
+                'new_visitors' => $newVisitors,
+                'returning_visitors' => $returningVisitors,
+                'pages_per_session' => $pagesPerSession,
+                'audience' => [
+                    $this->breakdownRow('New visitors', $newVisitors, max(1, $uniqueVisitors)),
+                    $this->breakdownRow('Returning visitors', $returningVisitors, max(1, $uniqueVisitors)),
+                ],
+                'devices' => $deviceRows->map(fn ($row) => $this->breakdownRow(ucfirst((string) $row->device_type), (int) $row->aggregate, $activeSessionCount))->all(),
+                'browsers' => $browserRows->map(fn ($row) => $this->breakdownRow($row->browser ?: 'Other', (int) $row->aggregate, $activeSessionCount))->all(),
+                'sources' => $sourceRows->map(fn ($row) => $this->breakdownRow($row->referrer_domain ?: 'Direct', (int) $row->aggregate, $activeSessionCount))->all(),
+                'countries' => $countryRows->map(fn ($row) => $this->breakdownRow($row->country_code ?: 'Unknown', (int) $row->aggregate, $activeSessionCount))->all(),
+                'entities' => $entityRows->map(function ($row) use ($toolNames, $modelNames, $pageViews) {
+                    $name = $row->entity_type === 'tool'
+                        ? ($toolNames[$row->entity_id] ?? 'Tool #' . $row->entity_id)
+                        : ($modelNames[$row->entity_id] ?? 'Model #' . $row->entity_id);
+                    return $this->breakdownRow($name . ' · ' . ucfirst($row->entity_type), (int) $row->aggregate, max(1, $pageViews));
+                })->all(),
+            ],
+            'readiness' => [
+                'level' => 'good',
+                'title' => 'Native visitor analytics connected',
+                'message' => 'Public human page views are tracked server-side. Admin/private routes, known bots, prefetch requests and Do Not Track visitors are excluded. Traffic history starts when this migration is installed.',
+            ],
+        ];
+    }
+
+    private function websiteWithoutTraffic(Carbon $from, Carbon $to, Carbon $previousFrom, Carbon $previousTo): array
+    {
         $newUsers = User::whereBetween('created_at', [$from, $to])->count();
         $previousUsers = User::whereBetween('created_at', [$previousFrom, $previousTo])->count();
         $activeUsers = User::where('status', 'active')->count();
         $totalUsers = User::count();
         $publishedTools = Tool::where('status', 'published')->count();
         $publishedArticles = Article::where('status', 'published')->count();
-
         $trend = $this->dailyTrend($from, $to, fn (Carbon $date) => User::whereDate('created_at', $date)->count());
 
         return [
@@ -101,9 +247,9 @@ class AnalyticsService
                 ],
             ],
             'readiness' => [
-                'level' => 'partial',
-                'title' => 'Traffic tracking not connected',
-                'message' => 'Visitors, page views, sessions, referrers and CTR require a page/event tracking source. Current cards use verified application database metrics only.',
+                'level' => 'missing',
+                'title' => 'Visitor analytics migration pending',
+                'message' => 'Run php artisan migrate to activate visitor, session, page-view, referrer and device tracking. Until then this screen safely falls back to platform database metrics.',
             ],
         ];
     }
@@ -127,6 +273,17 @@ class AnalyticsService
             ->limit(8)
             ->get();
 
+        $toolPageViews = collect();
+        if ($this->visitorAnalyticsReady()) {
+            $toolPageViews = AnalyticsPageView::query()
+                ->where('entity_type', 'tool')
+                ->whereBetween('viewed_at', [$from, $to])
+                ->whereIn('entity_id', $topTools->pluck('id'))
+                ->selectRaw('entity_id, COUNT(*) as aggregate')
+                ->groupBy('entity_id')
+                ->pluck('aggregate', 'entity_id');
+        }
+
         return [
             'kpis' => [
                 $this->kpi('Published Tools', $published, 'wrench', null),
@@ -137,18 +294,21 @@ class AnalyticsService
             'chart' => ['title' => 'Tool Publishing Trend', 'series_label' => 'Published tools', 'points' => $trend],
             'table' => [
                 'title' => 'Top Tools',
-                'headers' => ['Tool', 'Popularity', 'Rating', 'Reviews'],
+                'headers' => ['Tool', 'Page Views', 'Popularity', 'Rating', 'Reviews'],
                 'rows' => $topTools->map(fn (Tool $tool) => [
                     'tool' => $tool->name,
+                    'page_views' => number_format((int) ($toolPageViews[$tool->id] ?? 0)),
                     'popularity' => number_format((int) $tool->popularity),
                     'rating' => number_format((float) $tool->rating, 1),
                     'reviews' => number_format((int) $tool->reviews_count),
                 ])->all(),
             ],
             'readiness' => [
-                'level' => 'partial',
-                'title' => 'Tool engagement tracking can be expanded',
-                'message' => 'Ratings, reviews, popularity and publishing data are live. Per-tool page views, outbound clicks and compare clicks are not stored in the current schema.',
+                'level' => $this->visitorAnalyticsReady() ? 'good' : 'partial',
+                'title' => $this->visitorAnalyticsReady() ? 'Tool profile views connected' : 'Tool engagement tracking can be expanded',
+                'message' => $this->visitorAnalyticsReady()
+                    ? 'Public tool-profile page views now come from native visitor analytics; ratings, reviews and catalog signals remain database-backed.'
+                    : 'Ratings, reviews, popularity and publishing data are live. Run the visitor analytics migration to add per-tool page views.',
             ],
         ];
     }
@@ -241,19 +401,81 @@ class AnalyticsService
 
     private function search(Carbon $from, Carbon $to): array
     {
+        if (! Schema::hasTable('search_events')) {
+            return [
+                'kpis' => [
+                    $this->kpi('Tracked Searches', 0, 'search', null),
+                    $this->kpi('Unique Queries', 0, 'text-search', null),
+                    $this->kpi('Zero-result Searches', 0, 'circle-x', null),
+                    $this->kpi('Search Conversion', '—', 'mouse-pointer-click', null, null, '—'),
+                ],
+                'chart' => ['title' => 'Search Activity', 'series_label' => 'Searches', 'points' => $this->dailyTrend($from, $to, fn () => 0)],
+                'table' => ['title' => 'Top Search Queries', 'headers' => ['Query', 'Searches', 'Avg. Results', 'Conversion'], 'rows' => []],
+                'readiness' => [
+                    'level' => 'missing',
+                    'title' => 'Search event table unavailable',
+                    'message' => 'Search analytics will activate when the search_events migration is present.',
+                ],
+            ];
+        }
+
+        $base = SearchEvent::query()->whereBetween('created_at', [$from, $to]);
+        $searches = (clone $base)->count();
+        $uniqueQueries = (clone $base)->distinct('query')->count('query');
+        $zeroResults = (clone $base)->where('result_count', 0)->count();
+        $clicks = (clone $base)->where('clicked', true)->count();
+        $conversion = $searches > 0 ? round(($clicks / $searches) * 100, 1) : 0.0;
+
+        $dailyRows = SearchEvent::query()
+            ->whereBetween('created_at', [$from, $to])
+            ->selectRaw('DATE(created_at) as day, COUNT(*) as aggregate')
+            ->groupBy('day')
+            ->orderBy('day')
+            ->get()
+            ->keyBy('day');
+
+        $trend = [];
+        $cursor = $from->copy()->startOfDay();
+        $end = $to->copy()->startOfDay();
+        while ($cursor->lte($end)) {
+            $row = $dailyRows->get($cursor->format('Y-m-d'));
+            $trend[] = ['label' => $cursor->format('M j'), 'value' => (int) ($row->aggregate ?? 0)];
+            $cursor->addDay();
+        }
+
+        $top = SearchEvent::query()
+            ->whereBetween('created_at', [$from, $to])
+            ->selectRaw('query, COUNT(*) as searches, AVG(result_count) as avg_results, SUM(CASE WHEN clicked = 1 THEN 1 ELSE 0 END) as clicks')
+            ->groupBy('query')
+            ->orderByDesc('searches')
+            ->limit(12)
+            ->get();
+
         return [
             'kpis' => [
-                $this->kpi('Tracked Searches', 0, 'search', null),
-                $this->kpi('Unique Queries', 0, 'text-search', null),
-                $this->kpi('Zero-result Searches', 0, 'circle-x', null),
-                $this->kpi('Search Conversion', '—', 'mouse-pointer-click', null, null, '—'),
+                $this->kpi('Tracked Searches', $searches, 'search', null),
+                $this->kpi('Unique Queries', $uniqueQueries, 'text-search', null),
+                $this->kpi('Zero-result Searches', $zeroResults, 'circle-x', null),
+                $this->kpi('Search Conversion', $conversion, 'mouse-pointer-click', null, 1, number_format($conversion, 1) . '%'),
             ],
-            'chart' => ['title' => 'Search Activity', 'series_label' => 'Searches', 'points' => $this->dailyTrend($from, $to, fn () => 0)],
-            'table' => ['title' => 'Top Search Queries', 'headers' => ['Query', 'Searches', 'Results', 'Conversion'], 'rows' => []],
+            'chart' => ['title' => 'Search Activity', 'series_label' => 'Searches', 'points' => $trend],
+            'table' => [
+                'title' => 'Top Search Queries',
+                'headers' => ['Query', 'Searches', 'Avg. Results', 'Conversion'],
+                'rows' => $top->map(function ($row) {
+                    $searchCount = max(1, (int) $row->searches);
+                    return [
+                        'query' => $row->query,
+                        'searches' => number_format((int) $row->searches),
+                        'results' => number_format((float) $row->avg_results, 1),
+                        'conversion' => number_format(((int) $row->clicks / $searchCount) * 100, 1) . '%',
+                    ];
+                })->all(),
+            ],
             'readiness' => [
-                'level' => 'missing',
-                'title' => 'Search tracking source not connected',
-                'message' => 'The latest project has no search-query/event table. This dashboard stays at zero until public search events are persisted, preventing misleading analytics.',
+                'level' => 'good',
+                'title' => 'Search analytics connected',
+                'message' => 'Public search queries, zero-result searches and result-click conversions are calculated from real search_events records.',
             ],
         ];
     }
@@ -286,6 +508,49 @@ class AnalyticsService
                 'title' => 'Catalog trends available; search trends are not',
                 'message' => 'Momentum currently uses tool popularity, rating and publishing data. True rising search terms require a search-event tracking table.',
             ],
+        ];
+    }
+
+    private function visitorAnalyticsReady(): bool
+    {
+        return Schema::hasTable('analytics_visitors')
+            && Schema::hasTable('analytics_sessions')
+            && Schema::hasTable('analytics_page_views');
+    }
+
+    private function visitorTrend(Carbon $from, Carbon $to): array
+    {
+        $rows = AnalyticsPageView::query()
+            ->whereBetween('viewed_at', [$from, $to])
+            ->selectRaw('DATE(viewed_at) as day, COUNT(*) as views, COUNT(DISTINCT visitor_id) as visitors')
+            ->groupBy('day')
+            ->orderBy('day')
+            ->get()
+            ->keyBy('day');
+
+        $views = [];
+        $visitors = [];
+        $cursor = $from->copy()->startOfDay();
+        $end = $to->copy()->startOfDay();
+
+        while ($cursor->lte($end)) {
+            $key = $cursor->format('Y-m-d');
+            $row = $rows->get($key);
+            $label = $cursor->format('M j');
+            $views[] = ['label' => $label, 'value' => (int) ($row->views ?? 0)];
+            $visitors[] = ['label' => $label, 'value' => (int) ($row->visitors ?? 0)];
+            $cursor->addDay();
+        }
+
+        return [$views, $visitors];
+    }
+
+    private function breakdownRow(string $label, int $value, int $total): array
+    {
+        return [
+            'label' => $label,
+            'value' => $value,
+            'share' => $total > 0 ? round(($value / $total) * 100, 1) : 0.0,
         ];
     }
 

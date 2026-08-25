@@ -10,7 +10,7 @@
     $tab = $tab ?? 'website';
     $days = $days ?? 30;
     $meta = [
-        'website' => ['title'=>'Website Analytics','eyebrow'=>'Platform Intelligence','icon'=>'globe-2','desc'=>'Monitor verified platform growth, catalog health and audience-account signals.'],
+        'website' => ['title'=>'Website Analytics','eyebrow'=>'Audience Intelligence','icon'=>'globe-2','desc'=>'Monitor real visitors, page views, sessions, traffic sources, devices and the public pages attracting attention.'],
         'tools' => ['title'=>'Tool Analytics','eyebrow'=>'Catalog Intelligence','icon'=>'wrench','desc'=>'Track publishing velocity, ratings, reviews and catalog momentum across AI tools.'],
         'search' => ['title'=>'Search Analytics','eyebrow'=>'Discovery Intelligence','icon'=>'search','desc'=>'Understand what visitors search for, where discovery fails and which queries convert.'],
         'comparisons' => ['title'=>'Comparison Analytics','eyebrow'=>'Decision Intelligence','icon'=>'columns-3','desc'=>'Measure comparison creation, recorded views and the assets driving evaluation activity.'],
@@ -21,6 +21,7 @@
     $points = collect($chart['points'] ?? []);
     $totalSeries = (float)$points->sum('value');
     $peak = $points->sortByDesc('value')->first();
+    $secondaryPoints = collect($chart['secondary_points'] ?? []);
 @endphp
 
 <div class="an-page">
@@ -38,6 +39,7 @@
                 <label class="an-period">
                     <i data-lucide="calendar-range"></i>
                     <select name="days" onchange="this.form.submit()">
+                        <option value="1" @selected($days===1)>Today</option>
                         <option value="7" @selected($days===7)>Last 7 days</option>
                         <option value="30" @selected($days===30)>Last 30 days</option>
                         <option value="90" @selected($days===90)>Last 3 months</option>
@@ -91,7 +93,7 @@
             </div>
             <span class="an-kpi__label">{{ $kpi['label'] }}</span>
             <strong class="an-kpi__value">{{ $kpi['value'] }}</strong>
-            <span class="an-kpi__foot">{{ !empty($kpi['delta']) ? 'vs previous equivalent period' : 'current database value' }}</span>
+            <span class="an-kpi__foot">{{ !empty($kpi['delta']) ? 'vs previous equivalent period' : ($tab==='website' ? 'tracked public traffic' : 'current database value') }}</span>
         </article>
         @endforeach
     </section>
@@ -138,6 +140,47 @@
             </div>
         </aside>
     </section>
+
+    @if($tab==='website' && !empty($websiteBreakdown))
+    <section class="an-live-strip">
+        @foreach([
+            ['Active now',$websiteBreakdown['recent_visitors'] ?? 0,'Users active in the last 5 minutes','radio'],
+            ['New visitors',$websiteBreakdown['new_visitors'] ?? 0,'First seen in this reporting window','user-plus'],
+            ['Returning',$websiteBreakdown['returning_visitors'] ?? 0,'Visitors first seen before this window','rotate-ccw'],
+            ['Pages / session',(float)($websiteBreakdown['pages_per_session'] ?? 0),'Average depth per tracked session','layers-3'],
+        ] as [$label,$value,$help,$icon])
+        <article class="an-live-stat">
+            <span><i data-lucide="{{ $icon }}"></i></span>
+            <div><small>{{ $label }}</small><strong>{{ is_numeric($value) ? number_format((float)$value, is_float($value) ? 2 : 0) : $value }}</strong><p>{{ $help }}</p></div>
+        </article>
+        @endforeach
+    </section>
+
+    <section class="an-breakdowns">
+        @foreach([
+            ['Visitor mix','users-round',$websiteBreakdown['audience'] ?? []],
+            ['Devices','monitor-smartphone',$websiteBreakdown['devices'] ?? []],
+            ['Browsers','compass',$websiteBreakdown['browsers'] ?? []],
+            ['Traffic sources','waypoints',$websiteBreakdown['sources'] ?? []],
+            ['Countries','map-pin',$websiteBreakdown['countries'] ?? []],
+            ['Top AI profiles','sparkles',$websiteBreakdown['entities'] ?? []],
+        ] as [$title,$icon,$rows])
+        <article class="card an-breakdown-card">
+            <header><div><i data-lucide="{{ $icon }}"></i><strong>{{ $title }}</strong></div><small>{{ count($rows) }} signals</small></header>
+            <div class="an-breakdown-list">
+                @forelse($rows as $row)
+                <div class="an-breakdown-row">
+                    <div class="an-breakdown-row__top"><span title="{{ $row['label'] }}">{{ $row['label'] }}</span><strong>{{ number_format((int)$row['value']) }} <em>{{ number_format((float)$row['share'],1) }}%</em></strong></div>
+                    <div class="an-breakdown-bar"><span style="width:{{ max(0,min(100,(float)$row['share'])) }}%"></span></div>
+                </div>
+                @empty
+                <div class="an-breakdown-empty">Traffic will appear here after public visits are recorded.</div>
+                @endforelse
+            </div>
+        </article>
+        @endforeach
+    </section>
+    @endif
 
     @if($tab==='content' && !empty($contentMetrics))
     <section class="card an-operations">
@@ -189,8 +232,8 @@
         @else
         <div class="an-empty">
             <span><i data-lucide="{{ $tab==='search'?'search-x':'database' }}"></i></span>
-            <h3>{{ $tab==='search'?'Search event tracking is not connected':'No tracked records yet' }}</h3>
-            <p>{{ $tab==='search'?'This screen intentionally stays at zero until real search-query events are persisted. No synthetic analytics are shown.':'Records will appear here when this analytics source contains data.' }}</p>
+            <h3>{{ $tab==='search' ? (($readiness['level'] ?? '')==='good' ? 'No searches in this period' : 'Search event tracking is not connected') : 'No tracked records yet' }}</h3>
+            <p>{{ $tab==='search' ? (($readiness['level'] ?? '')==='good' ? 'Real search rows will appear as visitors use AI Orbit search.' : 'This screen stays at zero until real search-query events are persisted. No synthetic analytics are shown.') : 'Records will appear here when this analytics source contains data.' }}</p>
         </div>
         @endif
     </section>
@@ -211,25 +254,41 @@ document.addEventListener('DOMContentLoaded', function () {
             type:'line',
             data:{
                 labels:@json($points->pluck('label')->all()),
-                datasets:[{
-                    label:@json($chart['series_label'] ?? 'Value'),
-                    data:@json($points->pluck('value')->all()),
-                    borderColor:'#818cf8',
-                    backgroundColor:gradient,
-                    borderWidth:2,
-                    pointRadius:0,
-                    pointHoverRadius:4,
-                    pointHoverBackgroundColor:'#c7d2fe',
-                    tension:.38,
-                    fill:true
-                }]
+                datasets:[
+                    {
+                        label:@json($chart['series_label'] ?? 'Value'),
+                        data:@json($points->pluck('value')->all()),
+                        borderColor:'#818cf8',
+                        backgroundColor:gradient,
+                        borderWidth:2,
+                        pointRadius:0,
+                        pointHoverRadius:4,
+                        pointHoverBackgroundColor:'#c7d2fe',
+                        tension:.38,
+                        fill:true
+                    }
+                    @if($secondaryPoints->isNotEmpty())
+                    ,{
+                        label:@json($chart['secondary_label'] ?? 'Secondary'),
+                        data:@json($secondaryPoints->pluck('value')->all()),
+                        borderColor:'#34d399',
+                        backgroundColor:'transparent',
+                        borderWidth:1.6,
+                        borderDash:[5,4],
+                        pointRadius:0,
+                        pointHoverRadius:4,
+                        tension:.34,
+                        fill:false
+                    }
+                    @endif
+                ]
             },
             options:{
                 responsive:true,
                 maintainAspectRatio:false,
                 interaction:{intersect:false,mode:'index'},
                 plugins:{
-                    legend:{display:false},
+                    legend:{display:{{ $secondaryPoints->isNotEmpty() ? 'true' : 'false' }},labels:{color:'#8f9bb0',boxWidth:8,boxHeight:8,usePointStyle:true,font:{size:10}}},
                     tooltip:{backgroundColor:'#111827',titleColor:'#f8fafc',bodyColor:'#aeb9cc',borderColor:'rgba(255,255,255,.08)',borderWidth:1,padding:11,displayColors:false}
                 },
                 scales:{
