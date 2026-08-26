@@ -1,11 +1,21 @@
 @extends('frontend.layouts.app')
-@section('title', $seo['title'] . ' | AI Orbit')
-@section('meta_description', $seo['description'])
+@section('title', html_entity_decode($seo['title'], ENT_QUOTES | ENT_HTML5, 'UTF-8') . ' | AI Orbit')
+@section('meta_description', html_entity_decode($seo['description'], ENT_QUOTES | ENT_HTML5, 'UTF-8'))
 @section('og_type', 'article')
 @section('og_image', $model->logo_url)
 @push('head')
 @foreach($seoSchemas as $schema)
-<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org'] + $schema, JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
+    @php
+        $schemaWithContext = array_merge(
+            ['@' . 'context' => 'https://schema.org'],
+            $schema
+        );
+    @endphp
+
+    <script type="application/ld+json">{!! json_encode(
+        $schemaWithContext,
+        JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+    ) !!}</script>
 @endforeach
 @endpush
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/models.css') }}">@endpush
