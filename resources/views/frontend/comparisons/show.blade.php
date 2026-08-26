@@ -3,7 +3,8 @@
 @php
     $comparisonSeoTitle = data_get($comparison, 'meta_title')
         ?: data_get($comparison, 'title')
-        ?: 'AI Comparison | AI Orbit';
+        ?: $title
+        ?: 'AI Comparison';
 
     $comparisonSeoTitle = str_ireplace(
         'AI Hub',
@@ -21,24 +22,56 @@
         'UTF-8'
     );
 
+    if (!str_contains(
+        strtolower($comparisonSeoTitle),
+        'ai orbit'
+    )) {
+        $comparisonSeoTitle .= ' | AI Orbit';
+    }
+
     $comparisonSeoDescription = data_get($comparison, 'meta_description')
+        ?: data_get($comparison, 'summary')
         ?: data_get($comparison, 'description')
         ?: data_get($comparison, 'notes')
         ?: 'Compare AI tools and models with detailed features, pricing, capabilities and insights on AI Orbit.';
 
     $comparisonSeoDescription = html_entity_decode(
         html_entity_decode(
-            $comparisonSeoDescription,
+            strip_tags($comparisonSeoDescription),
             ENT_QUOTES | ENT_HTML5,
             'UTF-8'
         ),
         ENT_QUOTES | ENT_HTML5,
         'UTF-8'
     );
+
+    $comparisonFaq = collect($comparison->seo_faq ?? [])
+        ->map(function ($faq) {
+            return [
+                'question' => str_ireplace(
+                    'AI Hub',
+                    'AI Orbit',
+                    $faq['question'] ?? ''
+                ),
+                'answer' => str_ireplace(
+                    'AI Hub',
+                    'AI Orbit',
+                    $faq['answer'] ?? ''
+                ),
+            ];
+        })
+        ->filter(fn ($faq) =>
+            $faq['question'] !== '' &&
+            $faq['answer'] !== ''
+        )
+        ->values();
+
+    $comparisonUrl = route('comparisons.show', $comparison);
 @endphp
 
 @section('title', $comparisonSeoTitle)
 @section('meta_description', $comparisonSeoDescription)
+@section('canonical', $comparisonUrl)
 
 @section(
     'robots',
@@ -50,10 +83,6 @@
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/frontend/comparisons.css') }}">
 @endpush
-
-@section('title', $comparisonSeoTitle)
-@section('meta_description', $comparisonSeoDescription)
-
 @if(!($isPreview ?? false))
 
 @push('head')
@@ -89,25 +118,22 @@
         ],
     ];
 
-    $comparisonFaqSchema = null;
-
-    if (!empty($comparison->seo_faq)) {
-        $comparisonFaqSchema = [
-            '@' . 'context' => 'https://schema.org',
-            '@' . 'type' => 'FAQPage',
-            'mainEntity' => collect($comparison->seo_faq)
-                ->map(fn ($faq) => [
-                    '@' . 'type' => 'Question',
-                    'name' => $faq['question'],
-                    'acceptedAnswer' => [
-                        '@' . 'type' => 'Answer',
-                        'text' => $faq['answer'],
-                    ],
-                ])
-                ->values()
-                ->all(),
-        ];
-    }
+    $comparisonFaqSchema = $comparisonFaq->isNotEmpty()
+    ? [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'FAQPage',
+        'mainEntity' => $comparisonFaq
+            ->map(fn ($faq) => [
+                '@' . 'type' => 'Question',
+                'name' => $faq['question'],
+                'acceptedAnswer' => [
+                    '@' . 'type' => 'Answer',
+                    'text' => $faq['answer'],
+                ],
+            ])
+            ->all(),
+    ]
+    : null;
 @endphp
 
 <script type="application/ld+json">{!! json_encode(
@@ -159,7 +185,7 @@
     </div>
 </section>
 
-@if(!$isPreview)
+@if(!$isPreview && $comparisonFaq->isNotEmpty())
 @push('head')
 <script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'WebPage','name'=>$title,'description'=>$comparison->summary,'dateModified'=>optional($comparison->last_verified_at)->toAtomString(),'breadcrumb'=>['@type'=>'BreadcrumbList','itemListElement'=>[['@type'=>'ListItem','position'=>1,'name'=>'Comparisons','item'=>route('comparisons.index')],['@type'=>'ListItem','position'=>2,'name'=>$title,'item'=>route('comparisons.show',$comparison)]]]], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
 @if($comparison->seo_faq)<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'FAQPage','mainEntity'=>collect($comparison->seo_faq)->map(fn($f)=>['@type'=>'Question','name'=>$f['question'],'acceptedAnswer'=>['@type'=>'Answer','text'=>$f['answer']]])->values()], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>@endif
@@ -238,8 +264,8 @@
             <div><h2>Comparison FAQ</h2><p>Quick answers about this comparison.</p></div>
         </div>
         <div class="decision-grid">
-            @foreach($comparison->seo_faq as $faq)
-                <article class="decision-card comparison-faq-card">
+            @foreach($comparisonFaq as $faq)
+            <article class="decision-card comparison-faq-card">
                     <div>
                         <h3>{{ $faq['question'] }}</h3>
                         <p>{{ $faq['answer'] }}</p>
