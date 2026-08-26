@@ -11,27 +11,43 @@
         $categorySeoTitle
     );
 
-    // Fix previously saved HTML entities such as &amp;amp;.
-    $categorySeoTitle = html_entity_decode(
-        html_entity_decode(
-            $categorySeoTitle,
-            ENT_QUOTES | ENT_HTML5,
-            'UTF-8'
-        ),
-        ENT_QUOTES | ENT_HTML5,
-        'UTF-8'
-    );
+    // Fully normalize previously stored HTML entities.
+        for ($i = 0; $i < 5; $i++) {
+            $decoded = html_entity_decode(
+                $categorySeoTitle,
+                ENT_QUOTES | ENT_HTML5,
+                'UTF-8'
+            );
 
-    $categorySeoDescription = html_entity_decode(
-        html_entity_decode(
-            $category->meta_description
-                ?: $category->short_description
-                ?: 'Explore AI tools, models, guides and news in the ' . $category->name . ' category on AI Orbit.',
+            if ($decoded === $categorySeoTitle) {
+                break;
+            }
+
+            $categorySeoTitle = $decoded;
+        }
+
+    $categorySeoDescription = $category->meta_description
+        ?: $category->short_description
+        ?: 'Explore AI tools, models, guides and news in the '
+            . $category->name
+            . ' category on AI Orbit.';
+
+    for ($i = 0; $i < 5; $i++) {
+        $decoded = html_entity_decode(
+            $categorySeoDescription,
             ENT_QUOTES | ENT_HTML5,
             'UTF-8'
-        ),
-        ENT_QUOTES | ENT_HTML5,
-        'UTF-8'
+        );
+
+        if ($decoded === $categorySeoDescription) {
+            break;
+        }
+
+        $categorySeoDescription = $decoded;
+    }
+
+    $categorySeoDescription = trim(
+        strip_tags($categorySeoDescription)
     );
 
     $categoryUrl = route('categories.show', $category);
