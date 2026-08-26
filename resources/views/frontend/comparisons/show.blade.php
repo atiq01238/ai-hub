@@ -1,8 +1,47 @@
 @extends('frontend.layouts.app')
 
-@section('title', html_entity_decode($seo['title'], ENT_QUOTES | ENT_HTML5, 'UTF-8'))
-@section('meta_description', html_entity_decode($seo['description'], ENT_QUOTES | ENT_HTML5, 'UTF-8'))
-@if(!$isPreview)
+@php
+    $comparisonSeoTitle = data_get($comparison, 'meta_title')
+        ?: data_get($comparison, 'title')
+        ?: 'AI Comparison | AI Orbit';
+
+    $comparisonSeoTitle = str_ireplace(
+        'AI Hub',
+        'AI Orbit',
+        $comparisonSeoTitle
+    );
+
+    $comparisonSeoTitle = html_entity_decode(
+        html_entity_decode(
+            $comparisonSeoTitle,
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8'
+        ),
+        ENT_QUOTES | ENT_HTML5,
+        'UTF-8'
+    );
+
+    $comparisonSeoDescription = data_get($comparison, 'meta_description')
+        ?: data_get($comparison, 'description')
+        ?: data_get($comparison, 'notes')
+        ?: 'Compare AI tools and models with detailed features, pricing, capabilities and insights on AI Orbit.';
+
+    $comparisonSeoDescription = html_entity_decode(
+        html_entity_decode(
+            $comparisonSeoDescription,
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8'
+        ),
+        ENT_QUOTES | ENT_HTML5,
+        'UTF-8'
+    );
+@endphp
+
+@section('title', $comparisonSeoTitle)
+@section('meta_description', $comparisonSeoDescription)
+
+@if(!($isPreview ?? false))
+
 @push('head')
 @php
     $comparisonUrl = route('comparisons.show', $comparison);

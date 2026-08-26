@@ -1,8 +1,49 @@
 @extends('frontend.layouts.app')
 
-@section('title', html_entity_decode($seo['title'], ENT_QUOTES | ENT_HTML5, 'UTF-8'))
-@section('meta_description', html_entity_decode($seo['description'], ENT_QUOTES | ENT_HTML5, 'UTF-8'))
-@section('og_image', $news->image_url ?: asset(config('brand.assets.og_default')))
+@php
+    $newsSeoTitle = data_get($news, 'meta_title')
+        ?: data_get($news, 'title')
+        ?: 'AI News | AI Orbit';
+
+    $newsSeoTitle = str_ireplace(
+        'AI Hub',
+        'AI Orbit',
+        $newsSeoTitle
+    );
+
+    $newsSeoTitle = html_entity_decode(
+        html_entity_decode(
+            $newsSeoTitle,
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8'
+        ),
+        ENT_QUOTES | ENT_HTML5,
+        'UTF-8'
+    );
+
+    $newsSeoDescription = data_get($news, 'meta_description')
+        ?: data_get($news, 'summary')
+        ?: data_get($news, 'excerpt')
+        ?: 'Read the latest AI news, developments and industry updates on AI Orbit.';
+
+    $newsSeoDescription = html_entity_decode(
+        html_entity_decode(
+            $newsSeoDescription,
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8'
+        ),
+        ENT_QUOTES | ENT_HTML5,
+        'UTF-8'
+    );
+@endphp
+
+@section('title', $newsSeoTitle)
+@section('meta_description', $newsSeoDescription)
+
+@section(
+    'og_image',
+    $news->image_url ?: asset(config('brand.assets.og_default'))
+)
 
 @push('head')
 @foreach($seoSchemas as $schema)
