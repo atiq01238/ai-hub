@@ -1,15 +1,33 @@
 @extends('frontend.layouts.app')
 
-@section('title', html_entity_decode(
-    str_replace(' AI AI Company Profile', ' AI Company Profile', $seo['title']),
-    ENT_QUOTES | ENT_HTML5,
-    'UTF-8'
-))
-@section('meta_description', html_entity_decode(
-    $seo['description'],
-    ENT_QUOTES | ENT_HTML5,
-    'UTF-8'
-))
+@php
+    $companySeoName = trim($company->name);
+
+    // If company name already ends in "AI" (OpenAI, Mistral AI, xAI),
+    // don't append another "AI".
+    $companySeoNameForTitle = \Illuminate\Support\Str::endsWith(
+        \Illuminate\Support\Str::lower($companySeoName),
+        'ai'
+    )
+        ? $companySeoName
+        : $companySeoName . ' AI';
+
+    $companySeoTitle = $companySeoNameForTitle
+        . ' Company Profile: Models, Tools & Latest News | AI Orbit';
+
+    $companySeoDescription = html_entity_decode(
+        html_entity_decode(
+            $seo['description'],
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8'
+        ),
+        ENT_QUOTES | ENT_HTML5,
+        'UTF-8'
+    );
+@endphp
+
+@section('title', $companySeoTitle)
+@section('meta_description', $companySeoDescription)
 @section('canonical', $seo['canonical'])
 @section('og_type', 'profile')
 @section('og_image', $seo['logo'])
