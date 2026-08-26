@@ -1,44 +1,120 @@
 @extends('frontend.layouts.app')
 
 @php
-    $newsSeoTitle = data_get($news, 'meta_title')
-        ?: data_get($news, 'title')
-        ?: 'AI News | AI Orbit';
+    $newsSeoTitle = trim($news->headline ?: 'AI News');
 
-    $newsSeoTitle = str_ireplace(
-        'AI Hub',
-        'AI Orbit',
-        $newsSeoTitle
-    );
+    if (!str_contains(
+        strtolower($newsSeoTitle),
+        'ai orbit'
+    )) {
+        $newsSeoTitle .= ' | AI Orbit';
+    }
 
-    $newsSeoTitle = html_entity_decode(
-        html_entity_decode(
-            $newsSeoTitle,
-            ENT_QUOTES | ENT_HTML5,
-            'UTF-8'
-        ),
-        ENT_QUOTES | ENT_HTML5,
-        'UTF-8'
-    );
-
-    $newsSeoDescription = data_get($news, 'meta_description')
-        ?: data_get($news, 'summary')
-        ?: data_get($news, 'excerpt')
-        ?: 'Read the latest AI news, developments and industry updates on AI Orbit.';
+    $newsSeoDescription = $news->meta_description
+        ?: $news->ai_summary
+        ?: $news->summary
+        ?: 'Read the latest AI news and industry intelligence on AI Orbit.';
 
     $newsSeoDescription = html_entity_decode(
         html_entity_decode(
-            $newsSeoDescription,
+            strip_tags($newsSeoDescription),
             ENT_QUOTES | ENT_HTML5,
             'UTF-8'
         ),
         ENT_QUOTES | ENT_HTML5,
         'UTF-8'
     );
+
+    $newsUrl = route('news.show', $news);
+
+    $newsArticleSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'NewsArticle',
+
+        'headline' => $news->headline,
+
+        'description' => $newsSeoDescription,
+
+        'url' => $newsUrl,
+
+        'mainEntityOfPage' => [
+            '@' . 'type' => 'WebPage',
+            '@' . 'id' => $newsUrl,
+        ],
+
+        'image' => $news->image_url
+            ? [$news->image_url]
+            : [asset(config('brand.assets.og_default'))],
+
+        'datePublished' => $news->published_at
+            ? $news->published_at->toAtomString()
+            : null,
+
+        'dateModified' => $news->updated_at
+            ? $news->updated_at->toAtomString()
+            : null,
+
+        'author' => [
+            '@' . 'type' => 'Organization',
+            'name' => $news->source
+                ?: ($news->company?->name ?? 'AI Orbit'),
+        ],
+
+        'publisher' => [
+            '@' . 'type' => 'Organization',
+            'name' => 'AI Orbit',
+            'url' => route('home'),
+            'logo' => [
+                '@' . 'type' => 'ImageObject',
+                'url' => asset('images/brand/ai-orbit-icon.png'),
+            ],
+        ],
+    ];
+
+    $newsArticleSchema = array_filter(
+        $newsArticleSchema,
+        fn ($value) => $value !== null
+    );
+
+    $newsBreadcrumbSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'BreadcrumbList',
+
+        'itemListElement' => [
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 1,
+                'name' => 'Home',
+                'item' => route('home'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 2,
+                'name' => 'AI News',
+                'item' => route('news.index'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 3,
+                'name' => $news->headline,
+                'item' => $newsUrl,
+            ],
+        ],
+    ];
 @endphp
 
 @section('title', $newsSeoTitle)
-@section('meta_description', $newsSeoDescription)
+
+@section(
+    'meta_description',
+    \Illuminate\Support\Str::limit($newsSeoDescription, 160, '')
+)
+
+@section('canonical', $newsUrl)
+
+@section('robots', 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1')
+
+@section('og_type', 'article')
 
 @section(
     'og_image',
@@ -47,22 +123,17 @@
 
 @push('head')
 
-@foreach(($seoSchemas ?? []) as $schema)
-    @php
-        $schemaWithContext = array_merge(
-            ['@' . 'context' => 'https://schema.org'],
-            $schema
-        );
-    @endphp
+<script type="application/ld+json">{!! json_encode(
+    $newsArticleSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
 
-    <script type="application/ld+json">{!! json_encode(
-        $schemaWithContext,
-        JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
-    ) !!}</script>
-@endforeach
+<script type="application/ld+json">{!! json_encode(
+    $newsBreadcrumbSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
 
 @endpush
-
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/frontend/news.css') }}">
 @endpush
