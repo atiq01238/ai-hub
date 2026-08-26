@@ -1,9 +1,105 @@
 @extends('frontend.layouts.app')
-@section('title',$category->meta_title ?: $category->name.' AI Tools & Models — AI Orbit')
-@section('meta_description',$category->meta_description ?: $category->short_description)
-@section('robots', request()->query() ? 'noindex,follow' : (($stats['tools'] + $stats['models'] + $stats['articles'] + $stats['news']) > 0 ? 'index,follow,max-image-preview:large' : 'noindex,follow'))
-@push('head')<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'CollectionPage','name'=>$category->name,'description'=>$category->description ?: $category->short_description,'url'=>route('categories.show',$category)], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>@endpush
-@push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/discovery.css') }}">@endpush
+
+@php
+    $categorySeoTitle = $category->meta_title
+        ?: $category->name . ' AI Tools & Models | AI Orbit';
+
+    // Remove old branding from saved SEO titles.
+    $categorySeoTitle = str_ireplace(
+        'AI Hub',
+        'AI Orbit',
+        $categorySeoTitle
+    );
+
+    // Fix previously saved HTML entities such as &amp;amp;.
+    $categorySeoTitle = html_entity_decode(
+        html_entity_decode(
+            $categorySeoTitle,
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8'
+        ),
+        ENT_QUOTES | ENT_HTML5,
+        'UTF-8'
+    );
+
+    $categorySeoDescription = html_entity_decode(
+        html_entity_decode(
+            $category->meta_description
+                ?: $category->short_description
+                ?: 'Explore AI tools, models, guides and news in the ' . $category->name . ' category on AI Orbit.',
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8'
+        ),
+        ENT_QUOTES | ENT_HTML5,
+        'UTF-8'
+    );
+
+    $categoryUrl = route('categories.show', $category);
+
+    $categorySchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'CollectionPage',
+        'name' => $category->name,
+        'description' => $category->description
+            ?: $category->short_description
+            ?: $categorySeoDescription,
+        'url' => $categoryUrl,
+    ];
+
+    $categoryBreadcrumbSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'BreadcrumbList',
+        'itemListElement' => [
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 1,
+                'name' => 'Home',
+                'item' => route('home'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 2,
+                'name' => 'AI Categories',
+                'item' => route('categories.index'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 3,
+                'name' => $category->name,
+                'item' => $categoryUrl,
+            ],
+        ],
+    ];
+@endphp
+
+@section('title', $categorySeoTitle)
+@section('meta_description', $categorySeoDescription)
+@section('canonical', $categoryUrl)
+
+@section(
+    'robots',
+    request()->query()
+        ? 'noindex,follow'
+        : (($stats['tools'] + $stats['models'] + $stats['articles'] + $stats['news']) > 0
+            ? 'index,follow,max-image-preview:large'
+            : 'noindex,follow')
+)
+
+@push('head')
+<script type="application/ld+json">{!! json_encode(
+    $categorySchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+
+<script type="application/ld+json">{!! json_encode(
+    $categoryBreadcrumbSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+@endpush
+
+@push('styles')
+<link rel="stylesheet" href="{{ asset('css/frontend/discovery.css') }}">
+@endpush
 @section('content')
 <section class="category-detail-hero">
     <div class="category-detail-inner">

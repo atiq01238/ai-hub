@@ -1,17 +1,147 @@
 @extends('frontend.layouts.app')
+
 @php
     $isFeature = $kind === 'feature';
-    $routeName = $isFeature ? 'features.show' : 'use-cases.show';
-    $indexRoute = $isFeature ? 'features.index' : 'use-cases.index';
-    $label = $isFeature ? 'AI Capability' : 'AI Use Case';
+
+    $routeName = $isFeature
+        ? 'features.show'
+        : 'use-cases.show';
+
+    $indexRoute = $isFeature
+        ? 'features.index'
+        : 'use-cases.index';
+
+    $label = $isFeature
+        ? 'AI Capability'
+        : 'AI Use Case';
+
+    $termUrl = route($routeName, $term);
+
+    /*
+    |--------------------------------------------------------------------------
+    | SEO Title
+    |--------------------------------------------------------------------------
+    */
+
+    $termSeoTitle = $term->meta_title
+        ?: $term->name . ' AI Tools & Models | AI Orbit';
+
+    // Remove old AI Hub branding from saved meta titles.
+    $termSeoTitle = str_ireplace(
+        'AI Hub',
+        'AI Orbit',
+        $termSeoTitle
+    );
+
+    // Fix previously double-encoded HTML entities.
+    $termSeoTitle = html_entity_decode(
+        html_entity_decode(
+            $termSeoTitle,
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8'
+        ),
+        ENT_QUOTES | ENT_HTML5,
+        'UTF-8'
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | SEO Description
+    |--------------------------------------------------------------------------
+    */
+
+    $termSeoDescription = $term->meta_description
+        ?: $term->short_description
+        ?: ($isFeature
+            ? 'Discover AI tools and models with ' . $term->name . ' capabilities on AI Orbit.'
+            : 'Discover AI tools and models for ' . $term->name . ' workflows on AI Orbit.');
+
+    $termSeoDescription = html_entity_decode(
+        html_entity_decode(
+            $termSeoDescription,
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8'
+        ),
+        ENT_QUOTES | ENT_HTML5,
+        'UTF-8'
+    );
+
+    /*
+    |--------------------------------------------------------------------------
+    | Collection Schema
+    |--------------------------------------------------------------------------
+    */
+
+    $termSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'CollectionPage',
+        'name' => $term->name,
+        'description' => $term->description
+            ?: $term->short_description
+            ?: $termSeoDescription,
+        'url' => $termUrl,
+    ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | Breadcrumb Schema
+    |--------------------------------------------------------------------------
+    */
+
+    $termBreadcrumbSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'BreadcrumbList',
+        'itemListElement' => [
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 1,
+                'name' => 'Home',
+                'item' => route('home'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 2,
+                'name' => $isFeature ? 'AI Features' : 'AI Use Cases',
+                'item' => route($indexRoute),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 3,
+                'name' => $term->name,
+                'item' => $termUrl,
+            ],
+        ],
+    ];
 @endphp
-@section('title',$term->meta_title ?: $term->name.' AI Tools & Models — AI Orbit')
-@section('meta_description',$term->meta_description ?: $term->short_description)
-@section('robots', request()->query() ? 'noindex,follow' : (($tools->total() + $models->count()) > 0 ? 'index,follow,max-image-preview:large' : 'noindex,follow'))
+
+@section('title', $termSeoTitle)
+@section('meta_description', $termSeoDescription)
+@section('canonical', $termUrl)
+
+@section(
+    'robots',
+    request()->query()
+        ? 'noindex,follow'
+        : (($tools->total() + $models->count()) > 0
+            ? 'index,follow,max-image-preview:large'
+            : 'noindex,follow')
+)
+
 @push('head')
-<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'CollectionPage','name'=>$term->name,'description'=>$term->description ?: $term->short_description,'url'=>route($routeName,$term)], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
+<script type="application/ld+json">{!! json_encode(
+    $termSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+
+<script type="application/ld+json">{!! json_encode(
+    $termBreadcrumbSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
 @endpush
-@push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/discovery.css') }}">@endpush
+
+@push('styles')
+<link rel="stylesheet" href="{{ asset('css/frontend/discovery.css') }}">
+@endpush
 @section('content')
 <section class="category-detail-hero"><div class="category-detail-inner"><div class="category-hero-main"><a class="breadcrumb-link" href="{{ route($indexRoute) }}"><i data-lucide="arrow-left"></i> {{ $isFeature ? 'All Features':'All Use Cases' }}</a><span class="eyebrow"><i data-lucide="{{ $term->icon ?: ($isFeature?'sparkles':'target') }}"></i> {{ $label }}</span><h1>{{ $term->name }}</h1><p>{{ $term->description ?: $term->short_description }}</p><div class="category-hero-actions"><a class="primary-action" href="#matching-tools">Explore tools <i data-lucide="arrow-down"></i></a><a class="secondary-action" href="{{ route('search.index',['q'=>$term->name]) }}">Search AI Orbit <i data-lucide="search"></i></a></div></div><div class="category-stat-board"><span><strong>{{ number_format($tools->total()) }}</strong><small>Published tools</small></span><span><strong>{{ number_format($models->count()) }}</strong><small>Related models</small></span></div></div></section>
 <div class="discovery-page category-detail-page">

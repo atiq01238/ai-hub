@@ -1,10 +1,80 @@
 @extends('frontend.layouts.app')
 
-@section('title', $title . ' — Benchmarks, Pricing & Features | AI Orbit')
-@section('meta_description', $comparison?->summary ?: ('Compare '.$items->pluck('name')->join(', ').' side by side across verified benchmarks, pricing, capabilities and product details.'))
-@section('robots', ($isPreview || request()->query()) ? 'noindex,nofollow' : 'index,follow,max-image-preview:large')
-@push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/comparisons.css') }}">@endpush
+@section('title', html_entity_decode($seo['title'], ENT_QUOTES | ENT_HTML5, 'UTF-8'))
+@section('meta_description', html_entity_decode($seo['description'], ENT_QUOTES | ENT_HTML5, 'UTF-8'))
+@if(!$isPreview)
+@push('head')
+@php
+    $comparisonUrl = route('comparisons.show', $comparison);
 
+    $comparisonPageSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'WebPage',
+        'name' => $title,
+        'description' => $comparison->summary
+            ?: 'Side-by-side AI comparison of features, pricing, benchmarks and capabilities.',
+        'url' => $comparisonUrl,
+        'dateModified' => optional($comparison->last_verified_at)->toAtomString(),
+    ];
+
+    $comparisonBreadcrumbSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'BreadcrumbList',
+        'itemListElement' => [
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 1,
+                'name' => 'Comparisons',
+                'item' => route('comparisons.index'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 2,
+                'name' => $title,
+                'item' => $comparisonUrl,
+            ],
+        ],
+    ];
+
+    $comparisonFaqSchema = null;
+
+    if (!empty($comparison->seo_faq)) {
+        $comparisonFaqSchema = [
+            '@' . 'context' => 'https://schema.org',
+            '@' . 'type' => 'FAQPage',
+            'mainEntity' => collect($comparison->seo_faq)
+                ->map(fn ($faq) => [
+                    '@' . 'type' => 'Question',
+                    'name' => $faq['question'],
+                    'acceptedAnswer' => [
+                        '@' . 'type' => 'Answer',
+                        'text' => $faq['answer'],
+                    ],
+                ])
+                ->values()
+                ->all(),
+        ];
+    }
+@endphp
+
+<script type="application/ld+json">{!! json_encode(
+    $comparisonPageSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+
+<script type="application/ld+json">{!! json_encode(
+    $comparisonBreadcrumbSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+
+@if($comparisonFaqSchema)
+<script type="application/ld+json">{!! json_encode(
+    $comparisonFaqSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+@endif
+@endpush
+@endif
 @section('content')
 <section class="comparison-detail-hero">
     <div class="compare-container">
