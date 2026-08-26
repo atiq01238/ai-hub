@@ -1,13 +1,21 @@
 @extends('frontend.layouts.app')
 
-@section('title', $seo['title'] . ' | AI Orbit')
-@section('meta_description', $seo['description'])
-@section('og_type', 'website')
-@section('og_image', $tool->og_image_url ?: $tool->logo_url)
+@section('title', html_entity_decode($seo['title'], ENT_QUOTES | ENT_HTML5, 'UTF-8') . ' | AI Orbit')@section('meta_description', $seo['description'])
+@section('meta_description', html_entity_decode($seo['description'], ENT_QUOTES | ENT_HTML5, 'UTF-8'))@section('og_image', $tool->og_image_url ?: $tool->logo_url)
 
 @push('head')
 @foreach($seoSchemas as $schema)
-<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org'] + $schema, JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
+    @php
+        $schemaWithContext = array_merge(
+            ['@' . 'context' => 'https://schema.org'],
+            $schema
+        );
+    @endphp
+
+    <script type="application/ld+json">{!! json_encode(
+        $schemaWithContext,
+        JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+    ) !!}</script>
 @endforeach
 @endpush
 
@@ -246,19 +254,32 @@
     <div><a href="{{ route('tools.index') }}" class="detail-secondary-btn">Explore more tools</a>@if($tool->website)<a href="{{ $tool->website }}" target="_blank" rel="noopener noreferrer nofollow" class="detail-primary-btn">Try {{ $tool->name }}<i data-lucide="arrow-up-right"></i></a>@endif</div>
 </section>
 
-<script type="application/ld+json">
-{!! json_encode([
-    '@context' => 'https://schema.org',
-    '@type' => 'SoftwareApplication',
-    'name' => $tool->name,
-    'applicationCategory' => $tool->category?->name ?: 'Artificial Intelligence',
-    'operatingSystem' => $platforms->join(', ') ?: 'Web',
-    'description' => strip_tags($tool->short_description ?: $tool->description),
-    'url' => route('tools.show', $tool),
-    'image' => $logo,
-    'aggregateRating' => (float)$tool->rating > 0 ? ['@type'=>'AggregateRating','ratingValue'=>(float)$tool->rating,'bestRating'=>5,'ratingCount'=>max(1,$reviewCount)] : null,
-], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}
-</script>
+@php
+    $softwareSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'SoftwareApplication',
+        'name' => $tool->name,
+        'applicationCategory' => $tool->category?->name ?: 'Artificial Intelligence',
+        'operatingSystem' => $platforms->join(', ') ?: 'Web',
+        'description' => strip_tags($tool->short_description ?: $tool->description),
+        'url' => route('tools.show', $tool),
+        'image' => $logo,
+    ];
+
+    if ($reviewCount > 0 && (float) $tool->rating > 0) {
+        $softwareSchema['aggregateRating'] = [
+            '@' . 'type' => 'AggregateRating',
+            'ratingValue' => (float) $tool->rating,
+            'bestRating' => 5,
+            'ratingCount' => $reviewCount,
+        ];
+    }
+@endphp
+
+<script type="application/ld+json">{!! json_encode(
+    $softwareSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
 
 <section class="detail-panel seo-faq-panel" id="faq">
     <div class="detail-section-head">
