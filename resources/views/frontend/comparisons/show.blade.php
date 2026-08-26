@@ -40,6 +40,20 @@
 @section('title', $comparisonSeoTitle)
 @section('meta_description', $comparisonSeoDescription)
 
+@section(
+    'robots',
+    (($isPreview ?? false) || request()->query())
+        ? 'noindex,nofollow'
+        : 'index,follow,max-image-preview:large'
+)
+
+@push('styles')
+<link rel="stylesheet" href="{{ asset('css/frontend/comparisons.css') }}">
+@endpush
+
+@section('title', $comparisonSeoTitle)
+@section('meta_description', $comparisonSeoDescription)
+
 @if(!($isPreview ?? false))
 
 @push('head')
