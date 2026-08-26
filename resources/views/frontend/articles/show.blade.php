@@ -1,17 +1,110 @@
 @extends('frontend.layouts.app')
-@section('title',($article->seo_title ?: $article->title.' | AI Orbit'))
-@section('meta_description',$article->meta_description ?: $article->summary ?: 'AI Orbit article')
+
+@section('title', html_entity_decode(
+    $article->seo_title ?: $article->title . ' | AI Orbit',
+    ENT_QUOTES | ENT_HTML5,
+    'UTF-8'
+))
+
+@section('meta_description', html_entity_decode(
+    $article->meta_description ?: $article->summary ?: 'AI Orbit article',
+    ENT_QUOTES | ENT_HTML5,
+    'UTF-8'
+))
+
+@section('canonical', route('articles.show', $article))
 @section('og_type', 'article')
 @section('og_image', $article->featured_image_url ?: asset(config('brand.assets.og_default')))
+
 @push('head')
 @php
-$articleFaq = \App\Support\ArticleContent::faq($article->content);
-$seoImage = $article->featured_image_url ?: url('/images/frontend/content-placeholder.svg');
+    $articleFaq = collect(\App\Support\ArticleContent::faq($article->content));
+    $seoImage = $article->featured_image_url
+        ?: url('/images/frontend/content-placeholder.svg');
+
+    $articleSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'Article',
+        'headline' => $article->title,
+        'description' => $article->meta_description
+            ?: $article->summary
+            ?: 'AI Orbit article',
+        'image' => [$seoImage],
+        'datePublished' => optional($article->published_at)->toIso8601String(),
+        'dateModified' => optional($article->updated_at)->toIso8601String(),
+        'author' => [
+            '@' . 'type' => 'Person',
+            'name' => $article->author?->name ?? 'AI Orbit Editorial',
+        ],
+        'publisher' => [
+            '@' . 'type' => 'Organization',
+            'name' => 'AI Orbit',
+            'url' => route('home'),
+        ],
+        'mainEntityOfPage' => [
+            '@' . 'type' => 'WebPage',
+            '@' . 'id' => route('articles.show', $article),
+        ],
+    ];
+
+    $breadcrumbSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'BreadcrumbList',
+        'itemListElement' => [
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 1,
+                'name' => 'Home',
+                'item' => route('home'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 2,
+                'name' => 'Articles',
+                'item' => route('articles.index'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 3,
+                'name' => $article->title,
+                'item' => route('articles.show', $article),
+            ],
+        ],
+    ];
+
+    $faqSchema = null;
+
+    if ($articleFaq->isNotEmpty()) {
+        $faqSchema = [
+            '@' . 'context' => 'https://schema.org',
+            '@' . 'type' => 'FAQPage',
+            'mainEntity' => $articleFaq->map(fn ($item) => [
+                '@' . 'type' => 'Question',
+                'name' => $item['question'],
+                'acceptedAnswer' => [
+                    '@' . 'type' => 'Answer',
+                    'text' => $item['answer'],
+                ],
+            ])->values()->all(),
+        ];
+    }
 @endphp
-<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'Article','headline'=>$article->title,'description'=>$article->meta_description ?: $article->summary,'image'=>[$seoImage],'datePublished'=>optional($article->published_at)->toIso8601String(),'dateModified'=>optional($article->updated_at)->toIso8601String(),'author'=>['@type'=>'Person','name'=>$article->author?->name ?? 'AI Orbit Editorial'],'publisher'=>['@type'=>'Organization','name'=>'AI Orbit','url'=>route('home')],'mainEntityOfPage'=>route('articles.show',$article)],JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
-<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'BreadcrumbList','itemListElement'=>[['@type'=>'ListItem','position'=>1,'name'=>'Home','item'=>route('home')],['@type'=>'ListItem','position'=>2,'name'=>'Articles','item'=>route('articles.index')],['@type'=>'ListItem','position'=>3,'name'=>$article->title,'item'=>route('articles.show',$article)]]],JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
-@if($articleFaq)
-<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'FAQPage','mainEntity'=>collect($articleFaq)->map(fn($item)=>['@type'=>'Question','name'=>$item['question'],'acceptedAnswer'=>['@type'=>'Answer','text'=>$item['answer']]])->values()->all()],JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
+
+<script type="application/ld+json">{!! json_encode(
+    $articleSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+
+<script type="application/ld+json">{!! json_encode(
+    $breadcrumbSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+
+@if($faqSchema)
+<script type="application/ld+json">{!! json_encode(
+    $faqSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
 @endif
 @endpush
 

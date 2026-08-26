@@ -1,21 +1,33 @@
 @extends('frontend.layouts.app')
 
-@section('title', $news->headline . ' | AI Orbit News')
-@section('meta_description', Str::limit(strip_tags($news->ai_summary ?: $news->summary ?: $news->headline), 155, ''))
-@section('og_type', 'article')
+@section('title', html_entity_decode($seo['title'], ENT_QUOTES | ENT_HTML5, 'UTF-8'))
+@section('meta_description', html_entity_decode($seo['description'], ENT_QUOTES | ENT_HTML5, 'UTF-8'))
 @section('og_image', $news->image_url ?: asset(config('brand.assets.og_default')))
 
 @push('head')
-<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'NewsArticle','headline'=>$news->headline,'description'=>Str::limit(strip_tags($news->ai_summary ?: $news->summary ?: ''),300,''),'datePublished'=>optional($news->published_at)->toIso8601String(),'dateModified'=>optional($news->updated_at)->toIso8601String(),'mainEntityOfPage'=>route('news.show',$news),'publisher'=>['@type'=>'Organization','name'=>'AI Orbit','url'=>route('home')],'isBasedOn'=>$news->canonical_url ?: $news->source_url], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
-<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'BreadcrumbList','itemListElement'=>[['@type'=>'ListItem','position'=>1,'name'=>'Home','item'=>route('home')],['@type'=>'ListItem','position'=>2,'name'=>'AI News','item'=>route('news.index')],['@type'=>'ListItem','position'=>3,'name'=>$news->headline,'item'=>route('news.show',$news)]]],JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
+@foreach($seoSchemas as $schema)
+    @php
+        $schemaWithContext = array_merge(
+            ['@' . 'context' => 'https://schema.org'],
+            $schema
+        );
+    @endphp
+
+    <script type="application/ld+json">{!! json_encode(
+        $schemaWithContext,
+        JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+    ) !!}</script>
+@endforeach
 @endpush
 
-@push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/news.css') }}">@endpush
+@push('styles')
+<link rel="stylesheet" href="{{ asset('css/frontend/news.css') }}">
+@endpush
 
 @php
-$image = $news->image_url;
-$summary = $news->ai_summary ?: $news->summary;
-$why = $news->ai_why_it_matters ?: $news->why_it_matters;
+    $image = $news->image_url;
+    $summary = $news->ai_summary ?: $news->summary;
+    $why = $news->ai_why_it_matters ?: $news->why_it_matters;
 @endphp
 
 @section('content')
