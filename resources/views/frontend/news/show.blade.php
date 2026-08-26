@@ -1,19 +1,14 @@
 @extends('frontend.layouts.app')
 
 @php
-    $newsSeoTitle = trim($news->headline ?: 'AI News');
+    $newsUrl = route('news.show', $news);
 
-    if (!str_contains(
-        strtolower($newsSeoTitle),
-        'ai orbit'
-    )) {
-        $newsSeoTitle .= ' | AI Orbit';
-    }
+    $newsSeoTitle = trim($news->headline ?: 'AI News') . ' | AI Orbit';
 
     $newsSeoDescription = $news->meta_description
         ?: $news->ai_summary
         ?: $news->summary
-        ?: 'Read the latest AI news and industry intelligence on AI Orbit.';
+        ?: 'Read the latest AI news, developments and industry intelligence on AI Orbit.';
 
     $newsSeoDescription = html_entity_decode(
         html_entity_decode(
@@ -25,61 +20,40 @@
         'UTF-8'
     );
 
-    $newsUrl = route('news.show', $news);
-
     $newsArticleSchema = [
         '@' . 'context' => 'https://schema.org',
         '@' . 'type' => 'NewsArticle',
-
         'headline' => $news->headline,
-
         'description' => $newsSeoDescription,
-
         'url' => $newsUrl,
-
         'mainEntityOfPage' => [
             '@' . 'type' => 'WebPage',
             '@' . 'id' => $newsUrl,
         ],
-
-        'image' => $news->image_url
-            ? [$news->image_url]
-            : [asset(config('brand.assets.og_default'))],
-
-        'datePublished' => $news->published_at
-            ? $news->published_at->toAtomString()
-            : null,
-
-        'dateModified' => $news->updated_at
-            ? $news->updated_at->toAtomString()
-            : null,
-
+        'image' => [
+            $news->image_url ?: asset(config('brand.assets.og_default'))
+        ],
+        'datePublished' => $news->published_at?->toAtomString(),
+        'dateModified' => $news->updated_at?->toAtomString(),
         'author' => [
             '@' . 'type' => 'Organization',
             'name' => $news->source
-                ?: ($news->company?->name ?? 'AI Orbit'),
+                ?: ($news->company?->name ?? 'AI Orbit News Desk'),
         ],
-
         'publisher' => [
             '@' . 'type' => 'Organization',
             'name' => 'AI Orbit',
             'url' => route('home'),
             'logo' => [
                 '@' . 'type' => 'ImageObject',
-                'url' => asset('images/brand/ai-orbit-icon.png'),
+                'url' => asset('images/brand/ai-orbit-logo.png'),
             ],
         ],
     ];
 
-    $newsArticleSchema = array_filter(
-        $newsArticleSchema,
-        fn ($value) => $value !== null
-    );
-
     $newsBreadcrumbSchema = [
         '@' . 'context' => 'https://schema.org',
         '@' . 'type' => 'BreadcrumbList',
-
         'itemListElement' => [
             [
                 '@' . 'type' => 'ListItem',
@@ -112,7 +86,10 @@
 
 @section('canonical', $newsUrl)
 
-@section('robots', 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1')
+@section(
+    'robots',
+    'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'
+)
 
 @section('og_type', 'article')
 
@@ -122,7 +99,6 @@
 )
 
 @push('head')
-
 <script type="application/ld+json">{!! json_encode(
     $newsArticleSchema,
     JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
@@ -132,7 +108,6 @@
     $newsBreadcrumbSchema,
     JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
 ) !!}</script>
-
 @endpush
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/frontend/news.css') }}">
