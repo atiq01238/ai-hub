@@ -46,7 +46,8 @@
 )
 
 @push('head')
-@foreach($seoSchemas as $schema)
+
+@foreach(($seoSchemas ?? []) as $schema)
     @php
         $schemaWithContext = array_merge(
             ['@' . 'context' => 'https://schema.org'],
@@ -59,6 +60,7 @@
         JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
     ) !!}</script>
 @endforeach
+
 @endpush
 
 @push('styles')
