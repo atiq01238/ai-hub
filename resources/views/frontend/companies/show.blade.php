@@ -1,7 +1,15 @@
 @extends('frontend.layouts.app')
 
-@section('title', $seo['title'])
-@section('meta_description', $seo['description'])
+@section('title', html_entity_decode(
+    str_replace(' AI AI Company Profile', ' AI Company Profile', $seo['title']),
+    ENT_QUOTES | ENT_HTML5,
+    'UTF-8'
+))
+@section('meta_description', html_entity_decode(
+    $seo['description'],
+    ENT_QUOTES | ENT_HTML5,
+    'UTF-8'
+))
 @section('canonical', $seo['canonical'])
 @section('og_type', 'profile')
 @section('og_image', $seo['logo'])
@@ -11,18 +19,25 @@
 <script type="application/ld+json">{!! json_encode($seo['webPage'], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
 <script type="application/ld+json">{!! json_encode($seo['breadcrumb'], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
 @if($contentSeo['faq']->count())
-<script type="application/ld+json">{!! json_encode([
-    '@context' => 'https://schema.org',
-    '@type' => 'FAQPage',
-    'mainEntity' => $contentSeo['faq']->map(fn ($item) => [
-        '@type' => 'Question',
-        'name' => $item['question'],
-        'acceptedAnswer' => [
-            '@type' => 'Answer',
-            'text' => $item['answer'],
-        ],
-    ])->values()->all(),
-], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
+    @php
+        $companyFaqSchema = [
+            '@' . 'context' => 'https://schema.org',
+            '@' . 'type' => 'FAQPage',
+            'mainEntity' => $contentSeo['faq']->map(fn ($item) => [
+                '@' . 'type' => 'Question',
+                'name' => $item['question'],
+                'acceptedAnswer' => [
+                    '@' . 'type' => 'Answer',
+                    'text' => $item['answer'],
+                ],
+            ])->values()->all(),
+        ];
+    @endphp
+
+    <script type="application/ld+json">{!! json_encode(
+        $companyFaqSchema,
+        JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+    ) !!}</script>
 @endif
 @endpush
 
