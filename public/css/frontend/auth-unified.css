@@ -409,7 +409,17 @@ button, input { font: inherit; }
 .auth-divider::after { content: ""; height: 1px; background: rgba(128,145,194,.16); }
 
 .auth-socials { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.auth-socials.is-single { grid-template-columns: 1fr; }
+.auth-socials.is-single,
+.auth-socials.auth-socials-single {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+}
+.auth-socials.is-single .auth-social,
+.auth-socials.auth-socials-single .auth-social {
+    width: 100%;
+    min-width: 0;
+}
 .auth-social {
     height: 44px;
     display: flex;

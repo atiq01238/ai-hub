@@ -34,7 +34,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
     @if(request()->routeIs('home'))
-        <link rel="stylesheet" href="{{ asset('css/frontend/home-performance.css') }}">
+        <link rel="stylesheet" href="{{ asset('css/frontend/home-performance.css') }}?v=20260827-search2">
     @else
         <link rel="stylesheet" href="{{ asset('css/frontend/app.css') }}">
         <link rel="stylesheet" href="{{ asset('css/frontend/community.css') }}">
@@ -189,7 +189,7 @@
 </div>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 <script src="{{ asset('js/frontend/app.js') }}"></script>
-<script src="{{ asset('js/frontend/search-intelligence.js') }}"></script>
+<script src="{{ asset('js/frontend/search-intelligence.js') }}?v=20260827-search2"></script>
 <script src="{{ asset('js/frontend/saved.js') }}"></script>
 <script src="{{ asset('js/frontend/community.js') }}"></script>
 @stack('scripts')

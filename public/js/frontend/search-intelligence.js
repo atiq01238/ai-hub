@@ -167,7 +167,8 @@
             try {
                 const url = new URL(suggestUrl, window.location.origin);
                 url.searchParams.set('q', q);
-                url.searchParams.set('limit', '10');
+                const homeLimit = window.matchMedia('(max-width: 600px)').matches ? '4' : '5';
+                url.searchParams.set('limit', homeHero ? homeLimit : '10');
                 const response = await fetch(url, {
                     credentials: 'same-origin',
                     headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
@@ -185,7 +186,10 @@
             timer = setTimeout(load, 220);
         });
         input.addEventListener('focus', () => {
-            if (input.value.trim().length >= 2 && panel.childElementCount) panel.hidden = false;
+            if (input.value.trim().length >= 2 && panel.childElementCount) {
+                panel.hidden = false;
+                homeHero?.classList.add('search-suggestions-open');
+            }
         });
         input.addEventListener('keydown', (event) => {
             if (panel.hidden) return;

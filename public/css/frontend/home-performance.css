@@ -1268,56 +1268,114 @@ a{overflow-wrap:anywhere}
 .comparison-mini-card p{color:#909dbc}
 .company-card>svg{color:#8290b2}
 
+/* ===== Homepage autocomplete: clean responsive in-flow panel =====
+   Keeps live results inside the hero so they never cover Trending/Categories. */
+.home-hero-reference.search-suggestions-open{
+    height:auto!important;
+    min-height:300px;
+    overflow:hidden!important;
+    z-index:20;
+}
+.home-hero-reference.search-suggestions-open .home-hero-shell{
+    min-height:0!important;
+    height:auto;
+    padding-bottom:22px;
+}
+.home-hero-reference.search-suggestions-open .home-hero-search{
+    height:auto!important;
+    min-height:49px;
+    display:grid!important;
+    grid-template-columns:34px minmax(0,1fr) auto;
+    grid-template-rows:41px auto;
+    align-items:center;
+    column-gap:0;
+    padding:4px!important;
+    overflow:visible;
+}
+.home-hero-reference.search-suggestions-open .home-hero-search .hero-search-icon{
+    grid-column:1;
+    grid-row:1;
+    width:34px;
+    height:34px;
+    margin:0;
+}
+.home-hero-reference.search-suggestions-open .home-hero-search input{
+    grid-column:2;
+    grid-row:1;
+    width:100%;
+    min-width:0;
+    height:41px;
+    padding:0 9px;
+}
+.home-hero-reference.search-suggestions-open .home-hero-search>button{
+    grid-column:3;
+    grid-row:1;
+    height:41px;
+    margin:0;
+    justify-self:end;
+}
+.home-hero-reference.search-suggestions-open .home-search-live-results{
+    position:static!important;
+    inset:auto!important;
+    grid-column:1 / -1;
+    grid-row:2;
+    width:100%;
+    margin:7px 0 0;
+    max-height:260px;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    border-radius:12px;
+    background:rgba(6,11,27,.99);
+    box-shadow:0 14px 34px rgba(0,0,0,.34);
+    scrollbar-width:thin;
+    scrollbar-color:#6e73a0 transparent;
+}
+.home-hero-reference.search-suggestions-open .home-search-live-results::-webkit-scrollbar{width:7px}
+.home-hero-reference.search-suggestions-open .home-search-live-results::-webkit-scrollbar-thumb{background:#6e73a0;border-radius:999px}
+.home-hero-reference.search-suggestions-open .home-hero-chips{
+    position:relative;
+    z-index:1;
+    margin-top:11px;
+}
 
+@media(max-width:900px){
+    .home-hero-reference.search-suggestions-open{min-height:310px}
+}
 
-/* Mobile home autocomplete: expand in-flow instead of covering the category cards below. */
-@media (max-width:600px){
+@media(max-width:600px){
+    .home-hero-reference.search-suggestions-open{min-height:345px}
+    .home-hero-reference.search-suggestions-open .home-hero-shell{
+        min-height:0!important;
+        padding-bottom:20px;
+    }
     .home-hero-reference.search-suggestions-open .home-hero-search{
-        height:auto;
-        min-height:50px;
-        display:grid;
         grid-template-columns:34px minmax(0,1fr) 44px;
         grid-template-rows:42px auto;
-        align-items:center;
-        column-gap:0;
-        padding:4px;
         border-radius:15px;
     }
-    .home-hero-reference.search-suggestions-open .home-hero-search .hero-search-icon{
-        grid-column:1;
-        grid-row:1;
-        width:34px;
-        height:34px;
-    }
-    .home-hero-reference.search-suggestions-open .home-hero-search input{
-        grid-column:2;
-        grid-row:1;
-        width:100%;
-        min-width:0;
-        height:42px;
-    }
+    .home-hero-reference.search-suggestions-open .home-hero-search input{height:42px}
     .home-hero-reference.search-suggestions-open .home-hero-search>button{
-        grid-column:3;
-        grid-row:1;
         width:40px;
         height:40px;
-        margin:0;
-        justify-self:end;
+        padding:0;
+        justify-content:center;
     }
     .home-hero-reference.search-suggestions-open .home-search-live-results{
-        position:static;
-        grid-column:1 / -1;
-        grid-row:2;
-        width:100%;
+        max-height:min(245px,42dvh);
         margin-top:6px;
-        max-height:min(300px,46dvh);
-        overflow-y:auto;
-        overscroll-behavior:contain;
-        border-radius:12px;
-        background:#070c1d;
-        box-shadow:0 18px 42px rgba(0,0,0,.42);
     }
-    .home-hero-reference.search-suggestions-open .home-hero-chips{
-        margin-top:10px;
+    .home-hero-reference.search-suggestions-open .search-live-label{padding:8px 9px 6px}
+    .home-hero-reference.search-suggestions-open .search-live-item{
+        grid-template-columns:32px minmax(0,1fr) 12px;
+        gap:8px;
+        padding:7px 8px;
     }
+    .home-hero-reference.search-suggestions-open .search-live-thumb,
+    .home-hero-reference.search-suggestions-open .search-live-kind{
+        width:32px;
+        height:32px;
+    }
+    .home-hero-reference.search-suggestions-open .search-live-copy strong{font-size:11px}
+    .home-hero-reference.search-suggestions-open .search-live-copy span{font-size:9px}
+    .home-hero-reference.search-suggestions-open .search-live-footer{padding:8px 9px}
 }
