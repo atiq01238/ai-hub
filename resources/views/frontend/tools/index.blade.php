@@ -1,10 +1,83 @@
 @extends('frontend.layouts.app')
 
-@section('title', 'AI Tools Directory — Discover & Compare the Best AI Tools | AI Orbit')
-@section('meta_description', 'Explore AI tools by category, pricing, rating, company, platform and capability. Compare top AI products and find the right tool for your workflow.')
+@php
+    $toolsHasFilters = request()->hasAny([
+        'q',
+        'category',
+        'pricing',
+        'rating',
+        'company',
+        'platform',
+        'feature',
+        'sort',
+        'view',
+    ]);
 
+    $toolsSeoTitle = 'AI Tools Directory — Discover and Compare the Best AI Tools | AI Orbit';
+
+    if (!$toolsHasFilters && $tools->currentPage() > 1) {
+        $toolsSeoTitle = 'AI Tools Directory — Page '
+            . $tools->currentPage()
+            . ' | AI Orbit';
+    }
+
+    $toolsSeoDescription = 'Explore AI tools by category, pricing, rating, company, platform and capability. Compare top AI products and find the right tool for your workflow.';
+
+    $toolsCanonical = route('tools.index');
+
+    if (!$toolsHasFilters && $tools->currentPage() > 1) {
+        $toolsCanonical = $tools->url($tools->currentPage());
+    }
+
+    $toolsCollectionSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'CollectionPage',
+        'name' => 'AI Tools Directory',
+        'description' => $toolsSeoDescription,
+        'url' => $toolsCanonical,
+    ];
+
+    $toolsBreadcrumbSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'BreadcrumbList',
+        'itemListElement' => [
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 1,
+                'name' => 'Home',
+                'item' => route('home'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 2,
+                'name' => 'AI Tools',
+                'item' => route('tools.index'),
+            ],
+        ],
+    ];
+@endphp
+
+@section('title', $toolsSeoTitle)
+@section('meta_description', $toolsSeoDescription)
+@section('canonical', $toolsCanonical)
+
+@section(
+    'robots',
+    $toolsHasFilters
+        ? 'noindex,follow'
+        : 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'
+)
 
 @push('head')
+<script type="application/ld+json">{!! json_encode(
+    $toolsCollectionSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+
+<script type="application/ld+json">{!! json_encode(
+    $toolsBreadcrumbSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
 @endpush
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/frontend/tools.css') }}">
@@ -86,10 +159,7 @@
                 </div>
             </div>
 
-            <div class="tools-hero-scene" aria-hidden="true">
-                <div class="tools-scene-glow"></div>
-                <img src="{{ asset('images/frontend/ai-tools-universe.png') }}" alt="" loading="eager" fetchpriority="high">
-            </div>
+            
         </div>
 
         <div class="tools-hero-stats">
