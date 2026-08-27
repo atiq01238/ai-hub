@@ -221,6 +221,7 @@
     const openModal = () => {
         if (!modal) return;
         modal.hidden = false;
+        modal.removeAttribute('inert');
         modal.setAttribute('aria-hidden', 'false');
         document.body.classList.add('site-search-open');
         requestAnimationFrame(() => overlayInput?.focus());
@@ -230,6 +231,7 @@
         if (!modal) return;
         modal.hidden = true;
         modal.setAttribute('aria-hidden', 'true');
+        modal.setAttribute('inert', '');
         document.body.classList.remove('site-search-open');
     };
 

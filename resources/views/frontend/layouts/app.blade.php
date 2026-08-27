@@ -31,19 +31,24 @@
     @stack('head')
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ asset('css/frontend/app.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/frontend/community.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/frontend/saved.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/frontend/search-intelligence.css') }}">
-    @stack('styles')
-    <link rel="stylesheet" href="{{ asset('css/frontend/ui-polish.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
+    @if(request()->routeIs('home'))
+        <link rel="stylesheet" href="{{ asset('css/frontend/home-performance.css') }}">
+    @else
+        <link rel="stylesheet" href="{{ asset('css/frontend/app.css') }}">
+        <link rel="stylesheet" href="{{ asset('css/frontend/community.css') }}">
+        <link rel="stylesheet" href="{{ asset('css/frontend/saved.css') }}">
+        <link rel="stylesheet" href="{{ asset('css/frontend/search-intelligence.css') }}">
+        @stack('styles')
+        <link rel="stylesheet" href="{{ asset('css/frontend/ui-polish.css') }}">
+    @endif
 </head>
 <body>
 <div class="site-shell">
     <header class="topbar">
         <a class="brand" href="{{ route('home') }}" aria-label="AI Orbit home">
-            <span class="brand-mark brand-orbit-mark"><img src="{{ asset(config('brand.assets.icon')) }}" alt="" aria-hidden="true"></span>
+            <span class="brand-mark brand-orbit-mark"><img src="{{ asset(config('brand.assets.icon')) }}" alt="" aria-hidden="true" width="96" height="96" decoding="async"></span>
             <span><strong>AI Orbit</strong><small>Explore • Compare • Stay Ahead</small></span>
         </a>
 
@@ -85,12 +90,12 @@
             @else
                 <a class="signin-btn" href="{{ route('login') }}"><span class="avatar"><i data-lucide="user"></i></span>Sign In<i data-lucide="chevron-right"></i></a>
             @endauth
-            <button class="menu-btn" type="button" aria-label="Open navigation" data-menu-toggle><i data-lucide="menu"></i></button>
+            <button class="menu-btn" type="button" aria-label="Open navigation" aria-controls="mobile-navigation" aria-expanded="false" data-menu-toggle><i data-lucide="menu"></i></button>
         </div>
     </header>
 
     <div class="mobile-nav-backdrop" data-mobile-nav-backdrop aria-hidden="true"></div>
-    <div class="mobile-nav" data-mobile-nav aria-hidden="true">
+    <div class="mobile-nav" id="mobile-navigation" data-mobile-nav aria-hidden="true" inert>
         @auth
             @if($frontHasAdminAccess)
                 <a href="{{ route('admin.dashboard') }}"><i data-lucide="shield-check"></i>Admin Panel</a>
@@ -110,7 +115,7 @@
         <a class="{{ request()->routeIs('search.*') ? 'active' : '' }}" href="{{ route('search.index') }}">Search</a>
     </div>
 
-    <div class="site-search-overlay" data-site-search-modal hidden aria-hidden="true">
+    <div class="site-search-overlay" data-site-search-modal hidden aria-hidden="true" inert>
         <button class="site-search-backdrop" type="button" data-global-search-close aria-label="Close search"></button>
         <section class="site-search-panel" role="dialog" aria-modal="true" aria-label="Search AI Orbit">
             <div class="site-search-panel-head">
@@ -155,7 +160,7 @@
             <div class="footer-main">
                 <div class="footer-about">
                     <a class="footer-logo" href="{{ route('home') }}">
-                        <span class="brand-mark brand-orbit-mark"><img src="{{ asset(config('brand.assets.icon')) }}" alt="" aria-hidden="true"></span>
+                        <span class="brand-mark brand-orbit-mark"><img src="{{ asset(config('brand.assets.icon')) }}" alt="" aria-hidden="true" width="96" height="96" decoding="async"></span>
                         <span><strong>AI Orbit</strong><small>Explore • Compare • Stay Ahead</small></span>
                     </a>
                     <p>A research-driven hub for finding the right AI tools and models, understanding the latest AI news and comparing products with useful data.</p>

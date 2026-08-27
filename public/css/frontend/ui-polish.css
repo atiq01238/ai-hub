@@ -278,3 +278,12 @@ a{overflow-wrap:anywhere}
 .brand-orbit-mark{overflow:hidden;padding:0;background:#050817;border-color:rgba(86,92,255,.55)}
 .brand-orbit-mark img{width:100%;height:100%;object-fit:cover;display:block;transform:scale(1.08)}
 .footer-logo .brand-orbit-mark{box-shadow:0 0 28px rgba(84,73,255,.28)}
+
+/* Lighthouse accessibility: strengthen low-contrast utility/meta text without changing layout. */
+.footer-subscribe small{color:#8795b8}
+.footer-bottom{color:#7c89aa}
+.side-title>a{color:#7d83ff}
+.article-copy>div{color:#8392b6}
+.comparison-mini-card p{color:#909dbc}
+.company-card>svg{color:#8290b2}
+

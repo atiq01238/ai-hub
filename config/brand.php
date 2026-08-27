@@ -15,7 +15,7 @@ return [
     'assets' => [
         'logo' => 'images/brand/ai-orbit-logo.png',
         'wordmark' => 'images/brand/ai-orbit-wordmark.png',
-        'icon' => 'images/brand/ai-orbit-icon.png',
+        'icon' => 'images/brand/ai-orbit-icon-96.png',
         'favicon_32' => 'images/brand/favicon-32.png',
         'favicon_16' => 'images/brand/favicon-16.png',
         'apple_touch_icon' => 'images/brand/apple-touch-icon.png',

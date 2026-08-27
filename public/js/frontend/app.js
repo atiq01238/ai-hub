@@ -8,12 +8,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const setMobileMenu = (open) => {
         if (!menuButton || !mobileNav) return;
 
+        if (!open && mobileNav.contains(document.activeElement)) {
+            menuButton.focus();
+        }
+
         mobileNav.classList.toggle('open', open);
         mobileNav.style.removeProperty('display');
         document.body.classList.toggle('mobile-menu-open', open);
         menuButton.setAttribute('aria-expanded', open ? 'true' : 'false');
         menuButton.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
         mobileNav.setAttribute('aria-hidden', open ? 'false' : 'true');
+        if (open) mobileNav.removeAttribute('inert');
+        else mobileNav.setAttribute('inert', '');
     };
 
     menuButton?.setAttribute('aria-expanded', 'false');
