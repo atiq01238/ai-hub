@@ -143,7 +143,7 @@
                 <article class="pricing-detail-card {{ $loop->index === 1 ? 'featured' : '' }}">
                     @if($loop->index === 1)<span class="plan-badge">Popular</span>@endif
                     <small>{{ $tool->name }}</small><h3>{{ $plan->plan_name }}</h3>
-                    <div class="plan-price">@if((float)$plan->monthly_price === 0.0)<strong>Free</strong>@elseif($plan->monthly_price !== null)<strong>{{ strtoupper($plan->currency ?? 'USD') }} {{ rtrim(rtrim(number_format((float)$plan->monthly_price,2), '0'), '.') }}</strong><span>/month</span>@else<strong>Custom</strong>@endif</div>
+                    <div class="plan-price">@if((float)$plan->monthly_price === 0.0 && $plan->monthly_price !== null)<strong>Free</strong>@elseif($plan->monthly_price !== null)<strong>{{ strtoupper($plan->currency ?? 'USD') }} {{ rtrim(rtrim(number_format((float)$plan->monthly_price,2), '0'), '.') }}</strong><span>/month</span>@elseif(($plan->billing_type ?? '') === 'usage')<strong>Usage-based</strong>@elseif(($plan->billing_type ?? '') === 'included')<strong>Included</strong>@else<strong>Custom</strong>@endif</div>
                     @if($plan->yearly_price)<p class="yearly-price">{{ strtoupper($plan->currency ?? 'USD') }} {{ number_format((float)$plan->yearly_price,2) }} billed yearly</p>@endif
                     @if($plan->api_price_label)<p class="api-price"><i data-lucide="code-2"></i>{{ $plan->api_price_label }}</p>@endif
                     <p class="api-price"><i data-lucide="shield-check"></i>{{ ucfirst($plan->freshness) }}@if($plan->last_verified_at) · verified {{ $plan->last_verified_at->diffForHumans() }}@endif</p>
