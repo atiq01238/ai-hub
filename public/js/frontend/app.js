@@ -29,8 +29,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     mobileNavBackdrop?.addEventListener('click', () => setMobileMenu(false));
 
+    // Do not make the navigation inert during the link's own click event.
+    // Some mobile browsers can cancel the anchor's default navigation when
+    // its ancestor becomes inert synchronously. Close on the next task instead.
     mobileNav?.querySelectorAll('a').forEach((link) => {
-        link.addEventListener('click', () => setMobileMenu(false));
+        link.addEventListener('click', () => {
+            window.setTimeout(() => setMobileMenu(false), 0);
+        });
     });
 
     document.addEventListener('keydown', (event) => {

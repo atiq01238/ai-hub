@@ -193,7 +193,7 @@
     </footer>
 </div>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-<script src="{{ asset('js/frontend/app.js') }}"></script>
+<script src="{{ asset('js/frontend/app.js') }}?v=20260827-mobile-nav3"></script>
 <script src="{{ asset('js/frontend/search-intelligence.js') }}?v=20260827-search2"></script>
 <script src="{{ asset('js/frontend/saved.js') }}"></script>
 <script src="{{ asset('js/frontend/community.js') }}"></script>
