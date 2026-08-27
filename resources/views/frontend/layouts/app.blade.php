@@ -43,6 +43,8 @@
         @stack('styles')
         <link rel="stylesheet" href="{{ asset('css/frontend/ui-polish.css') }}">
     @endif
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9025296892842875"
+     crossorigin="anonymous"></script>
 </head>
 <body>
 <div class="site-shell">
