@@ -60,6 +60,6 @@
         </section>
     </main>
 </div>
-<script src="{{ asset('js/frontend/auth-unified.js') }}" defer></script>
+<script src="{{ asset('js/auth-unified.js') }}" defer></script>
 </body>
 </html>

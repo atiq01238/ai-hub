@@ -144,7 +144,7 @@
             const footer = document.createElement('div');
             footer.className = 'search-live-footer';
             const hint = document.createElement('span');
-            hint.textContent = 'Relevance ranked across AI Hub';
+            hint.textContent = 'Relevance ranked across AI Orbit';
             const all = document.createElement('a');
             all.href = `${shell.action || '/search'}?q=${encodeURIComponent(payload.query || input.value.trim())}`;
             all.textContent = 'See all results →';

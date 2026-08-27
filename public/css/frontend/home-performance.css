@@ -1268,3 +1268,56 @@ a{overflow-wrap:anywhere}
 .comparison-mini-card p{color:#909dbc}
 .company-card>svg{color:#8290b2}
 
+
+
+/* Mobile home autocomplete: expand in-flow instead of covering the category cards below. */
+@media (max-width:600px){
+    .home-hero-reference.search-suggestions-open .home-hero-search{
+        height:auto;
+        min-height:50px;
+        display:grid;
+        grid-template-columns:34px minmax(0,1fr) 44px;
+        grid-template-rows:42px auto;
+        align-items:center;
+        column-gap:0;
+        padding:4px;
+        border-radius:15px;
+    }
+    .home-hero-reference.search-suggestions-open .home-hero-search .hero-search-icon{
+        grid-column:1;
+        grid-row:1;
+        width:34px;
+        height:34px;
+    }
+    .home-hero-reference.search-suggestions-open .home-hero-search input{
+        grid-column:2;
+        grid-row:1;
+        width:100%;
+        min-width:0;
+        height:42px;
+    }
+    .home-hero-reference.search-suggestions-open .home-hero-search>button{
+        grid-column:3;
+        grid-row:1;
+        width:40px;
+        height:40px;
+        margin:0;
+        justify-self:end;
+    }
+    .home-hero-reference.search-suggestions-open .home-search-live-results{
+        position:static;
+        grid-column:1 / -1;
+        grid-row:2;
+        width:100%;
+        margin-top:6px;
+        max-height:min(300px,46dvh);
+        overflow-y:auto;
+        overscroll-behavior:contain;
+        border-radius:12px;
+        background:#070c1d;
+        box-shadow:0 18px 42px rgba(0,0,0,.42);
+    }
+    .home-hero-reference.search-suggestions-open .home-hero-chips{
+        margin-top:10px;
+    }
+}

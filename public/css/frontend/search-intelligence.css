@@ -24,3 +24,56 @@
 @media(max-width:520px){.site-search-overlay{padding:70px 10px 10px}.site-search-panel{border-radius:16px;padding:10px}.site-search-form{height:53px;grid-template-columns:18px minmax(0,1fr) 42px;padding-left:11px}.site-search-form>button{width:42px;height:43px;padding:0;font-size:0}.site-search-form>button:after{content:'Go';font-size:10px}.site-search-hints{padding-top:10px}.search-path-grid{grid-template-columns:1fr}.search-live-item{grid-template-columns:32px minmax(0,1fr) 12px;padding:8px}.search-live-thumb,.search-live-kind{width:32px;height:32px}.search-trending-queries nav a{max-width:100%}}
 .home-hero-reference.search-suggestions-open{overflow:visible;z-index:20}
 .home-hero-reference.search-suggestions-open .home-search-live-results{max-height:290px;overflow:auto}
+
+
+/* Mobile home autocomplete: expand in-flow instead of covering the category cards below. */
+@media (max-width:600px){
+    .home-hero-reference.search-suggestions-open .home-hero-search{
+        height:auto;
+        min-height:50px;
+        display:grid;
+        grid-template-columns:34px minmax(0,1fr) 44px;
+        grid-template-rows:42px auto;
+        align-items:center;
+        column-gap:0;
+        padding:4px;
+        border-radius:15px;
+    }
+    .home-hero-reference.search-suggestions-open .home-hero-search .hero-search-icon{
+        grid-column:1;
+        grid-row:1;
+        width:34px;
+        height:34px;
+    }
+    .home-hero-reference.search-suggestions-open .home-hero-search input{
+        grid-column:2;
+        grid-row:1;
+        width:100%;
+        min-width:0;
+        height:42px;
+    }
+    .home-hero-reference.search-suggestions-open .home-hero-search>button{
+        grid-column:3;
+        grid-row:1;
+        width:40px;
+        height:40px;
+        margin:0;
+        justify-self:end;
+    }
+    .home-hero-reference.search-suggestions-open .home-search-live-results{
+        position:static;
+        grid-column:1 / -1;
+        grid-row:2;
+        width:100%;
+        margin-top:6px;
+        max-height:min(300px,46dvh);
+        overflow-y:auto;
+        overscroll-behavior:contain;
+        border-radius:12px;
+        background:#070c1d;
+        box-shadow:0 18px 42px rgba(0,0,0,.42);
+    }
+    .home-hero-reference.search-suggestions-open .home-hero-chips{
+        margin-top:10px;
+    }
+}
