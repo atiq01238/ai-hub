@@ -13,10 +13,11 @@ use App\Models\NewsItem;
 use App\Models\PricingPlan;
 use App\Models\Review;
 use App\Models\Tool;
+use App\Services\Analytics\ToolTrendingService;
 
 class HomeController extends Controller
 {
-    public function index()
+    public function index(ToolTrendingService $toolTrending)
     {
         $categories = Category::query()
             ->product()->active()
@@ -43,11 +44,7 @@ class HomeController extends Controller
             ->take(5)
             ->get();
 
-        $trendingTools = Tool::query()
-            ->where('status', 'published')
-            ->orderByDesc('popularity')
-            ->take(6)
-            ->get();
+        $trendingTools = $toolTrending->homepage(6);
 
         $latestNews = NewsItem::query()
             ->with('company')

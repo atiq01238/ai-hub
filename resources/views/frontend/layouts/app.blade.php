@@ -114,7 +114,10 @@
         <a class="{{ request()->routeIs('articles.*') ? 'active' : '' }}" href="{{ route('articles.index') }}">Articles</a>
         <a class="{{ request()->routeIs('comparisons.*') ? 'active' : '' }}" href="{{ route('comparisons.index') }}">Compare</a>
         <a class="{{ request()->routeIs('pricing.*') ? 'active' : '' }}" href="{{ route('pricing.index') }}">Pricing</a>
-        <a class="{{ request()->routeIs('search.*') ? 'active' : '' }}" href="{{ route('search.index') }}">Search</a>
+        @guest
+            <a class="{{ request()->routeIs('signup') ? 'active' : '' }}" href="{{ route('signup') }}">Sign Up</a>
+        @endguest
+        <a class="{{ request()->routeIs('about') ? 'active' : '' }}" href="{{ route('about') }}">About AI Orbit</a>
     </div>
 
     <div class="site-search-overlay" data-site-search-modal hidden aria-hidden="true" inert>
