@@ -1,8 +1,80 @@
 @extends('frontend.layouts.app')
-@section('title','AI Models Directory — Compare Leading AI Models | AI Orbit')
-@section('meta_description','Explore and compare leading AI models by provider, context window, API pricing, capabilities and benchmark score.')
+@php
+    $modelsHasFilters = request()->hasAny([
+        'q',
+        'company',
+        'status',
+        'context',
+        'price',
+        'capability',
+        'sort',
+    ]);
+
+    $modelsSeoTitle = 'AI Models Directory — Compare Leading AI Models | AI Orbit';
+
+    if (!$modelsHasFilters && $models->currentPage() > 1) {
+        $modelsSeoTitle = 'AI Models Directory — Page '
+            . $models->currentPage()
+            . ' | AI Orbit';
+    }
+
+    $modelsSeoDescription = 'Explore and compare leading AI models by provider, context window, API pricing, capabilities and benchmark score.';
+
+    $modelsCanonical = route('models.index');
+
+    if (!$modelsHasFilters && $models->currentPage() > 1) {
+        $modelsCanonical = $models->url($models->currentPage());
+    }
+
+    $modelsCollectionSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'CollectionPage',
+        'name' => 'AI Models Directory',
+        'description' => $modelsSeoDescription,
+        'url' => $modelsCanonical,
+    ];
+
+    $modelsBreadcrumbSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'BreadcrumbList',
+        'itemListElement' => [
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 1,
+                'name' => 'Home',
+                'item' => route('home'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 2,
+                'name' => 'AI Models',
+                'item' => route('models.index'),
+            ],
+        ],
+    ];
+@endphp
+
+@section('title', $modelsSeoTitle)
+@section('meta_description', $modelsSeoDescription)
+@section('canonical', $modelsCanonical)
+
+@section(
+    'robots',
+    $modelsHasFilters
+        ? 'noindex,follow'
+        : 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'
+)
 
 @push('head')
+<script type="application/ld+json">{!! json_encode(
+    $modelsCollectionSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+
+<script type="application/ld+json">{!! json_encode(
+    $modelsBreadcrumbSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
 @endpush
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/models.css') }}">@endpush
 @section('content')
