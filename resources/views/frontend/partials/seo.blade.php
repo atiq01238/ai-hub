@@ -1,6 +1,41 @@
 @php
-    $seoTitle = trim($__env->yieldContent('title')) ?: config('seo.default_title');
-    $seoDescription = trim($__env->yieldContent('meta_description')) ?: config('seo.default_description');
+    $normalizeSeoText = static function ($value, $fallback = '') {
+        $text = trim((string) $value);
+
+        if ($text === '') {
+            $text = trim((string) $fallback);
+        }
+
+        for ($i = 0; $i < 5; $i++) {
+            $decoded = html_entity_decode(
+                $text,
+                ENT_QUOTES | ENT_HTML5,
+                'UTF-8'
+            );
+
+            if ($decoded === $text) {
+                break;
+            }
+
+            $text = $decoded;
+        }
+
+        $text = trim(strip_tags($text));
+        $text = preg_replace('/\s+/u', ' ', $text) ?: $text;
+
+        return $text;
+    };
+
+    $seoTitle = $normalizeSeoText(
+        $__env->yieldContent('title'),
+        config('seo.default_title')
+    );
+
+    $seoDescription = $normalizeSeoText(
+        $__env->yieldContent('meta_description'),
+        config('seo.default_description')
+    );
+
     $canonicalBase = rtrim((string) config('seo.canonical_url'), '/');
     $canonicalPath = request()->path() === '/' ? '' : '/'.ltrim(request()->path(), '/');
     $seoCanonical = trim($__env->yieldContent('canonical')) ?: $canonicalBase.$canonicalPath;
@@ -11,9 +46,25 @@
     }
 
     $privateSeoRoute = request()->routeIs(
-        'search.*', 'account.*', 'saved.*', 'login', 'signup', 'logout',
-        'password.*', 'verification.*', 'social.*', 'submissions.*',
-        'comparisons.builder', 'comparisons.my'
+        'search.*',
+        'account.*',
+        'saved.*',
+        'user.*',
+        'login',
+        'login.2fa',
+        'signup',
+        'logout',
+        'password.*',
+        'verification.*',
+        'social.*',
+        'email.*',
+        'submissions.*',
+        'reviews.create',
+        'reviews.models.create',
+        'comparisons.builder',
+        'comparisons.preview',
+        'comparisons.my',
+        'testlab.*'
     );
     $seoRobots = trim($__env->yieldContent('robots'));
     if ($seoRobots === '') {

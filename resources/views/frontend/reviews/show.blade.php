@@ -1,6 +1,91 @@
 @extends('frontend.layouts.app')
-@section('title',($review->verdict ?: $item->name.' Review').' | AI Orbit')
-@section('meta_description',\Illuminate\Support\Str::limit($review->body ?: 'Independent AI Orbit review of '.$item->name,155))
+
+@php
+    $reviewCanonical = route('reviews.show', $review);
+    $reviewTitle = ($review->verdict ?: $item->name . ' Review') . ' | AI Orbit';
+    $reviewDescription = \Illuminate\Support\Str::limit(
+        trim(strip_tags($review->body ?: 'Independent AI Orbit review of ' . $item->name)),
+        155,
+        ''
+    );
+    $reviewItemRoute = $itemType === 'model'
+        ? route('models.show', $item)
+        : route('tools.show', $item);
+    $reviewLogo = $item->logo_url ?? \App\Support\MediaUrl::placeholder();
+    if (!\Illuminate\Support\Str::startsWith($reviewLogo, ['http://', 'https://'])) {
+        $reviewLogo = url('/' . ltrim($reviewLogo, '/'));
+    }
+
+    $reviewSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'Review',
+        'name' => $review->verdict ?: $item->name . ' Review',
+        'reviewBody' => $review->body ?: $reviewDescription,
+        'url' => $reviewCanonical,
+        'datePublished' => $review->created_at?->toAtomString(),
+        'dateModified' => $review->updated_at?->toAtomString(),
+        'author' => [
+            '@' . 'type' => $review->user ? 'Person' : 'Organization',
+            'name' => $review->user?->name ?? 'AI Orbit Editorial',
+        ],
+        'itemReviewed' => [
+            '@' . 'type' => 'Thing',
+            'name' => $item->name,
+            'url' => $reviewItemRoute,
+            'image' => $reviewLogo,
+        ],
+        'reviewRating' => [
+            '@' . 'type' => 'Rating',
+            'ratingValue' => (float) $review->rating,
+            'bestRating' => 5,
+            'worstRating' => 1,
+        ],
+    ];
+
+    $reviewBreadcrumbSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'BreadcrumbList',
+        'itemListElement' => [
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 1,
+                'name' => 'Home',
+                'item' => route('home'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 2,
+                'name' => 'Reviews',
+                'item' => route('reviews.index'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 3,
+                'name' => $review->verdict ?: $item->name . ' Review',
+                'item' => $reviewCanonical,
+            ],
+        ],
+    ];
+@endphp
+
+@section('title', $reviewTitle)
+@section('meta_description', $reviewDescription)
+@section('canonical', $reviewCanonical)
+@section('og_type', 'article')
+@section('og_image', $reviewLogo)
+@section('robots', 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1')
+
+@push('head')
+<script type="application/ld+json">{!! json_encode(
+    $reviewSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+<script type="application/ld+json">{!! json_encode(
+    $reviewBreadcrumbSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+@endpush
+
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/content.css') }}">@endpush
 
 @section('content')

@@ -1,7 +1,77 @@
 @extends('frontend.layouts.app')
 
-@section('title', 'AI Comparisons — Compare AI Tools & Models | AI Orbit')
-@section('meta_description', 'Compare leading AI tools and models side by side using pricing, capabilities, benchmark scores, ratings and practical product data.')
+@php
+    $comparisonsHasFilters = request()->hasAny([
+        'type',
+        'search',
+        'sort',
+    ]);
+
+    $comparisonsSeoTitle = 'AI Comparisons — Compare AI Tools and Models | AI Orbit';
+
+    if (!$comparisonsHasFilters && $comparisons->currentPage() > 1) {
+        $comparisonsSeoTitle = 'AI Comparisons — Page '
+            . $comparisons->currentPage()
+            . ' | AI Orbit';
+    }
+
+    $comparisonsSeoDescription = 'Compare leading AI tools and models side by side using pricing, capabilities, benchmark scores, ratings and practical product data.';
+
+    $comparisonsCanonical = route('comparisons.index');
+
+    if (!$comparisonsHasFilters && $comparisons->currentPage() > 1) {
+        $comparisonsCanonical = $comparisons->url($comparisons->currentPage());
+    }
+
+    $comparisonsCollectionSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'CollectionPage',
+        'name' => 'AI Comparisons',
+        'description' => $comparisonsSeoDescription,
+        'url' => $comparisonsCanonical,
+    ];
+
+    $comparisonsBreadcrumbSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'BreadcrumbList',
+        'itemListElement' => [
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 1,
+                'name' => 'Home',
+                'item' => route('home'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 2,
+                'name' => 'Comparisons',
+                'item' => route('comparisons.index'),
+            ],
+        ],
+    ];
+@endphp
+
+@section('title', $comparisonsSeoTitle)
+@section('meta_description', $comparisonsSeoDescription)
+@section('canonical', $comparisonsCanonical)
+
+@section(
+    'robots',
+    $comparisonsHasFilters
+        ? 'noindex,follow'
+        : 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'
+)
+
+@push('head')
+<script type="application/ld+json">{!! json_encode(
+    $comparisonsCollectionSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+<script type="application/ld+json">{!! json_encode(
+    $comparisonsBreadcrumbSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+@endpush
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/frontend/comparisons.css') }}">

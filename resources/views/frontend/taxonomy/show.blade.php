@@ -16,6 +16,15 @@
         : 'AI Use Case';
 
     $termUrl = route($routeName, $term);
+    $termHasExtraQuery = collect(request()->query())
+        ->except('page')
+        ->isNotEmpty();
+
+    $termCanonical = $termUrl;
+
+    if (!$termHasExtraQuery && $tools->currentPage() > 1) {
+        $termCanonical = $tools->url($tools->currentPage());
+    }
 
     /*
     |--------------------------------------------------------------------------
@@ -33,16 +42,18 @@
         $termSeoTitle
     );
 
-    // Fix previously double-encoded HTML entities.
-    $termSeoTitle = html_entity_decode(
-        html_entity_decode(
+    // Fully normalize previously encoded HTML entities.
+    for ($i = 0; $i < 5; $i++) {
+        $decoded = html_entity_decode(
             $termSeoTitle,
             ENT_QUOTES | ENT_HTML5,
             'UTF-8'
-        ),
-        ENT_QUOTES | ENT_HTML5,
-        'UTF-8'
-    );
+        );
+        if ($decoded === $termSeoTitle) {
+            break;
+        }
+        $termSeoTitle = $decoded;
+    }
 
     /*
     |--------------------------------------------------------------------------
@@ -56,15 +67,18 @@
             ? 'Discover AI tools and models with ' . $term->name . ' capabilities on AI Orbit.'
             : 'Discover AI tools and models for ' . $term->name . ' workflows on AI Orbit.');
 
-    $termSeoDescription = html_entity_decode(
-        html_entity_decode(
+    for ($i = 0; $i < 5; $i++) {
+        $decoded = html_entity_decode(
             $termSeoDescription,
             ENT_QUOTES | ENT_HTML5,
             'UTF-8'
-        ),
-        ENT_QUOTES | ENT_HTML5,
-        'UTF-8'
-    );
+        );
+        if ($decoded === $termSeoDescription) {
+            break;
+        }
+        $termSeoDescription = $decoded;
+    }
+    $termSeoDescription = trim(strip_tags($termSeoDescription));
 
     /*
     |--------------------------------------------------------------------------
@@ -76,10 +90,8 @@
         '@' . 'context' => 'https://schema.org',
         '@' . 'type' => 'CollectionPage',
         'name' => $term->name,
-        'description' => $term->description
-            ?: $term->short_description
-            ?: $termSeoDescription,
-        'url' => $termUrl,
+        'description' => $termSeoDescription,
+        'url' => $termCanonical,
     ];
 
     /*
@@ -114,16 +126,25 @@
     ];
 @endphp
 
+@if(!$termHasExtraQuery && $tools->currentPage() > 1)
+    @php
+        $termSeoTitle = $term->name
+            . ' — Page '
+            . $tools->currentPage()
+            . ' | AI Orbit';
+    @endphp
+@endif
+
 @section('title', $termSeoTitle)
 @section('meta_description', $termSeoDescription)
-@section('canonical', $termUrl)
+@section('canonical', $termCanonical)
 
 @section(
     'robots',
-    request()->query()
+    $termHasExtraQuery
         ? 'noindex,follow'
         : (($tools->total() + $models->count()) > 0
-            ? 'index,follow,max-image-preview:large'
+            ? 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'
             : 'noindex,follow')
 )
 

@@ -1,7 +1,65 @@
 @extends('frontend.layouts.app')
 
-@section('title', 'AI Benchmarks & Leaderboards — AI Orbit')
-@section('meta_description', 'Compare verified AI model and AI tool benchmark results across reasoning, coding, product quality and more.')
+@php
+    $benchmarksHasFilters = request()->hasAny([
+        'type',
+        'category',
+        'verified',
+    ]);
+
+    $benchmarksSeoTitle = 'AI Benchmarks and Leaderboards | AI Orbit';
+    $benchmarksSeoDescription = 'Compare verified AI model and AI tool benchmark results across reasoning, coding, product quality and more.';
+    $benchmarksCanonical = route('benchmarks.index');
+
+    $benchmarksCollectionSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'CollectionPage',
+        'name' => 'AI Benchmarks and Leaderboards',
+        'description' => $benchmarksSeoDescription,
+        'url' => $benchmarksCanonical,
+    ];
+
+    $benchmarksBreadcrumbSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'BreadcrumbList',
+        'itemListElement' => [
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 1,
+                'name' => 'Home',
+                'item' => route('home'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 2,
+                'name' => 'AI Benchmarks',
+                'item' => $benchmarksCanonical,
+            ],
+        ],
+    ];
+@endphp
+
+@section('title', $benchmarksSeoTitle)
+@section('meta_description', $benchmarksSeoDescription)
+@section('canonical', $benchmarksCanonical)
+
+@section(
+    'robots',
+    $benchmarksHasFilters
+        ? 'noindex,follow'
+        : 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'
+)
+
+@push('head')
+<script type="application/ld+json">{!! json_encode(
+    $benchmarksCollectionSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+<script type="application/ld+json">{!! json_encode(
+    $benchmarksBreadcrumbSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+@endpush
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/frontend/intelligence.css') }}">

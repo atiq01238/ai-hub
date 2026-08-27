@@ -1,6 +1,8 @@
 @extends('frontend.layouts.app')
 @section('title',$benchmark->name.' Discussion — AI Benchmarks | AI Orbit')
 @section('meta_description','Community discussion around the '.$benchmark->name.' benchmark, methodology and results.')
+@section('canonical', route('benchmarks.discussion', $benchmark))
+@section('robots', 'noindex,follow')
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/frontend/benchmarks.css') }}">

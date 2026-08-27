@@ -10,15 +10,28 @@
         ?: $news->summary
         ?: 'Read the latest AI news, developments and industry intelligence on AI Orbit.';
 
-    $newsSeoDescription = html_entity_decode(
-        html_entity_decode(
-            strip_tags($newsSeoDescription),
+    $newsSeoDescription = strip_tags($newsSeoDescription);
+
+    for ($i = 0; $i < 5; $i++) {
+        $decoded = html_entity_decode(
+            $newsSeoDescription,
             ENT_QUOTES | ENT_HTML5,
             'UTF-8'
-        ),
-        ENT_QUOTES | ENT_HTML5,
-        'UTF-8'
-    );
+        );
+
+        if ($decoded === $newsSeoDescription) {
+            break;
+        }
+
+        $newsSeoDescription = $decoded;
+    }
+
+    $newsSchemaImage = $news->image_url
+        ?: asset(config('brand.assets.og_default'));
+
+    if (!\Illuminate\Support\Str::startsWith($newsSchemaImage, ['http://', 'https://'])) {
+        $newsSchemaImage = url('/' . ltrim($newsSchemaImage, '/'));
+    }
 
     $newsArticleSchema = [
         '@' . 'context' => 'https://schema.org',
@@ -31,7 +44,7 @@
             '@' . 'id' => $newsUrl,
         ],
         'image' => [
-            $news->image_url ?: asset(config('brand.assets.og_default'))
+            $newsSchemaImage
         ],
         'datePublished' => $news->published_at?->toAtomString(),
         'dateModified' => $news->updated_at?->toAtomString(),

@@ -1,6 +1,79 @@
 @extends('frontend.layouts.app')
-@section('title','AI Articles, Guides & Research | AI Orbit')
-@section('meta_description','Read practical AI guides, benchmark explainers, product analysis, research and workflow intelligence from AI Orbit.')
+
+@php
+    $articlesHasFilters = request()->hasAny([
+        'q',
+        'category',
+        'company',
+        'sort',
+    ]);
+
+    $articlesSeoTitle = 'AI Articles, Guides and Research | AI Orbit';
+
+    if (!$articlesHasFilters && $articles->currentPage() > 1) {
+        $articlesSeoTitle = 'AI Articles — Page '
+            . $articles->currentPage()
+            . ' | AI Orbit';
+    }
+
+    $articlesSeoDescription = 'Read practical AI guides, benchmark explainers, product analysis, research and workflow intelligence from AI Orbit.';
+
+    $articlesCanonical = route('articles.index');
+
+    if (!$articlesHasFilters && $articles->currentPage() > 1) {
+        $articlesCanonical = $articles->url($articles->currentPage());
+    }
+
+    $articlesCollectionSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'CollectionPage',
+        'name' => 'AI Articles, Guides and Research',
+        'description' => $articlesSeoDescription,
+        'url' => $articlesCanonical,
+    ];
+
+    $articlesBreadcrumbSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'BreadcrumbList',
+        'itemListElement' => [
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 1,
+                'name' => 'Home',
+                'item' => route('home'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 2,
+                'name' => 'Articles',
+                'item' => route('articles.index'),
+            ],
+        ],
+    ];
+@endphp
+
+@section('title', $articlesSeoTitle)
+@section('meta_description', $articlesSeoDescription)
+@section('canonical', $articlesCanonical)
+
+@section(
+    'robots',
+    $articlesHasFilters
+        ? 'noindex,follow'
+        : 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'
+)
+
+@push('head')
+<script type="application/ld+json">{!! json_encode(
+    $articlesCollectionSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+<script type="application/ld+json">{!! json_encode(
+    $articlesBreadcrumbSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+@endpush
+
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/content.css') }}">@endpush
 @section('content')
 <section class="content-hero"><div class="content-wrap">

@@ -19,16 +19,35 @@
 @push('head')
 @php
     $articleFaq = collect(\App\Support\ArticleContent::faq($article->content));
+    $articleSchemaHeadline = (string) $article->title;
+    $articleSchemaDescription = (string) ($article->meta_description
+        ?: $article->summary
+        ?: 'AI Orbit article');
+
+    for ($i = 0; $i < 5; $i++) {
+        $decodedHeadline = html_entity_decode($articleSchemaHeadline, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $decodedDescription = html_entity_decode($articleSchemaDescription, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        if ($decodedHeadline === $articleSchemaHeadline && $decodedDescription === $articleSchemaDescription) {
+            break;
+        }
+        $articleSchemaHeadline = $decodedHeadline;
+        $articleSchemaDescription = $decodedDescription;
+    }
+    $articleSchemaHeadline = trim(strip_tags($articleSchemaHeadline));
+    $articleSchemaDescription = trim(strip_tags($articleSchemaDescription));
+
     $seoImage = $article->featured_image_url
         ?: url('/images/frontend/content-placeholder.svg');
+
+    if (!\Illuminate\Support\Str::startsWith($seoImage, ['http://', 'https://'])) {
+        $seoImage = url('/' . ltrim($seoImage, '/'));
+    }
 
     $articleSchema = [
         '@' . 'context' => 'https://schema.org',
         '@' . 'type' => 'Article',
-        'headline' => $article->title,
-        'description' => $article->meta_description
-            ?: $article->summary
-            ?: 'AI Orbit article',
+        'headline' => $articleSchemaHeadline,
+        'description' => $articleSchemaDescription,
         'image' => [$seoImage],
         'datePublished' => optional($article->published_at)->toIso8601String(),
         'dateModified' => optional($article->updated_at)->toIso8601String(),
@@ -66,7 +85,7 @@
             [
                 '@' . 'type' => 'ListItem',
                 'position' => 3,
-                'name' => $article->title,
+                'name' => $articleSchemaHeadline,
                 'item' => route('articles.show', $article),
             ],
         ],

@@ -1,6 +1,75 @@
 @extends('frontend.layouts.app')
 
-@section('title', $tool->name . ' Pricing & Plans | AI Orbit')
+@php
+    $pricingDetailCanonical = route('pricing.show', $tool);
+    $pricingDetailTitle = $tool->name . ' Pricing and Plans | AI Orbit';
+    $pricingDetailDescription = \Illuminate\Support\Str::limit(
+        'Compare ' . $tool->name . ' pricing, plans, limits, API rates and published price history on AI Orbit.',
+        158,
+        ''
+    );
+    $pricingSchemaImage = $tool->logo_url;
+    if (!\Illuminate\Support\Str::startsWith($pricingSchemaImage, ['http://', 'https://'])) {
+        $pricingSchemaImage = url('/' . ltrim($pricingSchemaImage, '/'));
+    }
+
+    $pricingPageSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'WebPage',
+        'name' => $tool->name . ' Pricing and Plans',
+        'description' => $pricingDetailDescription,
+        'url' => $pricingDetailCanonical,
+        'about' => [
+            '@' . 'type' => 'SoftwareApplication',
+            'name' => $tool->name,
+            'url' => route('tools.show', $tool),
+            'image' => $pricingSchemaImage,
+            'applicationCategory' => $tool->category?->name ?: 'Artificial Intelligence',
+        ],
+    ];
+
+    $pricingBreadcrumbSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'BreadcrumbList',
+        'itemListElement' => [
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 1,
+                'name' => 'Home',
+                'item' => route('home'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 2,
+                'name' => 'Pricing Intelligence',
+                'item' => route('pricing.index'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 3,
+                'name' => $tool->name . ' Pricing',
+                'item' => $pricingDetailCanonical,
+            ],
+        ],
+    ];
+@endphp
+
+@section('title', $pricingDetailTitle)
+@section('meta_description', $pricingDetailDescription)
+@section('canonical', $pricingDetailCanonical)
+@section('og_image', $pricingSchemaImage)
+@section('robots', 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1')
+
+@push('head')
+<script type="application/ld+json">{!! json_encode(
+    $pricingPageSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+<script type="application/ld+json">{!! json_encode(
+    $pricingBreadcrumbSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+@endpush
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/frontend/pricing-intelligence.css') }}">

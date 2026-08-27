@@ -1,10 +1,62 @@
 @extends('frontend.layouts.app')
-@section('title',$title.' | AI Orbit')
-@section('meta_description',$description)
+
+@php
+    $benchmarkCanonical = route('benchmarks.show', $benchmark);
+
+    $benchmarkDatasetSchema = array_filter([
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'Dataset',
+        'name' => $benchmark->name . ' benchmark results',
+        'description' => $description,
+        'url' => $benchmarkCanonical,
+        'isAccessibleForFree' => true,
+        'measurementTechnique' => $benchmark->name,
+        'version' => $benchmark->version ?: null,
+        'sameAs' => $benchmark->official_url ?: null,
+        'dateModified' => $benchmark->updated_at?->toAtomString(),
+    ], fn ($value) => $value !== null && $value !== '');
+
+    $benchmarkBreadcrumbSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'BreadcrumbList',
+        'itemListElement' => [
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 1,
+                'name' => 'Home',
+                'item' => route('home'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 2,
+                'name' => 'Benchmarks',
+                'item' => route('benchmarks.index'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 3,
+                'name' => $benchmark->name,
+                'item' => $benchmarkCanonical,
+            ],
+        ],
+    ];
+@endphp
+
+@section('title', $title . ' | AI Orbit')
+@section('meta_description', $description)
+@section('canonical', $benchmarkCanonical)
 @section('og_type', 'website')
+@section('robots', 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1')
+
 @push('head')
-<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'Dataset','name'=>$benchmark->name.' benchmark results','description'=>$description,'url'=>route('benchmarks.show',$benchmark),'isAccessibleForFree'=>true,'measurementTechnique'=>$benchmark->name,'version'=>$benchmark->version,'sameAs'=>$benchmark->official_url], JSON_UNESCAPED_SLASHES) !!}</script>
-<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'BreadcrumbList','itemListElement'=>[['@type'=>'ListItem','position'=>1,'name'=>'Home','item'=>route('home')],['@type'=>'ListItem','position'=>2,'name'=>'Benchmarks','item'=>route('benchmarks.index')],['@type'=>'ListItem','position'=>3,'name'=>$benchmark->name,'item'=>route('benchmarks.show',$benchmark)]]], JSON_UNESCAPED_SLASHES) !!}</script>
+<script type="application/ld+json">{!! json_encode(
+    $benchmarkDatasetSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+<script type="application/ld+json">{!! json_encode(
+    $benchmarkBreadcrumbSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
 @endpush
 @section('content')
 <section class="section"><div class="container"><div class="section-heading"><span class="eyebrow">VERIFIED AI BENCHMARK</span><h1>{{ $benchmark->name }} Leaderboard</h1><p>{{ $benchmark->description ?: $description }}</p></div>

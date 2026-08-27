@@ -11,7 +11,8 @@ class CompanySeoService
     {
         $title = $company->name.' AI Company Profile: Models, Tools & Latest News | AI Orbit';
 
-        $base = trim(strip_tags((string) $company->description));
+        $companyDescription = $this->normalizeText($company->description);
+        $base = $companyDescription;
         if ($base === '') {
             $base = 'Research '.$company->name.' on AI Orbit with linked AI models, tools, company information and industry updates.';
         }
@@ -29,7 +30,7 @@ class CompanySeoService
         }
 
         $canonical = route('companies.show', $company);
-        $logo = $company->logo_url;
+        $logo = $this->absoluteUrl($company->logo_url);
         $updated = $lastUpdated ?: $company->updated_at;
         $organizationId = $canonical.'#organization';
 
@@ -41,7 +42,7 @@ class CompanySeoService
             'url' => $company->website ?: $canonical,
             'mainEntityOfPage' => $canonical,
             'logo' => $logo,
-            'description' => trim(strip_tags((string) $company->description)) ?: null,
+            'description' => $companyDescription ?: null,
             'foundingDate' => $company->founded_year ? (string) $company->founded_year : null,
             'sameAs' => $company->website ? [$company->website] : null,
         ], fn ($value) => $value !== null && $value !== '' && $value !== []);
@@ -73,5 +74,34 @@ class CompanySeoService
         ];
 
         return compact('title', 'description', 'canonical', 'logo', 'organization', 'webPage', 'breadcrumb');
+    }
+    private function normalizeText(?string $value): string
+    {
+        $text = trim((string) $value);
+
+        for ($i = 0; $i < 5; $i++) {
+            $decoded = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            if ($decoded === $text) {
+                break;
+            }
+            $text = $decoded;
+        }
+
+        return trim(strip_tags($text));
+    }
+
+    private function absoluteUrl(?string $value): ?string
+    {
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return null;
+        }
+
+        if (Str::startsWith($value, ['http://', 'https://'])) {
+            return $value;
+        }
+
+        return url('/'.ltrim($value, '/'));
     }
 }

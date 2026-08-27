@@ -1,6 +1,54 @@
 @extends('frontend.layouts.app')
-@section('title','AI Categories — AI Orbit')
-@section('meta_description','Browse AI tools and models across curated product categories with structured subcategories, capabilities, use cases and supporting intelligence.')
+
+@php
+    $categoriesSeoTitle = 'AI Categories — Browse AI Tools and Models | AI Orbit';
+    $categoriesSeoDescription = 'Browse AI tools and models across curated product categories with structured subcategories, capabilities, use cases and supporting intelligence.';
+    $categoriesCanonical = route('categories.index');
+
+    $categoriesCollectionSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'CollectionPage',
+        'name' => 'AI Categories',
+        'description' => $categoriesSeoDescription,
+        'url' => $categoriesCanonical,
+    ];
+
+    $categoriesBreadcrumbSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'BreadcrumbList',
+        'itemListElement' => [
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 1,
+                'name' => 'Home',
+                'item' => route('home'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 2,
+                'name' => 'AI Categories',
+                'item' => $categoriesCanonical,
+            ],
+        ],
+    ];
+@endphp
+
+@section('title', $categoriesSeoTitle)
+@section('meta_description', $categoriesSeoDescription)
+@section('canonical', $categoriesCanonical)
+@section('robots', 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1')
+
+@push('head')
+<script type="application/ld+json">{!! json_encode(
+    $categoriesCollectionSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+<script type="application/ld+json">{!! json_encode(
+    $categoriesBreadcrumbSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+@endpush
+
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/discovery.css') }}">@endpush
 @section('content')
 <section class="discovery-hero category-hero">

@@ -1,7 +1,65 @@
 @extends('frontend.layouts.app')
 
-@section('title', 'AI Pricing Intelligence — Compare AI Tool Prices | AI Orbit')
-@section('meta_description', 'Track AI tool pricing, compare free and paid plans, API pricing and recent price changes.')
+@php
+    $pricingHasFilters = request()->hasAny([
+        'q',
+        'type',
+        'sort',
+    ]);
+
+    $pricingSeoTitle = 'AI Pricing Intelligence — Compare AI Tool Prices | AI Orbit';
+    $pricingSeoDescription = 'Track AI tool pricing, compare free and paid plans, API pricing and recent price changes.';
+    $pricingCanonical = route('pricing.index');
+
+    $pricingCollectionSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'CollectionPage',
+        'name' => 'AI Pricing Intelligence',
+        'description' => $pricingSeoDescription,
+        'url' => $pricingCanonical,
+    ];
+
+    $pricingBreadcrumbSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'BreadcrumbList',
+        'itemListElement' => [
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 1,
+                'name' => 'Home',
+                'item' => route('home'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 2,
+                'name' => 'Pricing Intelligence',
+                'item' => $pricingCanonical,
+            ],
+        ],
+    ];
+@endphp
+
+@section('title', $pricingSeoTitle)
+@section('meta_description', $pricingSeoDescription)
+@section('canonical', $pricingCanonical)
+
+@section(
+    'robots',
+    $pricingHasFilters
+        ? 'noindex,follow'
+        : 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'
+)
+
+@push('head')
+<script type="application/ld+json">{!! json_encode(
+    $pricingCollectionSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+<script type="application/ld+json">{!! json_encode(
+    $pricingBreadcrumbSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+@endpush
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/frontend/pricing-intelligence.css') }}">

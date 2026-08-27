@@ -1,6 +1,79 @@
 @extends('frontend.layouts.app')
-@section('title','Independent AI Tool & Model Reviews | AI Orbit')
-@section('meta_description','Browse AI Orbit editorial and community reviews for leading AI tools and models, with ratings, verdicts, strengths and trade-offs.')
+
+@php
+    $reviewsHasFilters = request()->hasAny([
+        'q',
+        'type',
+        'rating',
+        'sort',
+    ]);
+
+    $reviewsSeoTitle = 'Independent AI Tool and Model Reviews | AI Orbit';
+
+    if (!$reviewsHasFilters && $reviews->currentPage() > 1) {
+        $reviewsSeoTitle = 'AI Tool and Model Reviews — Page '
+            . $reviews->currentPage()
+            . ' | AI Orbit';
+    }
+
+    $reviewsSeoDescription = 'Browse AI Orbit editorial and community reviews for leading AI tools and models, with ratings, verdicts, strengths and trade-offs.';
+
+    $reviewsCanonical = route('reviews.index');
+
+    if (!$reviewsHasFilters && $reviews->currentPage() > 1) {
+        $reviewsCanonical = $reviews->url($reviews->currentPage());
+    }
+
+    $reviewsCollectionSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'CollectionPage',
+        'name' => 'Independent AI Tool and Model Reviews',
+        'description' => $reviewsSeoDescription,
+        'url' => $reviewsCanonical,
+    ];
+
+    $reviewsBreadcrumbSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'BreadcrumbList',
+        'itemListElement' => [
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 1,
+                'name' => 'Home',
+                'item' => route('home'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 2,
+                'name' => 'AI Reviews',
+                'item' => route('reviews.index'),
+            ],
+        ],
+    ];
+@endphp
+
+@section('title', $reviewsSeoTitle)
+@section('meta_description', $reviewsSeoDescription)
+@section('canonical', $reviewsCanonical)
+
+@section(
+    'robots',
+    $reviewsHasFilters
+        ? 'noindex,follow'
+        : 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'
+)
+
+@push('head')
+<script type="application/ld+json">{!! json_encode(
+    $reviewsCollectionSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+<script type="application/ld+json">{!! json_encode(
+    $reviewsBreadcrumbSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+@endpush
+
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/content.css') }}">@endpush
 
 @section('content')

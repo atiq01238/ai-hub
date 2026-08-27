@@ -16,16 +16,18 @@ class EntitySeoService
         $caps = collect($tool->capabilities ?? [])->filter()->take(4)->values();
         $platforms = collect($tool->platforms ?? [])->filter()->take(3)->values();
 
-        $title = $tool->seo_title ?: $tool->name.' Review: Features, Pricing, Alternatives & AI Models';
-        $description = $tool->meta_description ?: Str::limit(trim(
+        $title = $this->normalizeText(
+            $tool->seo_title ?: $tool->name.' Review: Features, Pricing, Alternatives & AI Models'
+        );
+        $description = $this->normalizeText($tool->meta_description ?: Str::limit(trim(
             'Explore '.$tool->name.($company ? ' by '.$company : '').
             ($category ? ', a '.$category.' AI tool' : ' AI tool').
             '. See features'.($pricing ? ', '.$pricing.' pricing' : ', pricing').
             ', supported platforms, linked AI models, benchmarks, reviews and alternatives.'
-        ), 158, '');
+        ), 158, ''));
 
         $faq = [
-            ['q' => 'What is '.$tool->name.'?', 'a' => Str::limit(strip_tags($tool->description ?: $tool->short_description ?: $tool->name.' is an AI tool listed in the AI Orbit directory.'), 360)],
+            ['q' => 'What is '.$tool->name.'?', 'a' => Str::limit($this->normalizeText($tool->description ?: $tool->short_description ?: $tool->name.' is an AI tool listed in the AI Orbit directory.'), 360)],
             ['q' => 'Who makes '.$tool->name.'?', 'a' => $company ? $tool->name.' is associated with '.$company.' in the AI Orbit directory.' : 'AI Orbit currently lists '.$tool->name.' as an independent AI product.'],
             ['q' => 'What is '.$tool->name.' best for?', 'a' => $caps->isNotEmpty() ? $tool->name.' is listed for capabilities including '.$caps->join(', ').'.' : 'Its current use cases are described in the features and overview sections on this page.'],
             ['q' => 'How much does '.$tool->name.' cost?', 'a' => $pricing ? 'AI Orbit currently classifies '.$tool->name.' pricing as '.$pricing.'. Check the pricing section and official provider site for current rates.' : 'Detailed pricing may change; use the pricing section and official provider site for the latest rates.'],
@@ -43,10 +45,11 @@ class EntitySeoService
         if ($model->context_window) $parts[] = 'context window '.$model->context_window;
         if ($caps->isNotEmpty()) $parts[] = 'capabilities including '.$caps->take(3)->join(', ');
         $parts[] = 'API pricing, benchmark results, related models and provider information';
-        $description = Str::limit(implode('. ', $parts).'.', 158, '');
+        $description = $this->normalizeText(Str::limit(implode('. ', $parts).'.', 158, ''));
+        $title = $this->normalizeText($title);
 
         $faq = [
-            ['q' => 'What is '.$model->name.'?', 'a' => Str::limit(strip_tags($model->capability_notes ?: $model->name.' is an AI model from '.$company.'.'), 360)],
+            ['q' => 'What is '.$model->name.'?', 'a' => Str::limit($this->normalizeText($model->capability_notes ?: $model->name.' is an AI model from '.$company.'.'), 360)],
             ['q' => 'Who created '.$model->name.'?', 'a' => $model->company ? $model->name.' is provided by '.$model->company->name.'.' : 'The provider is not currently listed in AI Orbit.'],
             ['q' => 'What can '.$model->name.' do?', 'a' => $caps->isNotEmpty() ? 'Its listed capabilities include '.$caps->join(', ').'.' : 'Capability details are shown on this model profile when verified data is available.'],
             ['q' => 'What is the context window of '.$model->name.'?', 'a' => $model->context_window ? 'AI Orbit currently lists the context window as '.$model->context_window.'.' : 'A verified context-window value is not currently listed.'],
@@ -86,7 +89,7 @@ class EntitySeoService
                 'description'=>$seo['description'],
                 'applicationCategory'=>$entity->category?->name ?: 'Artificial Intelligence',
                 'operatingSystem'=>collect($entity->platforms ?? [])->filter()->join(', ') ?: 'Web',
-                'image'=>$entity->logo_url,
+                'image'=>$this->absoluteUrl($entity->logo_url),
             ];
             if ($entity->company) $main['author']=['@type'=>'Organization','name'=>$entity->company->name,'url'=>route('companies.show',$entity->company)];
             if ((float)$entity->rating > 0 && $entity->reviews->count() > 0) $main['aggregateRating']=['@type'=>'AggregateRating','ratingValue'=>(float)$entity->rating,'bestRating'=>5,'ratingCount'=>$entity->reviews->count()];
@@ -98,7 +101,7 @@ class EntitySeoService
                 'name'=>$entity->name,
                 'url'=>$url,
                 'description'=>$seo['description'],
-                'image'=>$entity->logo_url,
+                'image'=>$this->absoluteUrl($entity->logo_url),
                 'about'=>[
                     '@type'=>'Thing',
                     'name'=>$entity->name,
@@ -111,5 +114,34 @@ class EntitySeoService
         }
 
         return [$main,$breadcrumb,$faq];
+    }
+    private function normalizeText(?string $value): string
+    {
+        $text = trim((string) $value);
+
+        for ($i = 0; $i < 5; $i++) {
+            $decoded = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            if ($decoded === $text) {
+                break;
+            }
+            $text = $decoded;
+        }
+
+        return trim(strip_tags($text));
+    }
+
+    private function absoluteUrl(?string $value): ?string
+    {
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return null;
+        }
+
+        if (Str::startsWith($value, ['http://', 'https://'])) {
+            return $value;
+        }
+
+        return url('/'.ltrim($value, '/'));
     }
 }

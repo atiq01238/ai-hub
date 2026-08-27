@@ -1,7 +1,60 @@
 @extends('frontend.layouts.app')
 
-@section('title', 'Trending AI — Tools, Models, News & Comparisons | AI Orbit')
-@section('meta_description', 'Explore high-interest AI tools, leading models, important AI news, companies and popular comparisons across AI Orbit.')
+@php
+    $trendingHasFilters = request()->hasAny(['tab']);
+    $trendingSeoTitle = 'Trending AI — Tools, Models, News and Comparisons | AI Orbit';
+    $trendingSeoDescription = 'Explore high-interest AI tools, leading models, important AI news, companies and popular comparisons across AI Orbit.';
+    $trendingCanonical = route('trending.index');
+
+    $trendingCollectionSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'CollectionPage',
+        'name' => 'Trending AI',
+        'description' => $trendingSeoDescription,
+        'url' => $trendingCanonical,
+    ];
+
+    $trendingBreadcrumbSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'BreadcrumbList',
+        'itemListElement' => [
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 1,
+                'name' => 'Home',
+                'item' => route('home'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 2,
+                'name' => 'Trending AI',
+                'item' => $trendingCanonical,
+            ],
+        ],
+    ];
+@endphp
+
+@section('title', $trendingSeoTitle)
+@section('meta_description', $trendingSeoDescription)
+@section('canonical', $trendingCanonical)
+
+@section(
+    'robots',
+    $trendingHasFilters
+        ? 'noindex,follow'
+        : 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'
+)
+
+@push('head')
+<script type="application/ld+json">{!! json_encode(
+    $trendingCollectionSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+<script type="application/ld+json">{!! json_encode(
+    $trendingBreadcrumbSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+@endpush
 
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/frontend/intelligence.css') }}">

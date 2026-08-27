@@ -6,6 +6,13 @@
         [$category, $subcategory]
     );
 
+    $subcategoryHasFilters = request()->hasAny(['sort']);
+    $subcategoryCanonical = $subcategoryUrl;
+
+    if (!$subcategoryHasFilters && $tools->currentPage() > 1) {
+        $subcategoryCanonical = $tools->url($tools->currentPage());
+    }
+
     $subcategorySeoTitle = $subcategory->meta_title
         ?: $subcategory->name . ' AI Tools | AI Orbit';
 
@@ -16,16 +23,18 @@
         $subcategorySeoTitle
     );
 
-    // Fix old/double encoded entities.
-    $subcategorySeoTitle = html_entity_decode(
-        html_entity_decode(
+    // Fully normalize old/double encoded entities.
+    for ($i = 0; $i < 5; $i++) {
+        $decoded = html_entity_decode(
             $subcategorySeoTitle,
             ENT_QUOTES | ENT_HTML5,
             'UTF-8'
-        ),
-        ENT_QUOTES | ENT_HTML5,
-        'UTF-8'
-    );
+        );
+        if ($decoded === $subcategorySeoTitle) {
+            break;
+        }
+        $subcategorySeoTitle = $decoded;
+    }
 
     $subcategorySeoDescription = $subcategory->meta_description
         ?: $subcategory->short_description
@@ -33,24 +42,32 @@
             . $subcategory->name
             . ' on AI Orbit.';
 
-    $subcategorySeoDescription = html_entity_decode(
-        html_entity_decode(
+    for ($i = 0; $i < 5; $i++) {
+        $decoded = html_entity_decode(
             $subcategorySeoDescription,
             ENT_QUOTES | ENT_HTML5,
             'UTF-8'
-        ),
-        ENT_QUOTES | ENT_HTML5,
-        'UTF-8'
-    );
+        );
+        if ($decoded === $subcategorySeoDescription) {
+            break;
+        }
+        $subcategorySeoDescription = $decoded;
+    }
+    $subcategorySeoDescription = trim(strip_tags($subcategorySeoDescription));
+
+    if (!$subcategoryHasFilters && $tools->currentPage() > 1) {
+        $subcategorySeoTitle = $subcategory->name
+            . ' AI Tools — Page '
+            . $tools->currentPage()
+            . ' | AI Orbit';
+    }
 
     $subcategorySchema = [
         '@' . 'context' => 'https://schema.org',
         '@' . 'type' => 'CollectionPage',
         'name' => $subcategory->name,
-        'description' => $subcategory->description
-            ?: $subcategory->short_description
-            ?: $subcategorySeoDescription,
-        'url' => $subcategoryUrl,
+        'description' => $subcategorySeoDescription,
+        'url' => $subcategoryCanonical,
     ];
 
     $subcategoryBreadcrumbSchema = [
@@ -87,14 +104,14 @@
 
 @section('title', $subcategorySeoTitle)
 @section('meta_description', $subcategorySeoDescription)
-@section('canonical', $subcategoryUrl)
+@section('canonical', $subcategoryCanonical)
 
 @section(
     'robots',
-    request()->query()
+    (!$subcategory->is_indexable || $subcategoryHasFilters)
         ? 'noindex,follow'
         : (($tools->total() + $models->count()) > 0
-            ? 'index,follow,max-image-preview:large'
+            ? 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'
             : 'noindex,follow')
 )
 

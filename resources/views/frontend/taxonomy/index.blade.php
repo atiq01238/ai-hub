@@ -1,13 +1,59 @@
 @extends('frontend.layouts.app')
+
 @php
     $isFeature = $kind === 'features';
-    $title = $isFeature ? 'AI Features & Capabilities' : 'AI Use Cases';
+    $title = $isFeature ? 'AI Features and Capabilities' : 'AI Use Cases';
     $description = $isFeature
         ? 'Explore normalized AI capabilities across tools and models, from reasoning and research to image, audio, coding and agents.'
         : 'Find AI tools and models by the work you want to accomplish, from research and coding to creative production and automation.';
+
+    $taxonomyIndexRoute = $isFeature ? 'features.index' : 'use-cases.index';
+    $taxonomyCanonical = route($taxonomyIndexRoute);
+
+    $taxonomyCollectionSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'CollectionPage',
+        'name' => $title,
+        'description' => $description,
+        'url' => $taxonomyCanonical,
+    ];
+
+    $taxonomyBreadcrumbSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'BreadcrumbList',
+        'itemListElement' => [
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 1,
+                'name' => 'Home',
+                'item' => route('home'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 2,
+                'name' => $title,
+                'item' => $taxonomyCanonical,
+            ],
+        ],
+    ];
 @endphp
-@section('title',$title.' — AI Orbit')
-@section('meta_description',$description)
+
+@section('title', $title . ' | AI Orbit')
+@section('meta_description', $description)
+@section('canonical', $taxonomyCanonical)
+@section('robots', 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1')
+
+@push('head')
+<script type="application/ld+json">{!! json_encode(
+    $taxonomyCollectionSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+<script type="application/ld+json">{!! json_encode(
+    $taxonomyBreadcrumbSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+@endpush
+
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/discovery.css') }}">@endpush
 @section('content')
 <section class="category-directory-hero"><div class="category-directory-inner"><span class="eyebrow"><i data-lucide="{{ $isFeature ? 'sparkles':'target' }}"></i> Taxonomy v2</span><h1>{{ $title }}</h1><p>{{ $description }}</p><div class="category-hero-actions"><a class="primary-action" href="{{ route('tools.index') }}">Browse AI tools <i data-lucide="arrow-right"></i></a><a class="secondary-action" href="{{ $isFeature ? route('use-cases.index') : route('features.index') }}">{{ $isFeature ? 'Explore use cases':'Explore features' }}</a></div></div></section>

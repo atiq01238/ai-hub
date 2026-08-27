@@ -4,15 +4,17 @@ Allow: /
 # Private, transactional and duplicate-content areas
 Disallow: /admin
 Disallow: /account
-Disallow: /login
-Disallow: /signup
-Disallow: /password
-Disallow: /email/verify
-Disallow: /auth/social
+Disallow: /auth/
+Disallow: /email/
 Disallow: /saved
+Disallow: /user/
+Disallow: /my/
+Disallow: /login/2fa
 Disallow: /compare/builder
 Disallow: /compare/preview
-Disallow: /submissions
+Disallow: /suggest-tool
+Disallow: /community/
+Disallow: /search/suggest
 Disallow: /test-lab
 
 Sitemap: https://ai-orbit.online/sitemap.xml

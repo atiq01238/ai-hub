@@ -92,9 +92,8 @@
     $comparisonPageSchema = [
         '@' . 'context' => 'https://schema.org',
         '@' . 'type' => 'WebPage',
-        'name' => $title,
-        'description' => $comparison->summary
-            ?: 'Side-by-side AI comparison of features, pricing, benchmarks and capabilities.',
+        'name' => $comparisonSeoTitle,
+        'description' => $comparisonSeoDescription,
         'url' => $comparisonUrl,
         'dateModified' => optional($comparison->last_verified_at)->toAtomString(),
     ];
@@ -106,13 +105,19 @@
             [
                 '@' . 'type' => 'ListItem',
                 'position' => 1,
+                'name' => 'Home',
+                'item' => route('home'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 2,
                 'name' => 'Comparisons',
                 'item' => route('comparisons.index'),
             ],
             [
                 '@' . 'type' => 'ListItem',
-                'position' => 2,
-                'name' => $title,
+                'position' => 3,
+                'name' => $comparisonSeoTitle,
                 'item' => $comparisonUrl,
             ],
         ],
@@ -185,12 +190,6 @@
     </div>
 </section>
 
-@if(!$isPreview && $comparisonFaq->isNotEmpty())
-@push('head')
-<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'WebPage','name'=>$title,'description'=>$comparison->summary,'dateModified'=>optional($comparison->last_verified_at)->toAtomString(),'breadcrumb'=>['@type'=>'BreadcrumbList','itemListElement'=>[['@type'=>'ListItem','position'=>1,'name'=>'Comparisons','item'=>route('comparisons.index')],['@type'=>'ListItem','position'=>2,'name'=>$title,'item'=>route('comparisons.show',$comparison)]]]], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
-@if($comparison->seo_faq)<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'FAQPage','mainEntity'=>collect($comparison->seo_faq)->map(fn($f)=>['@type'=>'Question','name'=>$f['question'],'acceptedAnswer'=>['@type'=>'Answer','text'=>$f['answer']]])->values()], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>@endif
-@endpush
-@endif
 <section class="comparison-detail-body">
 <div class="compare-container">
     <div class="comparison-verdict">

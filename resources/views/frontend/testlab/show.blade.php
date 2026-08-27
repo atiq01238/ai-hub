@@ -1,9 +1,40 @@
 @extends('frontend.layouts.app')
-@section('title',$test->seo_title)
-@section('meta_description',$test->seo_description)
+
+@php
+    $testLabCanonical = route('testlab.show', $test);
+    $testLabDatasetSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'Dataset',
+        'name' => $test->name,
+        'description' => $test->seo_description,
+        'url' => $testLabCanonical,
+        'datePublished' => optional($test->published_at)->toIso8601String(),
+        'dateModified' => optional($test->updated_at)->toIso8601String(),
+        'measurementTechnique' => $test->runModeLabel() . ' with a locked shared prompt and test-specific weighted rubric',
+        'variableMeasured' => collect($criteria)->map(fn ($criterion) => [
+            '@' . 'type' => 'PropertyValue',
+            'name' => $criterion['label'],
+            'description' => $criterion['description'],
+            'valueReference' => $criterion['weight'] . '% weight',
+        ])->values()->all(),
+        'creator' => [
+            '@' . 'type' => 'Organization',
+            'name' => 'AI Orbit',
+        ],
+    ];
+@endphp
+
+@section('title', $test->seo_title)
+@section('meta_description', $test->seo_description)
+@section('canonical', $testLabCanonical)
 @section('og_type', 'article')
+@section('robots', 'noindex,follow')
+
 @push('head')
-<script type="application/ld+json">{!! json_encode(['@context'=>'https://schema.org','@type'=>'Dataset','name'=>$test->name,'description'=>$test->seo_description,'url'=>route('testlab.show',$test),'datePublished'=>optional($test->published_at)->toIso8601String(),'dateModified'=>optional($test->updated_at)->toIso8601String(),'measurementTechnique'=>$test->runModeLabel().' with a locked shared prompt and test-specific weighted rubric','variableMeasured'=>collect($criteria)->map(fn($c)=>['@type'=>'PropertyValue','name'=>$c['label'],'description'=>$c['description'],'valueReference'=>$c['weight'].'% weight'])->values()->all(),'creator'=>['@type'=>'Organization','name'=>'AI Orbit']], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
+<script type="application/ld+json">{!! json_encode(
+    $testLabDatasetSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
 @endpush
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/testlab.css') }}">@endpush
 @section('content')

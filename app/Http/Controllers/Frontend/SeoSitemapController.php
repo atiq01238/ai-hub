@@ -10,10 +10,12 @@ use App\Models\Comparison;
 use App\Models\Category;
 use App\Models\Feature;
 use App\Models\NewsItem;
+use App\Models\Review;
 use App\Models\Subcategory;
 use App\Models\Tool;
 use App\Models\UseCase;
 use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
 
 class SeoSitemapController extends Controller
 {
@@ -25,6 +27,8 @@ class SeoSitemapController extends Controller
             route('sitemap.models'),
             route('sitemap.news'),
             route('sitemap.articles'),
+            route('sitemap.reviews'),
+            route('sitemap.pricing'),
             route('sitemap.comparisons'),
             route('sitemap.benchmarks'),
             route('sitemap.taxonomy'),
@@ -59,6 +63,44 @@ class SeoSitemapController extends Controller
         return $this->xml($items, fn($item)=>route('articles.show',$item));
     }
 
+
+    public function reviews(): Response
+    {
+        $items = Review::query()
+            ->published()
+            ->where(function ($query) {
+                $query->whereHas('tool', fn ($tool) => $tool->where('status', 'published'))
+                    ->orWhereHas('model', fn ($model) => $model->whereIn('status', ['active', 'preview']));
+            })
+            ->select(['id', 'updated_at'])
+            ->orderByDesc('updated_at')
+            ->get();
+
+        return $this->xml($items, fn ($item) => route('reviews.show', $item));
+    }
+
+    public function pricing(): Response
+    {
+        $items = Tool::query()
+            ->where('status', 'published')
+            ->whereHas('pricingPlans')
+            ->select(['id', 'slug', 'updated_at'])
+            ->withMax('pricingPlans', 'updated_at')
+            ->orderBy('id')
+            ->get()
+            ->each(function (Tool $tool) {
+                if (! $tool->pricing_plans_max_updated_at) {
+                    return;
+                }
+
+                $pricingUpdatedAt = Carbon::parse($tool->pricing_plans_max_updated_at);
+                if (! $tool->updated_at || $pricingUpdatedAt->gt($tool->updated_at)) {
+                    $tool->updated_at = $pricingUpdatedAt;
+                }
+            });
+
+        return $this->xml($items, fn ($item) => route('pricing.show', $item));
+    }
 
     public function comparisons(): Response
     {

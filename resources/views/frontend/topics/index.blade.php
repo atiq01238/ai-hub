@@ -1,6 +1,54 @@
 @extends('frontend.layouts.app')
-@section('title','AI Topics, Guides & Analysis — AI Orbit')
-@section('meta_description','Explore AI Orbit editorial topics including guides, model releases, research, benchmarks, pricing analysis and industry intelligence.')
+
+@php
+    $topicsSeoTitle = 'AI Topics, Guides and Analysis | AI Orbit';
+    $topicsSeoDescription = 'Explore AI Orbit editorial topics including guides, model releases, research, benchmarks, pricing analysis and industry intelligence.';
+    $topicsCanonical = route('topics.index');
+
+    $topicsCollectionSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'CollectionPage',
+        'name' => 'AI Topics, Guides and Analysis',
+        'description' => $topicsSeoDescription,
+        'url' => $topicsCanonical,
+    ];
+
+    $topicsBreadcrumbSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'BreadcrumbList',
+        'itemListElement' => [
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 1,
+                'name' => 'Home',
+                'item' => route('home'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 2,
+                'name' => 'AI Topics',
+                'item' => $topicsCanonical,
+            ],
+        ],
+    ];
+@endphp
+
+@section('title', $topicsSeoTitle)
+@section('meta_description', $topicsSeoDescription)
+@section('canonical', $topicsCanonical)
+@section('robots', 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1')
+
+@push('head')
+<script type="application/ld+json">{!! json_encode(
+    $topicsCollectionSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+<script type="application/ld+json">{!! json_encode(
+    $topicsBreadcrumbSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+@endpush
+
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/discovery.css') }}">@endpush
 @section('content')
 <section class="category-directory-hero"><div class="category-directory-inner"><span class="eyebrow"><i data-lucide="newspaper"></i> Editorial taxonomy</span><h1>AI Topics & Analysis</h1><p>Browse AI Orbit articles by a dedicated content taxonomy, separate from product categories.</p><div class="category-hero-actions"><a class="primary-action" href="{{ route('articles.index') }}">All articles <i data-lucide="arrow-right"></i></a><a class="secondary-action" href="{{ route('categories.index') }}">Product categories</a></div></div></section>

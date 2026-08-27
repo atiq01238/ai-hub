@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
 
-@section('title', 'AI Orbit — Discover & Compare AI Tools, Models, Pricing & Benchmarks')
+@section('title', 'AI Orbit — Compare AI Tools, Models, Pricing & Benchmarks')
 @section('meta_description', 'Discover and compare AI tools and models, track pricing, explore verified benchmarks and follow AI news on AI Orbit.')
 
 @push('styles')

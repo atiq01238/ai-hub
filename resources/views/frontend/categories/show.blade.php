@@ -51,15 +51,23 @@
     );
 
     $categoryUrl = route('categories.show', $category);
+    $categoryHasFilters = request()->hasAny(['sort']);
+    $categoryCanonical = $categoryUrl;
+
+    if (!$categoryHasFilters && $tools->currentPage() > 1) {
+        $categoryCanonical = $tools->url($tools->currentPage());
+        $categorySeoTitle = $category->name
+            . ' AI Tools and Models — Page '
+            . $tools->currentPage()
+            . ' | AI Orbit';
+    }
 
     $categorySchema = [
         '@' . 'context' => 'https://schema.org',
         '@' . 'type' => 'CollectionPage',
         'name' => $category->name,
-        'description' => $category->description
-            ?: $category->short_description
-            ?: $categorySeoDescription,
-        'url' => $categoryUrl,
+        'description' => $categorySeoDescription,
+        'url' => $categoryCanonical,
     ];
 
     $categoryBreadcrumbSchema = [
@@ -90,14 +98,14 @@
 
 @section('title', $categorySeoTitle)
 @section('meta_description', $categorySeoDescription)
-@section('canonical', $categoryUrl)
+@section('canonical', $categoryCanonical)
 
 @section(
     'robots',
-    request()->query()
+    (!$category->is_indexable || $categoryHasFilters)
         ? 'noindex,follow'
         : (($stats['tools'] + $stats['models'] + $stats['articles'] + $stats['news']) > 0
-            ? 'index,follow,max-image-preview:large'
+            ? 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'
             : 'noindex,follow')
 )
 

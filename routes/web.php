@@ -116,6 +116,8 @@ Route::get('/sitemap-tools.xml', [SeoSitemapController::class, 'tools'])->name('
 Route::get('/sitemap-models.xml', [SeoSitemapController::class, 'models'])->name('sitemap.models');
 Route::get('/sitemap-news.xml', [SeoSitemapController::class, 'news'])->name('sitemap.news');
 Route::get('/sitemap-articles.xml', [SeoSitemapController::class, 'articles'])->name('sitemap.articles');
+Route::get('/sitemap-reviews.xml', [SeoSitemapController::class, 'reviews'])->name('sitemap.reviews');
+Route::get('/sitemap-pricing.xml', [SeoSitemapController::class, 'pricing'])->name('sitemap.pricing');
 Route::get('/sitemap-comparisons.xml', [SeoSitemapController::class, 'comparisons'])->name('sitemap.comparisons');
 Route::get('/sitemap-benchmarks.xml', [SeoSitemapController::class, 'benchmarks'])->name('sitemap.benchmarks');
 Route::get('/sitemap-pages.xml', [SeoSitemapController::class, 'pages'])->name('sitemap.pages');
