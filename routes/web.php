@@ -99,6 +99,9 @@ Route::get('/ai-tools', [FrontendToolController::class, 'index'])->name('tools.i
 Route::get('/ai-tools/{tool:slug}', [FrontendToolController::class, 'show'])->name('tools.show');
 Route::get('/ai-models', [FrontendModelController::class, 'index'])->name('models.index');
 Route::get('/ai-models/{model:slug}', [FrontendModelController::class, 'show'])->name('models.show');
+// Legacy public news URL: preserve old links and avoid duplicate/404 SEO signals.
+Route::redirect('/news', '/ai-news', 301);
+
 Route::get('/ai-news', [FrontendNewsController::class, 'index'])->name('news.index');
 Route::get('/ai-news/{news:slug}', [FrontendNewsController::class, 'show'])->name('news.show');
 // Published comparisons remain public for discovery/SEO. Creating a custom
