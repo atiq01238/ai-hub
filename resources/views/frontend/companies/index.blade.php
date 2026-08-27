@@ -1,14 +1,77 @@
 @extends('frontend.layouts.app')
-@section('title','AI Companies Directory — Leading AI Labs & Providers | AI Orbit')
-@section('meta_description','Explore leading AI companies, research labs and product providers by tools, models, founding year and latest AI activity.')
+@php
+    $companiesHasFilters = request()->hasAny([
+        'q',
+        'status',
+        'era',
+        'sort',
+    ]);
+
+    $companiesSeoTitle = 'AI Companies Directory — Leading AI Labs and Providers | AI Orbit';
+
+    if (!$companiesHasFilters && $companies->currentPage() > 1) {
+        $companiesSeoTitle = 'AI Companies Directory — Page '
+            . $companies->currentPage()
+            . ' | AI Orbit';
+    }
+
+    $companiesSeoDescription = 'Explore leading AI companies, research labs and product providers by tools, models, founding year and latest AI activity.';
+
+    $companiesCanonical = route('companies.index');
+
+    if (!$companiesHasFilters && $companies->currentPage() > 1) {
+        $companiesCanonical = $companies->url($companies->currentPage());
+    }
+
+    $companiesCollectionSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'CollectionPage',
+        'name' => 'AI Companies Directory',
+        'description' => $companiesSeoDescription,
+        'url' => $companiesCanonical,
+    ];
+
+    $companiesBreadcrumbSchema = [
+        '@' . 'context' => 'https://schema.org',
+        '@' . 'type' => 'BreadcrumbList',
+        'itemListElement' => [
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 1,
+                'name' => 'Home',
+                'item' => route('home'),
+            ],
+            [
+                '@' . 'type' => 'ListItem',
+                'position' => 2,
+                'name' => 'AI Companies',
+                'item' => route('companies.index'),
+            ],
+        ],
+    ];
+@endphp
+
+@section('title', $companiesSeoTitle)
+@section('meta_description', $companiesSeoDescription)
+@section('canonical', $companiesCanonical)
+
+@section(
+    'robots',
+    $companiesHasFilters
+        ? 'noindex,follow'
+        : 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'
+)
+
 @push('head')
-<script type="application/ld+json">{!! json_encode([
-    '@context' => 'https://schema.org',
-    '@type' => 'CollectionPage',
-    'name' => 'AI Companies Directory',
-    'url' => route('companies.index'),
-    'description' => 'Explore leading AI companies, research labs and product providers by tools, models, founding year and latest AI activity.',
-], JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE) !!}</script>
+<script type="application/ld+json">{!! json_encode(
+    $companiesCollectionSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+
+<script type="application/ld+json">{!! json_encode(
+    $companiesBreadcrumbSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
 @endpush
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/companies.css') }}">@endpush
 @section('content')
