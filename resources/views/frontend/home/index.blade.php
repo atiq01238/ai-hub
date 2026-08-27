@@ -42,13 +42,13 @@
 
 <div class="page-body">
     <section class="trending-strip panel">
-        <div class="trend-label"><span>🔥</span><strong>Trending on AI Orbit</strong></div>
+        <div class="trend-label"><span>🔥</span><strong>Trending AI.</strong></div>
         <div class="trend-items">
             @foreach($trendingTools as $tool)
                 <a href="{{ route('tools.show', $tool) }}" class="trend-item">
                     <img loading="lazy" decoding="async" src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo">
                     <span>{{ $tool->name }}</span>
-                    <b>{{ $tool->trend_label }}</b>
+                    <b>↑ {{ max(8, min(39, (int) round($tool->popularity / 3))) }}%</b>
                 </a>
             @endforeach
         </div>
@@ -96,7 +96,6 @@
                             <div class="tool-rating"><span>★ {{ number_format((float)$tool->rating,1) }}/5</span></div>
                         </div>
                         <div class="tool-card-meta-line">
-                            <span class="score">@if($tool->benchmark_score !== null)★ {{ number_format((float)$tool->benchmark_score,1) }}/100 @else Benchmark N/A @endif</span>
                             <span class="badge">{{ implode(' + ', array_slice($tool->pricing_models ?? [],0,2)) ?: 'Explore' }}</span>
                         </div>
                         <p>{{ $tool->short_description }}</p>

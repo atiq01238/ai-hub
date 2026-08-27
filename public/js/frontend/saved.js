@@ -249,19 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Tool detail: always show Write Review. The route itself is auth protected.
-    const toolSave = document.querySelector('.tool-hero-actions [data-save-item][data-save-type="tool"]');
-    if (toolSave) {
-        const container = toolSave.parentElement;
-        if (container && !container.querySelector('[data-write-review]')) {
-            const link = document.createElement('a');
-            link.href = `/tools/${encodeURIComponent(toolSave.dataset.saveId)}/review`;
-            link.dataset.writeReview = 'true';
-            link.className = 'detail-secondary-btn';
-            link.innerHTML = '<i data-lucide="star"></i><span>Write Review</span>';
-            container.appendChild(link);
-        }
-    }
+    // Tool/model review CTA is managed by community.js to avoid duplicate buttons.
 
     // Review detail: Helpful vote.
     const reviewMatch = window.location.pathname.match(/^\/reviews\/(\d+)\/?$/);

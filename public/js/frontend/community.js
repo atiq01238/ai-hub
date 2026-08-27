@@ -82,7 +82,7 @@
             ? document.querySelector('.tool-hero-actions')
             : document.querySelector('.model-detail-actions');
 
-        if (!actions || actions.querySelector('[data-community-review-cta]')) return;
+        if (!actions || actions.querySelector('[data-community-review-cta], [data-write-review]')) return;
 
         const link = document.createElement('a');
         link.dataset.communityReviewCta = '1';

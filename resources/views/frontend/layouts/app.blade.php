@@ -114,10 +114,7 @@
         <a class="{{ request()->routeIs('articles.*') ? 'active' : '' }}" href="{{ route('articles.index') }}">Articles</a>
         <a class="{{ request()->routeIs('comparisons.*') ? 'active' : '' }}" href="{{ route('comparisons.index') }}">Compare</a>
         <a class="{{ request()->routeIs('pricing.*') ? 'active' : '' }}" href="{{ route('pricing.index') }}">Pricing</a>
-        @guest
-            <a class="{{ request()->routeIs('signup') ? 'active' : '' }}" href="{{ route('signup') }}">Sign Up</a>
-        @endguest
-        <a class="{{ request()->routeIs('about') ? 'active' : '' }}" href="{{ route('about') }}">About AI Orbit</a>
+        <a class="{{ request()->routeIs('search.*') ? 'active' : '' }}" href="{{ route('search.index') }}">Search</a>
     </div>
 
     <div class="site-search-overlay" data-site-search-modal hidden aria-hidden="true" inert>
@@ -193,10 +190,10 @@
     </footer>
 </div>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-<script src="{{ asset('js/frontend/app.js') }}?v=20260827-mobile-nav3"></script>
+<script src="{{ asset('js/frontend/app.js') }}"></script>
 <script src="{{ asset('js/frontend/search-intelligence.js') }}?v=20260827-search2"></script>
-<script src="{{ asset('js/frontend/saved.js') }}"></script>
-<script src="{{ asset('js/frontend/community.js') }}"></script>
+<script src="{{ asset('js/frontend/saved.js') }}?v=20260827-reviewfix1"></script>
+<script src="{{ asset('js/frontend/community.js') }}?v=20260827-reviewfix1"></script>
 @stack('scripts')
 </body>
 </html>
