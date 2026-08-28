@@ -8,22 +8,17 @@ use App\Models\Company;
 use App\Models\Comparison;
 use App\Models\NewsItem;
 use App\Models\Tool;
+use App\Services\Analytics\ToolTrendingService;
 use Illuminate\Http\Request;
 
 class TrendingController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, ToolTrendingService $toolTrending)
     {
         $tab = $request->string('tab')->toString();
         $tab = in_array($tab, ['all', 'tools', 'models', 'news', 'companies', 'comparisons'], true) ? $tab : 'all';
 
-        $tools = Tool::query()
-            ->with(['company', 'category'])
-            ->where('status', 'published')
-            ->orderByDesc('popularity')
-            ->orderByDesc('rating')
-            ->limit(12)
-            ->get();
+        $tools = $toolTrending->homepage(12)->loadMissing(['company', 'category']);
 
         $models = AiModel::query()
             ->with(['company', 'tool'])

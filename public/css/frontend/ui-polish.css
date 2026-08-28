@@ -287,3 +287,15 @@ a{overflow-wrap:anywhere}
 .comparison-mini-card p{color:#909dbc}
 .company-card>svg{color:#8290b2}
 
+
+
+/* ===== 2026-08-28: mobile drawer interaction polish ===== */
+@media (max-width:1100px){
+  body.mobile-menu-open{touch-action:auto!important}
+  .mobile-nav{-webkit-overflow-scrolling:touch}
+  .mobile-nav > a{gap:10px!important;justify-content:flex-start!important;text-align:left!important;touch-action:manipulation!important;-webkit-tap-highlight-color:rgba(111,87,255,.16)}
+  .mobile-nav > a svg{width:16px!important;height:16px!important;flex:0 0 16px;color:#9eaaff}
+  .mobile-nav > a.mobile-auth-link{border-color:#34436e!important}
+  .mobile-nav > a.mobile-signup-link{background:linear-gradient(135deg,#5b46f6,#812be8)!important;border-color:#765cff!important;color:#fff!important;font-weight:800!important}
+  .mobile-nav > a.mobile-signup-link svg{color:#fff}
+}

@@ -80,10 +80,10 @@
 
     @if(in_array($tab,['all','tools']))
     <section class="intel-section trend-tools-section">
-        <div class="intel-section-head"><div><span class="intel-kicker"><i data-lucide="flame"></i> High-interest products</span><h2>Trending AI Tools</h2><p>Ranked by the popularity signal already tracked in the AI Orbit tool dataset, with rating as a secondary signal.</p></div><a href="{{ route('tools.index',['sort'=>'popular']) }}">Explore tools <i data-lucide="arrow-right"></i></a></div>
+        <div class="intel-section-head"><div><span class="intel-kicker"><i data-lucide="flame"></i> 30-day first-party activity</span><h2>Trending AI Tools</h2><p>Ranked from AI Orbit's own rolling 30-day unique tool views, search-result clicks and direct tool searches. Movement compares the current 30 days with the previous 30 days.</p></div><a href="{{ route('tools.index',['sort'=>'popular']) }}">Explore tools <i data-lucide="arrow-right"></i></a></div>
         <div class="trend-tool-grid">
             @foreach($tools->take($tab==='tools'?12:8) as $rank=>$tool)
-                <a class="trend-tool-card" href="{{ route('tools.show',$tool) }}"><span class="trend-rank">#{{ $rank+1 }}</span><img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo"><div><small>{{ $tool->category?->name ?? $tool->company?->name ?? 'AI Tool' }}</small><h3>{{ $tool->name }}</h3><p>{{ \Illuminate\Support\Str::limit($tool->short_description ?: $tool->description,76) }}</p><span class="trend-meta"><i data-lucide="star"></i>{{ number_format((float)$tool->rating,1) }} <b>•</b> Popularity {{ number_format((int)$tool->popularity) }}</span></div><i data-lucide="arrow-up-right" class="card-arrow"></i></a>
+                <a class="trend-tool-card" href="{{ route('tools.show',$tool) }}"><span class="trend-rank">#{{ $rank+1 }}</span><img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo"><div><small>{{ $tool->category?->name ?? $tool->company?->name ?? 'AI Tool' }}</small><h3>{{ $tool->name }}</h3><p>{{ \Illuminate\Support\Str::limit($tool->short_description ?: $tool->description,76) }}</p><span class="trend-meta" title="{{ $tool->trend_details }}"><i data-lucide="activity"></i>{{ number_format((int)$tool->trend_current_views) }} views <b>•</b> {{ number_format((int)$tool->trend_current_clicks) }} clicks <b>•</b> {{ number_format((int)$tool->trend_current_searches) }} searches <b>•</b> <strong>{{ $tool->trend_label }}</strong></span></div><i data-lucide="arrow-up-right" class="card-arrow"></i></a>
             @endforeach
         </div>
     </section>
@@ -133,6 +133,6 @@
     </section>
     @endif
 
-    <section class="trend-note"><i data-lucide="info"></i><div><strong>What “trending” means here</strong><p>This page uses the signals currently available in your database — tool popularity, benchmark performance, editorial news importance, ecosystem activity and comparison views. It does not invent percentage growth or external traffic that AI Orbit has not measured.</p></div></section>
+    <section class="trend-note"><i data-lucide="info"></i><div><strong>What “trending” means here</strong><p>For AI tools, AI Orbit now uses first-party rolling 30-day activity: unique profile views, search-result clicks and direct tool searches. Other sections continue to use their verified internal signals such as benchmark performance, editorial news importance, ecosystem activity and comparison views. No external or fabricated traffic percentage is used.</p></div></section>
 </div>
 @endsection

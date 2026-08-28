@@ -18,8 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
         menuButton.setAttribute('aria-expanded', open ? 'true' : 'false');
         menuButton.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
         mobileNav.setAttribute('aria-hidden', open ? 'false' : 'true');
-        if (open) mobileNav.removeAttribute('inert');
-        else mobileNav.setAttribute('inert', '');
     };
 
     menuButton?.setAttribute('aria-expanded', 'false');
@@ -29,13 +27,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     mobileNavBackdrop?.addEventListener('click', () => setMobileMenu(false));
 
-    // Do not make the navigation inert during the link's own click event.
-    // Some mobile browsers can cancel the anchor's default navigation when
-    // its ancestor becomes inert synchronously. Close on the next task instead.
-    mobileNav?.querySelectorAll('a').forEach((link) => {
-        link.addEventListener('click', () => {
-            window.setTimeout(() => setMobileMenu(false), 0);
-        });
+    // Mobile navigation must never depend on a browser preserving an anchor's
+    // default action while the drawer is being hidden. Handle same-window links
+    // explicitly so taps navigate reliably on Chrome/Safari/Android WebView.
+    mobileNav?.addEventListener('click', (event) => {
+        const link = event.target.closest('a[href]');
+        if (!link || event.defaultPrevented) return;
+
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+            setMobileMenu(false);
+            return;
+        }
+
+        const target = (link.getAttribute('target') || '').toLowerCase();
+        if (target && target !== '_self') {
+            setMobileMenu(false);
+            return;
+        }
+
+        const href = link.href;
+        if (!href) return;
+
+        event.preventDefault();
+        setMobileMenu(false);
+        window.location.assign(href);
     });
 
     document.addEventListener('keydown', (event) => {
@@ -43,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     window.addEventListener('resize', () => {
-        if (window.innerWidth > 1100) setMobileMenu(false);
+        if (window.innerWidth > 1240) setMobileMenu(false);
     });
 
     const search = document.getElementById('home-global-search');

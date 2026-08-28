@@ -1379,3 +1379,21 @@ a{overflow-wrap:anywhere}
     .home-hero-reference.search-suggestions-open .search-live-copy span{font-size:9px}
     .home-hero-reference.search-suggestions-open .search-live-footer{padding:8px 9px}
 }
+
+
+/* ===== 2026-08-28: real trending states + reliable mobile navigation ===== */
+.trend-item b.trend-up{color:var(--green,#42e6a4)}
+.trend-item b.trend-down{color:#ff7185}
+.trend-item b.trend-flat{color:#92a0bf}
+
+@media (max-width:1100px){
+  /* `touch-action:none` on the open body can suppress taps on links in some
+     mobile browsers. Scrolling is already locked with overflow:hidden. */
+  body.mobile-menu-open{touch-action:auto!important}
+  .mobile-nav{-webkit-overflow-scrolling:touch}
+  .mobile-nav > a{gap:10px!important;touch-action:manipulation!important;-webkit-tap-highlight-color:rgba(111,87,255,.16)}
+  .mobile-nav > a svg{width:16px!important;height:16px!important;flex:0 0 16px;color:#9eaaff}
+  .mobile-nav > a.mobile-auth-link{border-color:#34436e!important}
+  .mobile-nav > a.mobile-signup-link{background:linear-gradient(135deg,#5b46f6,#812be8)!important;border-color:#765cff!important;color:#fff!important;font-weight:800!important}
+  .mobile-nav > a.mobile-signup-link svg{color:#fff}
+}

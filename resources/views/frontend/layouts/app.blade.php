@@ -34,14 +34,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
     @if(request()->routeIs('home'))
-        <link rel="stylesheet" href="{{ asset('css/frontend/home-performance.css') }}?v=20260827-search2">
+        <link rel="stylesheet" href="{{ asset('css/frontend/home-performance.css') }}?v=20260828-trendnav1">
     @else
-        <link rel="stylesheet" href="{{ asset('css/frontend/app.css') }}">
+        <link rel="stylesheet" href="{{ asset('css/frontend/app.css') }}?v=20260828-trendnav1">
         <link rel="stylesheet" href="{{ asset('css/frontend/community.css') }}">
         <link rel="stylesheet" href="{{ asset('css/frontend/saved.css') }}">
         <link rel="stylesheet" href="{{ asset('css/frontend/search-intelligence.css') }}">
         @stack('styles')
-        <link rel="stylesheet" href="{{ asset('css/frontend/ui-polish.css') }}">
+        <link rel="stylesheet" href="{{ asset('css/frontend/ui-polish.css') }}?v=20260828-trendnav1">
     @endif
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9025296892842875"
      crossorigin="anonymous"></script>
@@ -97,24 +97,27 @@
     </header>
 
     <div class="mobile-nav-backdrop" data-mobile-nav-backdrop aria-hidden="true"></div>
-    <div class="mobile-nav" id="mobile-navigation" data-mobile-nav aria-hidden="true" inert>
+    <div class="mobile-nav" id="mobile-navigation" data-mobile-nav aria-hidden="true">
+        @guest
+            <a class="mobile-auth-link mobile-signup-link {{ request()->routeIs('signup') ? 'active' : '' }}" href="{{ route('signup') }}"><i data-lucide="user-plus"></i>Sign Up</a>
+        @endguest
         @auth
             @if($frontHasAdminAccess)
                 <a href="{{ route('admin.dashboard') }}"><i data-lucide="shield-check"></i>Admin Panel</a>
             @else
-                <a class="{{ request()->routeIs('account.dashboard') ? 'active' : '' }}" href="{{ route('account.dashboard') }}">My AI Orbit</a>
-                <a class="{{ request()->routeIs('account.notifications*') ? 'active' : '' }}" href="{{ route('account.notifications') }}">Notifications @if($frontUnread)({{ $frontUnread }})@endif</a>
+                <a class="{{ request()->routeIs('account.dashboard') ? 'active' : '' }}" href="{{ route('account.dashboard') }}"><i data-lucide="circle-user-round"></i>My AI Orbit</a>
+                <a class="{{ request()->routeIs('account.notifications*') ? 'active' : '' }}" href="{{ route('account.notifications') }}"><i data-lucide="bell"></i>Notifications @if($frontUnread)({{ $frontUnread }})@endif</a>
             @endif
         @endauth
-        <a class="{{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}">Home</a>
-        <a class="{{ request()->routeIs('tools.*') ? 'active' : '' }}" href="{{ route('tools.index') }}">AI Tools</a>
-        <a class="{{ request()->routeIs('models.*') ? 'active' : '' }}" href="{{ route('models.index') }}">AI Models</a>
-        <a class="{{ request()->routeIs('companies.*') ? 'active' : '' }}" href="{{ route('companies.index') }}">Companies</a>
-        <a class="{{ request()->routeIs('news.*') ? 'active' : '' }}" href="{{ route('news.index') }}">AI News</a>
-        <a class="{{ request()->routeIs('articles.*') ? 'active' : '' }}" href="{{ route('articles.index') }}">Articles</a>
-        <a class="{{ request()->routeIs('comparisons.*') ? 'active' : '' }}" href="{{ route('comparisons.index') }}">Compare</a>
-        <a class="{{ request()->routeIs('pricing.*') ? 'active' : '' }}" href="{{ route('pricing.index') }}">Pricing</a>
-        <a class="{{ request()->routeIs('search.*') ? 'active' : '' }}" href="{{ route('search.index') }}">Search</a>
+        <a class="{{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}"><i data-lucide="house"></i>Home</a>
+        <a class="{{ request()->routeIs('tools.*') ? 'active' : '' }}" href="{{ route('tools.index') }}"><i data-lucide="bot"></i>AI Tools</a>
+        <a class="{{ request()->routeIs('models.*') ? 'active' : '' }}" href="{{ route('models.index') }}"><i data-lucide="code-xml"></i>AI Models</a>
+        <a class="{{ request()->routeIs('companies.*') ? 'active' : '' }}" href="{{ route('companies.index') }}"><i data-lucide="building-2"></i>Companies</a>
+        <a class="{{ request()->routeIs('news.*') ? 'active' : '' }}" href="{{ route('news.index') }}"><i data-lucide="radio"></i>AI News</a>
+        <a class="{{ request()->routeIs('articles.*') ? 'active' : '' }}" href="{{ route('articles.index') }}"><i data-lucide="newspaper"></i>Articles</a>
+        <a class="{{ request()->routeIs('comparisons.*') ? 'active' : '' }}" href="{{ route('comparisons.index') }}"><i data-lucide="scale"></i>Compare</a>
+        <a class="{{ request()->routeIs('pricing.*') ? 'active' : '' }}" href="{{ route('pricing.index') }}"><i data-lucide="badge-dollar-sign"></i>Pricing</a>
+        <a class="{{ request()->routeIs('about') ? 'active' : '' }}" href="{{ route('about') }}"><i data-lucide="info"></i>About AI Orbit</a>
     </div>
 
     <div class="site-search-overlay" data-site-search-modal hidden aria-hidden="true" inert>
@@ -190,7 +193,7 @@
     </footer>
 </div>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-<script src="{{ asset('js/frontend/app.js') }}"></script>
+<script src="{{ asset('js/frontend/app.js') }}?v=20260828-trendnav1"></script>
 <script src="{{ asset('js/frontend/search-intelligence.js') }}?v=20260827-search2"></script>
 <script src="{{ asset('js/frontend/saved.js') }}?v=20260827-reviewfix1"></script>
 <script src="{{ asset('js/frontend/community.js') }}?v=20260827-reviewfix1"></script>

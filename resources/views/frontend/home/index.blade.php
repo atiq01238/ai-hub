@@ -42,13 +42,15 @@
 
 <div class="page-body">
     <section class="trending-strip panel">
-        <div class="trend-label"><span>🔥</span><strong>Trending AI.</strong></div>
+        <div class="trend-label"><span>🔥</span><strong>Trending on AI Orbit</strong></div>
         <div class="trend-items">
             @foreach($trendingTools as $tool)
                 <a href="{{ route('tools.show', $tool) }}" class="trend-item">
                     <img loading="lazy" decoding="async" src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo">
                     <span>{{ $tool->name }}</span>
-                    <b>↑ {{ max(8, min(39, (int) round($tool->popularity / 3))) }}%</b>
+                    @if($tool->trend_is_hot)
+                        <span class="trend-hot-fire" aria-label="Gaining search clicks on AI Orbit" title="Gaining search clicks on AI Orbit">🔥</span>
+                    @endif
                 </a>
             @endforeach
         </div>
