@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
+use App\Models\BenchmarkResult;
 use App\Models\Category;
 use App\Models\Company;
 use App\Models\Feature;
@@ -111,8 +112,63 @@ class ToolController extends Controller
             'benchmarkResults' => fn ($query) => $query
                 ->with('benchmark')
                 ->where('verified', true)
-                ->latest('tested_at'),
+                ->where('status', 'verified')
+                ->latest('tested_at')
+                ->latest('id'),
         ]);
+
+        $benchmarkResults = $tool->benchmarkResults
+            ->filter(fn ($result) => $result->benchmark)
+            ->unique('benchmark_id')
+            ->values();
+
+        $benchmarkContexts = collect();
+
+        if ($benchmarkResults->isNotEmpty()) {
+            $peerResults = BenchmarkResult::query()
+                ->with(['benchmark', 'benchmarkable'])
+                ->whereIn('benchmark_id', $benchmarkResults->pluck('benchmark_id')->unique())
+                ->where('benchmarkable_type', Tool::class)
+                ->where('verified', true)
+                ->where('status', 'verified')
+                ->orderByDesc('tested_at')
+                ->orderByDesc('id')
+                ->get()
+                ->filter(fn ($result) => $result->benchmarkable instanceof Tool && $result->benchmarkable->status === 'published')
+                ->groupBy('benchmark_id');
+
+            foreach ($benchmarkResults as $result) {
+                $benchmark = $result->benchmark;
+                $latestPeers = $peerResults
+                    ->get($result->benchmark_id, collect())
+                    ->unique('benchmarkable_id')
+                    ->values();
+
+                $ranked = $benchmark->higher_is_better
+                    ? $latestPeers->sortByDesc('score')->values()
+                    : $latestPeers->sortBy('score')->values();
+
+                $rankIndex = $ranked->search(fn ($peer) => (int) $peer->benchmarkable_id === (int) $tool->id);
+                $leader = $ranked->first();
+                $isLeader = $leader && (int) $leader->benchmarkable_id === (int) $tool->id;
+                $gap = null;
+
+                if ($leader && ! $isLeader) {
+                    $gap = $benchmark->higher_is_better
+                        ? max(0, (float) $leader->score - (float) $result->score)
+                        : max(0, (float) $result->score - (float) $leader->score);
+                }
+
+                $benchmarkContexts->put($result->id, [
+                    'rank' => $rankIndex === false ? null : $rankIndex + 1,
+                    'total' => $ranked->count(),
+                    'leader_name' => $leader?->benchmarkable?->name,
+                    'leader_score' => $leader ? (float) $leader->score : null,
+                    'is_leader' => (bool) $isLeader,
+                    'gap' => $gap,
+                ]);
+            }
+        }
 
         $pricingPlans = PricingPlan::query()
             ->where('tool_id', $tool->id)
@@ -170,9 +226,10 @@ class ToolController extends Controller
             ->take(4)
             ->get();
 
-        $editorReview = $tool->reviews
-            ->first(fn ($review) => $review->review_type === 'editorial')
-            ?? $tool->reviews->first();
+        $editorialReviews = $tool->reviews
+            ->where('review_type', 'editorial')
+            ->values();
+        $editorReview = $editorialReviews->first();
 
         $ratingBreakdown = collect($tool->rating_breakdown ?? []);
         $capabilities = collect($tool->capabilities ?? [])->filter()->values();
@@ -192,6 +249,9 @@ class ToolController extends Controller
             'relatedTools',
             'latestNews',
             'editorReview',
+            'editorialReviews',
+            'benchmarkResults',
+            'benchmarkContexts',
             'ratingBreakdown',
             'capabilities',
             'platforms',

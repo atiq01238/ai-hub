@@ -19,7 +19,7 @@
 @endpush
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('css/frontend/tools-show.css') }}">
+<link rel="stylesheet" href="{{ asset('css/frontend/tools-show.css') }}?v=20260828-benchmarkintel1">
 @endpush
 
 @section('content')
@@ -32,8 +32,6 @@
     $reviewCount = $publishedReviews->count();
     $pros = collect($editorReview?->pros ?? [])->filter();
     $cons = collect($editorReview?->cons ?? [])->filter();
-    $benchmarkResults = $tool->benchmarkResults->filter(fn($result) => $result->benchmark);
-    $benchmarkMax = max(1, (float) ($benchmarkResults->max(fn($result) => $result->benchmark?->max_score) ?: 100));
 @endphp
 
 <section class="tool-detail-hero tool-detail-hero-network">
@@ -67,7 +65,11 @@
             <div class="tool-score-panel">
                 <div class="hero-rating"><i data-lucide="star"></i><strong>{{ number_format((float)$tool->rating, 1) }}</strong><span>/ 5</span></div>
                 <div class="hero-rating-copy"><b>AI Orbit rating</b><small>{{ $reviewCount ? $reviewCount . ' published ' . Str::plural('review', $reviewCount) : 'Editorial profile' }}</small></div>
-                @if($tool->benchmark_score)<div class="hero-benchmark"><span>Benchmark</span><strong>{{ number_format((float)$tool->benchmark_score,1) }}</strong></div>@endif
+                @if($benchmarkResults->isNotEmpty())
+                    <div class="hero-benchmark"><span>Verified benchmarks</span><strong>{{ $benchmarkResults->count() }}</strong></div>
+                @elseif($tool->benchmark_score)
+                    <div class="hero-benchmark"><span>Legacy score</span><strong>{{ number_format((float)$tool->benchmark_score,1) }}</strong></div>
+                @endif
             </div>
         </div>
 
@@ -94,7 +96,11 @@
             @if($capabilities->isNotEmpty() || $tool->featureTerms->isNotEmpty())<a href="#features">Features</a>@endif
             <a href="#pricing">Pricing</a>
             @if($benchmarkResults->isNotEmpty() || $tool->benchmark_score)<a href="#benchmarks">Benchmarks</a>@endif
-            @if($publishedReviews->isNotEmpty() || $pros->isNotEmpty() || $cons->isNotEmpty())<a href="#reviews">Reviews</a>@endif
+            @if($editorialReviews->isNotEmpty() || $pros->isNotEmpty() || $cons->isNotEmpty())
+                <a href="#reviews">Reviews</a>
+            @elseif($publishedReviews->where('review_type','user')->isNotEmpty())
+                <a href="#community-reviews">Reviews</a>
+            @endif
             @if($relatedTools->isNotEmpty())<a href="#alternatives">Alternatives</a>@endif
         </div>
     </div>
@@ -160,40 +166,101 @@
         </section>
 
         @if($benchmarkResults->isNotEmpty() || $tool->benchmark_score)
-        <section class="detail-panel" id="benchmarks">
-            <div class="detail-section-head"><div><span>Performance</span><h2>Benchmarks & scores</h2><p>Verified benchmark results and AI Orbit scoring for this tool.</p></div><i data-lucide="gauge"></i></div>
+        <section class="detail-panel benchmark-intelligence-panel" id="benchmarks">
+            <div class="detail-section-head"><div><span>Performance</span><h2>Verified benchmarks & scores</h2><p>Each result is ranked only against published tools measured on the same benchmark, with source and test context shown below.</p></div><i data-lucide="gauge"></i></div>
             @if($benchmarkResults->isNotEmpty())
-            <div class="benchmark-detail-list">
+            <div class="benchmark-intel-list">
                 @foreach($benchmarkResults->take(8) as $result)
-                @php $max=(float)($result->benchmark->max_score ?: 100); $pct=max(0,min(100,((float)$result->score/max(1,$max))*100)); @endphp
-                <article><div class="benchmark-copy"><span>{{ $result->benchmark->category ?: 'Benchmark' }}</span><h3>{{ $result->benchmark->name }}</h3>@if($result->tested_at)<small>Tested {{ $result->tested_at->format('M Y') }}@if($result->source_name) • {{ $result->source_name }}@endif</small>@endif</div><div class="benchmark-score"><strong>{{ number_format((float)$result->score,1) }}</strong><small>/ {{ number_format($max,0) }}</small></div><div class="benchmark-track"><i style="width:{{ $pct }}%"></i></div></article>
+                @php
+                    $benchmark = $result->benchmark;
+                    $context = $benchmarkContexts->get($result->id, []);
+                    $min = (float) ($benchmark->min_score ?? 0);
+                    $max = (float) ($benchmark->max_score ?: 100);
+                    $range = max(.000001, $max - $min);
+                    $rawPosition = (((float) $result->score - $min) / $range) * 100;
+                    $pct = max(0, min(100, $benchmark->higher_is_better ? $rawPosition : 100 - $rawPosition));
+                    $score = (float) $result->score;
+                    $scoreDecimals = abs($score - round($score, 1)) > .0001 ? 2 : 1;
+                    $gap = isset($context['gap']) ? (float) $context['gap'] : null;
+                    $gapDecimals = $gap !== null && abs($gap - round($gap, 1)) > .0001 ? 2 : 1;
+                    $sourceType = match($result->source_type) {
+                        'research_paper' => 'Research paper',
+                        'benchmark_org' => 'Benchmark org',
+                        'official' => 'Official source',
+                        'independent' => 'Independent',
+                        default => $result->source_type ? Str::headline($result->source_type) : 'Verified source',
+                    };
+                    $sourceUrl = $result->source_url ?: $benchmark->official_url;
+                    $methodologyUrl = $benchmark->methodology_url;
+                @endphp
+                <article class="benchmark-intel-card">
+                    <div class="benchmark-intel-top">
+                        <div class="benchmark-intel-copy">
+                            <div class="benchmark-badges">
+                                <span class="benchmark-category-chip">{{ $benchmark->category ?: 'Benchmark' }}</span>
+                                <span class="benchmark-verified-chip"><i data-lucide="badge-check"></i>Verified</span>
+                                <span class="benchmark-source-chip">{{ $sourceType }}</span>
+                            </div>
+                            <h3>{{ $benchmark->name }}</h3>
+                            <div class="benchmark-tested-version"><span>Tested product / version</span><strong>{{ $result->model_version ?: $tool->name }}</strong></div>
+                        </div>
+                        <div class="benchmark-intel-score">
+                            <div><strong>{{ number_format($score, $scoreDecimals) }}</strong><small>@if($benchmark->unit && !in_array($benchmark->unit,['%','points'],true)) {{ $benchmark->unit }}@elseif($max > 0) / {{ number_format($max,0) }}@endif</small></div>
+                            @if(!empty($context['rank']))<span class="benchmark-rank-chip">#{{ $context['rank'] }} of {{ $context['total'] }}</span>@endif
+                        </div>
+                    </div>
+
+                    <div class="benchmark-performance-track" aria-label="Normalized benchmark position"><i style="width:{{ $pct }}%"></i></div>
+
+                    <div class="benchmark-context-grid">
+                        <div><span>Verified rank</span><strong>@if(!empty($context['rank']))#{{ $context['rank'] }} of {{ $context['total'] }} tools @else Not available @endif</strong></div>
+                        <div><span>Scoring direction</span><strong>{{ $benchmark->higher_is_better ? 'Higher is better' : 'Lower is better' }}</strong></div>
+                        <div><span>Leader context</span><strong>
+                            @if(($context['total'] ?? 0) === 1)Only verified tool
+                            @elseif(!empty($context['is_leader']))Current verified leader
+                            @elseif($gap !== null && !empty($context['leader_name'])){{ number_format($gap,$gapDecimals) }} pts behind {{ $context['leader_name'] }}
+                            @else Comparison unavailable
+                            @endif
+                        </strong></div>
+                        <div><span>Tested</span><strong>{{ $result->tested_at?->format('M j, Y') ?: 'Date not published' }}</strong></div>
+                    </div>
+
+                    <div class="benchmark-intel-foot">
+                        <div>
+                            @if($result->source_name)<span><i data-lucide="database"></i>{{ $result->source_name }}</span>@endif
+                            @if($result->verified_at)<span><i data-lucide="shield-check"></i>AI Orbit verified {{ $result->verified_at->format('M j, Y') }}</span>@endif
+                        </div>
+                        <div class="benchmark-source-actions">
+                            @if($sourceUrl)<a href="{{ $sourceUrl }}" target="_blank" rel="noopener noreferrer">View source<i data-lucide="arrow-up-right"></i></a>@endif
+                            @if($methodologyUrl && $methodologyUrl !== $sourceUrl)<a href="{{ $methodologyUrl }}" target="_blank" rel="noopener noreferrer">Methodology<i data-lucide="book-open-check"></i></a>@endif
+                        </div>
+                    </div>
+                </article>
                 @endforeach
             </div>
             @elseif($tool->benchmark_score)
-            <div class="single-score-card"><div class="score-ring" style="--score:{{ max(0,min(100,(float)$tool->benchmark_score)) }}"><span>{{ number_format((float)$tool->benchmark_score,1) }}</span></div><div><small>AI Orbit benchmark score</small><h3>{{ $tool->name }} overall performance</h3><p>Detailed benchmark rows have not been published yet, but an aggregate score is available.</p></div></div>
+            <div class="single-score-card"><div class="score-ring" style="--score:{{ max(0,min(100,(float)$tool->benchmark_score)) }}"><span>{{ number_format((float)$tool->benchmark_score,1) }}</span></div><div><small>AI Orbit benchmark score</small><h3>{{ $tool->name }} overall performance</h3><p>Detailed verified benchmark evidence has not been published yet, so this aggregate should be treated as a legacy summary rather than a comparable rank.</p></div></div>
             @else
             <p class="detail-empty">No verified benchmark results are published for {{ $tool->name }} yet.</p>
             @endif
         </section>
         @endif
 
-        @if($publishedReviews->isNotEmpty() || $pros->isNotEmpty() || $cons->isNotEmpty())
+        @if($editorialReviews->isNotEmpty() || $pros->isNotEmpty() || $cons->isNotEmpty())
         <section class="detail-panel" id="reviews">
-            <div class="detail-section-head"><div><span>Reviews</span><h2>What reviewers say</h2><p>Published reviews and rating evidence for {{ $tool->name }}.</p></div><i data-lucide="messages-square"></i></div>
+            <div class="detail-section-head"><div><span>Editorial reviews</span><h2>Expert & editorial reviews</h2><p>AI Orbit editorial assessment is shown separately from community ratings.</p></div><i data-lucide="messages-square"></i></div>
             @if($pros->isNotEmpty() || $cons->isNotEmpty())
             <div class="pros-cons-grid">
                 <div class="pros-box"><h3><i data-lucide="circle-check-big"></i>Pros</h3>@forelse($pros as $item)<p><i data-lucide="check"></i>{{ $item }}</p>@empty<p>No editorial pros published yet.</p>@endforelse</div>
                 <div class="cons-box"><h3><i data-lucide="circle-minus"></i>Cons</h3>@forelse($cons as $item)<p><i data-lucide="minus"></i>{{ $item }}</p>@empty<p>No editorial cons published yet.</p>@endforelse</div>
             </div>
             @endif
-            @if($publishedReviews->isNotEmpty())
+            @if($editorialReviews->isNotEmpty())
             <div class="review-detail-list">
-                @foreach($publishedReviews->take(4) as $review)
-                <article><div class="review-detail-head"><div class="review-avatar">{{ strtoupper(substr($review->user?->name ?: ($review->review_type === 'editorial' ? 'AI Orbit' : 'R'),0,1)) }}</div><div><h3>{{ $review->user?->name ?: ($review->review_type === 'editorial' ? 'AI Orbit Editorial' : 'Verified reviewer') }}</h3><span>{{ ucfirst($review->review_type) }} review • {{ $review->created_at?->format('M j, Y') }}</span></div><b><i data-lucide="star"></i>{{ number_format((float)$review->rating,1) }}</b></div>@if($review->verdict)<h4>{{ $review->verdict }}</h4>@endif<p>{{ $review->body }}</p></article>
+                @foreach($editorialReviews->take(4) as $review)
+                <article><div class="review-detail-head"><div class="review-avatar">{{ strtoupper(substr($review->user?->name ?: 'AI Orbit',0,1)) }}</div><div><h3>{{ $review->user?->name ?: 'AI Orbit Editorial' }}</h3><span>Editorial review • {{ $review->created_at?->format('M j, Y') }}</span></div><b><i data-lucide="star"></i>{{ number_format((float)$review->rating,1) }}</b></div>@if($review->verdict)<h4>{{ $review->verdict }}</h4>@endif<p>{{ $review->body }}</p></article>
                 @endforeach
             </div>
-            @else
-            <p class="detail-empty">No published reviews are available yet.</p>
             @endif
         </section>
         @endif
