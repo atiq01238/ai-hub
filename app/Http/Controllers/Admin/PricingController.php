@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Jobs\CheckPricingSource;
 use App\Models\DetectedPriceChange;
 use App\Models\PricingHistory;
 use App\Models\PricingPlan;
@@ -103,7 +102,7 @@ class PricingController extends Controller
         return back()->with('status', 'Pricing source removed.');
     }
 
-    public function checkSource(int $id, int $sourceId)
+    public function checkSource(int $id, int $sourceId, PricingDetectionService $service)
     {
         $plan = PricingPlan::findOrFail($id);
         $source = $plan->sources()->findOrFail($sourceId);
@@ -112,9 +111,21 @@ class PricingController extends Controller
             return back()->with('error', 'This pricing source is disabled. Enable it before running a check.');
         }
 
-        CheckPricingSource::dispatch($source->id);
+        $stats = $service->scan($source->id);
+        $source->refresh();
 
-        return back()->with('status', 'Pricing source check queued. The result will appear here after the queue worker processes it.');
+        if (($stats['failed'] ?? 0) > 0) {
+            return back()->with(
+                'error',
+                'Source check failed: ' . ($source->last_check_message ?: 'The official source could not be verified.')
+            );
+        }
+
+        if (($stats['changes'] ?? 0) > 0) {
+            return back()->with('status', 'Source checked now. A verified difference was added or refreshed in the human review queue.');
+        }
+
+        return back()->with('status', 'Source checked now. The official value matches the stored pricing; any stale pending detection from this source was invalidated.');
     }
 
     public function changes(Request $request)
@@ -140,24 +151,63 @@ class PricingController extends Controller
         return view('pricing.changes', compact('changes', 'counts', 'status'));
     }
 
-    public function runDetection()
+    public function runDetection(Request $request, PricingDetectionService $service)
     {
-        $sourceIds = PricingSource::query()
-            ->where('enabled', true)
-            ->orderBy('id')
-            ->pluck('id');
+        // Shared-hosting safe direct scan: keep each HTTP request deliberately small.
+        // The admin page automatically calls this endpoint again until every enabled
+        // source has been checked, so no long-running Laravel queue worker is required.
+        $afterId = max(0, (int) $request->input('after_id', 0));
+        $batchSize = 2;
 
-        if ($sourceIds->isEmpty()) {
+        $baseQuery = PricingSource::query()->where('enabled', true);
+        $totalSources = (clone $baseQuery)->count();
+
+        if ($totalSources === 0) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'No enabled pricing sources are available to scan.',
+                ], 422);
+            }
+
             return back()->with('error', 'No enabled pricing sources are available to scan.');
         }
 
+        $sourceIds = (clone $baseQuery)
+            ->where('id', '>', $afterId)
+            ->orderBy('id')
+            ->limit($batchSize)
+            ->pluck('id');
+
+        $stats = ['checked' => 0, 'changes' => 0, 'unchanged' => 0, 'failed' => 0];
+
         foreach ($sourceIds as $sourceId) {
-            CheckPricingSource::dispatch((int) $sourceId);
+            $result = $service->scan((int) $sourceId);
+            foreach ($stats as $key => $value) {
+                $stats[$key] += (int) ($result[$key] ?? 0);
+            }
+        }
+
+        $lastId = (int) ($sourceIds->last() ?? $afterId);
+        $hasMore = $lastId > 0 && (clone $baseQuery)->where('id', '>', $lastId)->exists();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok' => true,
+                'message' => $hasMore
+                    ? 'Pricing source batch checked.'
+                    : 'Direct pricing scan completed.',
+                'stats' => $stats,
+                'batch_count' => $sourceIds->count(),
+                'total_sources' => $totalSources,
+                'next_after_id' => $lastId,
+                'has_more' => $hasMore,
+            ]);
         }
 
         return back()->with(
             'status',
-            'Queued ' . $sourceIds->count() . ' pricing source checks. Keep the queue worker running; results update in the background.'
+            'Checked ' . $sourceIds->count() . ' pricing sources directly. Use “Scan All Sources Now” to run the complete browser-driven scan.'
         );
     }
 

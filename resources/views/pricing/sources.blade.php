@@ -125,8 +125,8 @@
                     <label class="pricing-toggle">
                         <input type="checkbox" name="enabled" value="1" @checked(old('enabled', true))>
                         <span>
-                            <strong>Enable scheduled monitoring</strong>
-                            <small>Include this source in automatic scans.</small>
+                            <strong>Enable pricing monitoring</strong>
+                            <small>Include this source in direct and scheduled scans.</small>
                         </span>
                     </label>
 
@@ -198,7 +198,7 @@
                                             <div class="pricing-actions">
                                                 <form method="POST" action="{{ route('admin.pricing.sources.check', [$plan->id, $source->id]) }}">
                                                     @csrf
-                                                    <button class="btn btn-secondary btn-sm" type="submit"><i data-lucide="refresh-cw"></i>Queue Check</button>
+                                                    <button class="btn btn-secondary btn-sm" type="submit"><i data-lucide="refresh-cw"></i>Check Now</button>
                                                 </form>
                                                 <form method="POST" action="{{ route('admin.pricing.sources.destroy', [$plan->id, $source->id]) }}" onsubmit="return confirm('Remove this monitoring source?')">
                                                     @csrf

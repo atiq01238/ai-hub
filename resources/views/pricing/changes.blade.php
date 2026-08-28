@@ -14,11 +14,11 @@
     >
         <x-slot:actions>
             <a href="{{ route('admin.pricing.index') }}" class="btn btn-secondary"><i data-lucide="credit-card"></i>Pricing Plans</a>
-            <form method="POST" action="{{ route('admin.pricing.scan') }}">
+            <form method="POST" action="{{ route('admin.pricing.scan') }}" id="pricingDirectScanForm">
                 @csrf
-                <button class="btn btn-primary" type="submit">
+                <button class="btn btn-primary" type="submit" id="pricingDirectScanButton">
                     <i data-lucide="radar"></i>
-                    Queue All Source Checks
+                    <span>Scan All Sources Now</span>
                 </button>
             </form>
         </x-slot:actions>
@@ -177,4 +177,104 @@
         @endif
     </section>
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('pricingDirectScanForm');
+    const button = document.getElementById('pricingDirectScanButton');
+    const label = button?.querySelector('span');
+
+    if (!form || !button || !label) return;
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (button.disabled) return;
+
+        const originalLabel = label.textContent;
+        const csrf = form.querySelector('input[name="_token"]')?.value || '';
+        let afterId = 0;
+        let processed = 0;
+        let total = 0;
+        const totals = { checked: 0, changes: 0, unchanged: 0, failed: 0 };
+
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+        label.textContent = 'Starting direct scan…';
+
+        try {
+            while (true) {
+                const body = new URLSearchParams();
+                body.set('_token', csrf);
+                body.set('after_id', String(afterId));
+
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                    },
+                    body: body.toString(),
+                    credentials: 'same-origin',
+                });
+
+                let payload = {};
+                try {
+                    payload = await response.json();
+                } catch (e) {
+                    throw new Error('The server returned an invalid response during the pricing scan.');
+                }
+
+                if (!response.ok || !payload.ok) {
+                    throw new Error(payload.message || 'Pricing source scan failed.');
+                }
+
+                total = Number(payload.total_sources || total || 0);
+                processed += Number(payload.batch_count || 0);
+                afterId = Number(payload.next_after_id || afterId || 0);
+
+                Object.keys(totals).forEach((key) => {
+                    totals[key] += Number(payload.stats?.[key] || 0);
+                });
+
+                label.textContent = total
+                    ? `Scanning ${Math.min(processed, total)}/${total}…`
+                    : `Scanning ${processed}…`;
+
+                if (!payload.has_more) break;
+            }
+
+            const summary = `Direct scan complete: ${totals.checked} checked, ${totals.changes} change(s), ${totals.unchanged} unchanged, ${totals.failed} failed.`;
+            sessionStorage.setItem('pricing-direct-scan-result', summary);
+            window.location.reload();
+        } catch (error) {
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
+            label.textContent = originalLabel;
+            window.alert(error?.message || 'Pricing source scan failed. Please try again.');
+        }
+    });
+
+    const completed = sessionStorage.getItem('pricing-direct-scan-result');
+    if (completed) {
+        sessionStorage.removeItem('pricing-direct-scan-result');
+        const page = document.querySelector('.pricing-page');
+        const header = page?.querySelector('.page-header') || page?.firstElementChild;
+        if (page) {
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success pricing-flash';
+            alert.innerHTML = '<i data-lucide="check-circle-2"></i><span></span>';
+            alert.querySelector('span').textContent = completed;
+            if (header?.nextSibling) {
+                page.insertBefore(alert, header.nextSibling);
+            } else {
+                page.prepend(alert);
+            }
+            if (window.lucide) window.lucide.createIcons();
+        }
+    }
+});
+</script>
+@endpush
 @endsection
