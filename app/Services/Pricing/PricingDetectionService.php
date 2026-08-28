@@ -40,11 +40,15 @@ class PricingDetectionService
                     $current = $this->currentValue($source);
 
                     if ($this->valuesMatch($source->metric, $current, $detected)) {
+                        $this->closeStalePendingChange($source, $current, $detected);
                         $stats['unchanged']++;
                         continue;
                     }
 
+                    // A pending detection belongs to one exact official source. Do not let
+                    // a second source for the same plan/metric overwrite another source's review item.
                     $change = DetectedPriceChange::query()
+                        ->where('pricing_source_id', $source->id)
                         ->where('pricing_plan_id', $source->pricing_plan_id)
                         ->where('metric', $source->metric)
                         ->where('status', 'pending')
@@ -60,6 +64,12 @@ class PricingDetectionService
                         'detected_at' => now(),
                     ];
 
+                    $shouldNotify = ! $change || ! $this->valuesMatch(
+                        $source->metric,
+                        (string) $change->detected_value,
+                        $detected
+                    );
+
                     if ($change) {
                         $change->update($payload);
                     } else {
@@ -71,7 +81,9 @@ class PricingDetectionService
                     }
 
                     $stats['changes']++;
-                    $this->notify($change);
+                    if ($shouldNotify) {
+                        $this->notify($change);
+                    }
                 } catch (\Throwable $e) {
                     $stats['failed']++;
                     $source->forceFill([
@@ -150,7 +162,9 @@ class PricingDetectionService
 
     private function extractAutomatically(string $html, PricingSource $source): string
     {
-        $text = html_entity_decode(strip_tags(preg_replace('/<(script|style)[^>]*>.*?<\/\1>/is', ' ', $html) ?? $html));
+        $text = preg_replace('/<(script|style)[^>]*>.*?<\/\1>/is', ' ', $html) ?? $html;
+        $text = preg_replace('/<\/?(?:div|section|article|li|p|br|h[1-6]|tr|td|th)[^>]*>/i', ' ', $text) ?? $text;
+        $text = html_entity_decode(strip_tags($text));
         $text = preg_replace('/\s+/', ' ', $text) ?? $text;
         $needle = trim((string) $source->plan->plan_name);
 
@@ -166,22 +180,213 @@ class PricingDetectionService
             }
         }
 
-        if (preg_match('/(?:USD\s*)?\$\s*([0-9][0-9,]*(?:\.\d+)?)/i', $window, $m)) {
-            return $this->cleanValue($m[1]);
-        }
-
-        if (preg_match('/([0-9][0-9,]*(?:\.\d+)?)\s*(?:USD|US dollars?)/i', $window, $m)) {
-            return $this->cleanValue($m[1]);
+        if (in_array($source->metric, ['monthly_price', 'yearly_price'], true)) {
+            $candidate = $this->selectRecurringPriceCandidate($window, $source);
+            if ($candidate !== null) {
+                return $candidate;
+            }
         }
 
         if (in_array($source->metric, ['monthly_price', 'yearly_price'], true)
-            && preg_match('/^\s*' . preg_quote($needle, '/') . '\b.{0,100}\bfree\b/i', $window)) {
+            && preg_match('/^\s*' . preg_quote($needle, '/') . '\b.{0,120}\bfree\b/i', $window)) {
             return '0';
         }
 
         throw new RuntimeException(
-            'Automatic extractor could not confidently find a price inside the selected plan block. Use Regex or JSON Path for this source.'
+            'Automatic extractor could not confidently find the requested price inside the selected plan block. Promotional savings, discounts and ambiguous amounts are intentionally ignored. Use Regex or JSON Path for this source.'
         );
+    }
+
+    private function selectRecurringPriceCandidate(string $window, PricingSource $source): ?string
+    {
+        $candidates = $this->currencyCandidates($window);
+        if ($candidates === []) {
+            return null;
+        }
+
+        $usable = [];
+        foreach ($candidates as $candidate) {
+            if ($this->isPromotionalAmount($window, $candidate)) {
+                continue;
+            }
+
+            $candidate['monthly_context'] = $this->hasPeriodContext($window, $candidate, 'month');
+            $candidate['yearly_context'] = $this->hasPeriodContext($window, $candidate, 'year');
+            $candidate['score'] = 0;
+
+            if ($source->metric === 'monthly_price') {
+                $candidate['score'] += $candidate['monthly_context'] ? 8 : 0;
+                $candidate['score'] -= $candidate['yearly_context'] ? 9 : 0;
+            } else {
+                $candidate['score'] += $candidate['yearly_context'] ? 8 : 0;
+                $candidate['score'] -= $candidate['monthly_context'] ? 9 : 0;
+            }
+
+            $unit = mb_strtolower(trim((string) $source->unit));
+            if ($source->metric === 'monthly_price' && preg_match('/\bmonth(?:ly)?\b|\/\s*mo\b/i', $unit)) {
+                $candidate['score'] += $candidate['monthly_context'] ? 2 : 0;
+            }
+            if ($source->metric === 'yearly_price' && preg_match('/\byear(?:ly)?\b|\bannual(?:ly)?\b/i', $unit)) {
+                $candidate['score'] += $candidate['yearly_context'] ? 2 : 0;
+            }
+
+            $current = $this->currentValue($source);
+            if ($current !== null && $this->numericValuesMatch($current, $candidate['value'])) {
+                // A currently stored value that still appears on the official plan card is useful
+                // supporting evidence, but explicit billing-period language normally outranks it.
+                $candidate['score'] += 2;
+            }
+
+            $usable[] = $candidate;
+        }
+
+        if ($usable === []) {
+            return null;
+        }
+
+        // Common annual-billing card pattern:
+        //   "Billed annually. Save $36/year ... $15 $12 /month"
+        // The first non-promotional price is the regular month-to-month price; the second
+        // is the discounted monthly equivalent when paying annually. For a monthly_price
+        // source we monitor the regular monthly rate, not the annual saving or annual equivalent.
+        if ($source->metric === 'monthly_price' && $this->hasAnnualDiscountContext($window)) {
+            foreach ($usable as $monthlyIndex => $candidate) {
+                if (! $candidate['monthly_context'] || $monthlyIndex === 0) {
+                    continue;
+                }
+
+                $previousIndex = $monthlyIndex - 1;
+                $distance = $candidate['position'] - ($usable[$previousIndex]['position'] + $usable[$previousIndex]['length']);
+                if ($distance >= 0 && $distance <= 100 && ! $usable[$previousIndex]['yearly_context']) {
+                    $usable[$previousIndex]['score'] += 11;
+                    $usable[$monthlyIndex]['score'] -= 2;
+                }
+                break;
+            }
+        }
+
+        usort($usable, function (array $a, array $b): int {
+            if ($a['score'] === $b['score']) {
+                return $a['position'] <=> $b['position'];
+            }
+
+            return $b['score'] <=> $a['score'];
+        });
+
+        $best = $usable[0];
+        $second = $usable[1] ?? null;
+
+        if ($best['score'] < 0) {
+            return null;
+        }
+
+        // Do not manufacture a price change when two different amounts are equally plausible.
+        // Failing the source check is safer than sending a false value to the human review queue.
+        if ($second
+            && ! $this->numericValuesMatch($best['value'], $second['value'])
+            && abs($best['score'] - $second['score']) <= 1) {
+            throw new RuntimeException(
+                'Automatic extractor found multiple plausible prices for this plan and refused to guess. Configure a Regex or JSON Path extraction rule.'
+            );
+        }
+
+        if (count($usable) > 1 && $best['score'] === 0) {
+            throw new RuntimeException(
+                'Automatic extractor found multiple unlabeled currency amounts for this plan and refused to guess. Configure a Regex or JSON Path extraction rule.'
+            );
+        }
+
+        return $best['value'];
+    }
+
+    private function currencyCandidates(string $window): array
+    {
+        $candidates = [];
+
+        if (preg_match_all('/(?:USD\s*)?\$\s*([0-9][0-9,]*(?:\.\d+)?)/i', $window, $matches, PREG_OFFSET_CAPTURE)) {
+            foreach ($matches[0] as $index => $full) {
+                $candidates[] = [
+                    'value' => $this->cleanValue($matches[1][$index][0]),
+                    'position' => $full[1],
+                    'length' => strlen($full[0]),
+                ];
+            }
+        }
+
+        if (preg_match_all('/([0-9][0-9,]*(?:\.\d+)?)\s*(?:USD|US dollars?)/i', $window, $matches, PREG_OFFSET_CAPTURE)) {
+            foreach ($matches[0] as $index => $full) {
+                $position = $full[1];
+                $duplicate = false;
+                foreach ($candidates as $existing) {
+                    if (abs($existing['position'] - $position) <= 4) {
+                        $duplicate = true;
+                        break;
+                    }
+                }
+
+                if (! $duplicate) {
+                    $candidates[] = [
+                        'value' => $this->cleanValue($matches[1][$index][0]),
+                        'position' => $position,
+                        'length' => strlen($full[0]),
+                    ];
+                }
+            }
+        }
+
+        usort($candidates, fn (array $a, array $b): int => $a['position'] <=> $b['position']);
+
+        return $candidates;
+    }
+
+    private function isPromotionalAmount(string $window, array $candidate): bool
+    {
+        $before = mb_strtolower(substr($window, max(0, $candidate['position'] - 55), min(55, $candidate['position'])));
+        $after = mb_strtolower(substr($window, $candidate['position'] + $candidate['length'], 45));
+
+        if (preg_match('/(?:save|saves|saving|savings|discount|discounted|coupon|promo(?:tion)?|deal|cashback|credit)\s*(?:up\s+to\s*)?[^.!?]{0,18}$/i', $before)) {
+            return true;
+        }
+
+        if (preg_match('/^\s*(?:off|discount|discounted|saving|savings|cashback)\b/i', $after)) {
+            return true;
+        }
+
+        // Explicit "Save $X/year" / "Save $X per year" style values are savings,
+        // not the plan's yearly price.
+        if (preg_match('/(?:save|saves|saving|savings)[^.!?]{0,20}$/i', $before)
+            && preg_match('/^\s*(?:\/|per\s+)?year\b/i', $after)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function hasPeriodContext(string $window, array $candidate, string $period): bool
+    {
+        $after = substr($window, $candidate['position'] + $candidate['length'], 45);
+        $before = substr($window, max(0, $candidate['position'] - 45), min(45, $candidate['position']));
+
+        if ($period === 'month') {
+            return (bool) preg_match('/^\s*(?:\/\s*|per\s+)?(?:month|mo)\b/i', $after)
+                || (bool) preg_match('/(?:per\s+month|monthly(?:\s+price)?)\s*[:\-]?\s*$/i', $before);
+        }
+
+        return (bool) preg_match('/^\s*(?:\/\s*|per\s+)?(?:year|yr)\b/i', $after)
+            || (bool) preg_match('/(?:per\s+year|yearly(?:\s+price)?|annual(?:ly)?(?:\s+price)?)\s*[:\-]?\s*$/i', $before);
+    }
+
+    private function hasAnnualDiscountContext(string $window): bool
+    {
+        $hasAnnualBilling = (bool) preg_match('/\bbilled\s+annually\b|\bannual(?:ly)?\s+billing\b|\byearly\s+billing\b/i', $window);
+        $hasSaving = (bool) preg_match('/\b(?:save|saves|saving|savings|discount|off)\b/i', $window);
+
+        return $hasAnnualBilling && $hasSaving;
+    }
+
+    private function numericValuesMatch(string $left, string $right): bool
+    {
+        return abs((float) $this->cleanValue($left) - (float) $this->cleanValue($right)) < 0.00001;
     }
 
     private function planBoundedWindow(string $text, PricingSource $source, string $needle): string
@@ -248,7 +453,26 @@ class PricingDetectionService
             return false;
         }
 
-        return abs((float) $current - (float) $detected) < 0.00001;
+        return $this->numericValuesMatch($current, $detected);
+    }
+
+    private function closeStalePendingChange(PricingSource $source, ?string $current, string $detected): void
+    {
+        DetectedPriceChange::query()
+            ->where('pricing_source_id', $source->id)
+            ->where('pricing_plan_id', $source->pricing_plan_id)
+            ->where('metric', $source->metric)
+            ->where('status', 'pending')
+            ->update([
+                'status' => 'rejected',
+                'review_note' => 'Automatically invalidated after a later official-source scan matched the current stored value.',
+                'reviewed_by' => null,
+                'reviewed_at' => now(),
+                'current_value' => $current,
+                'detected_value' => $detected,
+                'detected_at' => now(),
+                'updated_at' => now(),
+            ]);
     }
 
     private function notify(DetectedPriceChange $change): void
