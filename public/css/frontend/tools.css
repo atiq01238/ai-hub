@@ -68,3 +68,97 @@ body{background:#070b18}.tools-page-container{width:min(1460px,calc(100% - 48px)
   .tools-hero-cinematic .tools-hero-stats>div:nth-child(odd){border-right:1px solid #1e2949}
   .tools-hero-cinematic .tools-hero-stats>div:nth-last-child(-n+2){border-bottom:0}
 }
+
+/* =========================================================
+   2026-08-28 — AI Tools mobile stability pass
+   Keep horizontal discovery rails readable after ui-polish.css
+   resets generic card min-width values.
+   ========================================================= */
+@media(max-width:760px){
+  .category-rail,
+  .featured-tool-strip{
+    scroll-snap-type:x proximity;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-inline:contain;
+    touch-action:pan-x;
+  }
+
+  .category-rail{
+    padding-right:10px;
+  }
+  .category-rail a{
+    flex:0 0 124px;
+    min-width:124px;
+    scroll-snap-align:start;
+  }
+
+  .featured-tool-strip{
+    gap:10px;
+    padding:1px 10px 5px 0;
+  }
+  .featured-tool-strip .featured-tool-mini{
+    flex:0 0 min(300px,calc(100vw - 48px));
+    width:auto;
+    max-width:300px;
+    min-width:0;
+    overflow:hidden;
+    scroll-snap-align:start;
+  }
+  .featured-tool-mini>div{
+    min-width:0;
+  }
+  .featured-tool-mini h3,
+  .featured-tool-mini p{
+    max-width:100%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .featured-tool-mini .mini-score{
+    white-space:nowrap;
+  }
+
+  .directory-toolbar{
+    gap:8px;
+  }
+  .directory-title{
+    min-width:0;
+    gap:8px;
+  }
+  .directory-title h2{
+    white-space:nowrap;
+  }
+  .directory-actions{
+    flex:0 0 auto;
+  }
+}
+
+@media(max-width:420px){
+  .category-rail a{
+    flex-basis:118px;
+    min-width:118px;
+  }
+
+  .featured-tool-strip .featured-tool-mini{
+    flex-basis:calc(100vw - 48px);
+    max-width:none;
+  }
+
+  .directory-toolbar{
+    display:grid;
+    grid-template-columns:1fr;
+    align-items:stretch;
+    gap:8px;
+  }
+  .directory-title{
+    justify-content:space-between;
+  }
+  .directory-actions,
+  .sort-form{
+    width:100%;
+  }
+  .sort-form select{
+    width:100%;
+    min-width:0;
+  }
+}

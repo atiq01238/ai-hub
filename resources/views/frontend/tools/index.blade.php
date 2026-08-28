@@ -80,7 +80,7 @@
 ) !!}</script>
 @endpush
 @push('styles')
-<link rel="stylesheet" href="{{ asset('css/frontend/tools.css') }}">
+<link rel="stylesheet" href="{{ asset('css/frontend/tools.css') }}?v=20260828-mobilefix1">
 @endpush
 
 @section('content')
