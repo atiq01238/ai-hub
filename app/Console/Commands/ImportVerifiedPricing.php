@@ -82,17 +82,38 @@ class ImportVerifiedPricing extends Command
                 );
                 $stats['plans']++;
 
-                PricingSource::updateOrCreate(
-                    ['pricing_plan_id'=>$plan->id,'metric'=>'monthly_price','source_url'=>$row['source_url']],
-                    [
-                        'source_name'=>$row['source_name'] ?: 'Official pricing',
-                        'source_type'=>'auto','currency'=>$row['currency'] ?: 'USD',
-                        'unit'=>$row['billing_unit'] ?: 'per month','enabled'=>true,
-                        'last_checked_at'=>now(),'last_check_status'=>'verified',
-                        'last_check_message'=>'Initial official-source dataset verification (2026-08-21).',
-                    ]
-                );
-                $stats['sources']++;
+                $monthly = $this->number($row['monthly_price']);
+                $yearly = $this->number($row['yearly_price']);
+                $sourceMetric = $monthly !== null
+                    ? 'monthly_price'
+                    : ($yearly !== null
+                        ? 'yearly_price'
+                        : (! empty($row['api_price_label']) ? 'api_price_label' : null));
+
+                if ($sourceMetric !== null && ! empty($row['source_url'])) {
+                    PricingSource::updateOrCreate(
+                        ['pricing_plan_id'=>$plan->id,'source_url'=>$row['source_url']],
+                        [
+                            'metric'=>$sourceMetric,
+                            'source_name'=>$row['source_name'] ?: 'Official pricing',
+                            'source_type'=>'auto','currency'=>$row['currency'] ?: 'USD',
+                            'unit'=>$row['billing_unit'] ?: match ($sourceMetric) {
+                                'monthly_price' => 'per month',
+                                'yearly_price' => 'per year',
+                                default => null,
+                            },
+                            'enabled'=>true,
+                            'last_checked_at'=>now(),'last_check_status'=>'verified',
+                            'last_check_message'=>'Initial official-source dataset verification (2026-08-21).',
+                            'last_detected_value'=>match ($sourceMetric) {
+                                'monthly_price' => (string) $monthly,
+                                'yearly_price' => (string) $yearly,
+                                default => (string) ($row['api_price_label'] ?? ''),
+                            },
+                        ]
+                    );
+                    $stats['sources']++;
+                }
             }
 
             foreach ($models as $row) {

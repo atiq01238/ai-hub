@@ -111,25 +111,44 @@ class ImportVerifiedToolPricingMaster extends Command
                     );
                     $stats['plans']++;
 
-                    PricingSource::updateOrCreate(
-                        [
-                            'pricing_plan_id' => $plan->id,
-                            'metric' => 'monthly_price',
-                            'source_url' => $row['source_url'],
-                        ],
-                        [
-                            'source_name' => $row['source_name'] ?: 'Official pricing',
-                            'source_type' => 'official',
-                            'currency' => $row['currency'] ?: 'USD',
-                            'unit' => $row['billing_unit'] ?: 'per month',
-                            'enabled' => true,
-                            'last_checked_at' => $verifiedAt,
-                            'last_check_status' => 'verified',
-                            'last_check_message' => 'Verified directly against the official source on '.$verifiedAt->toDateString().'.',
-                            'last_detected_value' => $monthly !== null ? (string) $monthly : ($row['api_price_label'] ?: $billingType),
-                        ]
-                    );
-                    $stats['sources']++;
+                    $sourceMetric = $monthly !== null
+                        ? 'monthly_price'
+                        : ($yearly !== null
+                            ? 'yearly_price'
+                            : (! empty($row['api_price_label']) ? 'api_price_label' : null));
+
+                    if ($sourceMetric !== null && ! empty($row['source_url'])) {
+                        // One imported row represents one official monitor. Match by plan + URL so
+                        // re-importing can repair an older source that was incorrectly hard-coded
+                        // as monthly_price for usage/custom plans.
+                        PricingSource::updateOrCreate(
+                            [
+                                'pricing_plan_id' => $plan->id,
+                                'source_url' => $row['source_url'],
+                            ],
+                            [
+                                'metric' => $sourceMetric,
+                                'source_name' => $row['source_name'] ?: 'Official pricing',
+                                'source_type' => 'official',
+                                'currency' => $row['currency'] ?: 'USD',
+                                'unit' => $row['billing_unit'] ?: match ($sourceMetric) {
+                                    'monthly_price' => 'per month',
+                                    'yearly_price' => 'per year',
+                                    default => null,
+                                },
+                                'enabled' => true,
+                                'last_checked_at' => $verifiedAt,
+                                'last_check_status' => 'verified',
+                                'last_check_message' => 'Verified directly against the official source on '.$verifiedAt->toDateString().'.',
+                                'last_detected_value' => match ($sourceMetric) {
+                                    'monthly_price' => (string) $monthly,
+                                    'yearly_price' => (string) $yearly,
+                                    default => (string) ($row['api_price_label'] ?? ''),
+                                },
+                            ]
+                        );
+                        $stats['sources']++;
+                    }
                 }
 
                 $pricingModels = [];

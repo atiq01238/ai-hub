@@ -84,6 +84,18 @@ class PricingDetectionService
                     if ($shouldNotify) {
                         $this->notify($change);
                     }
+                } catch (UnsafeAutomaticPricingExtraction $e) {
+                    $stats['failed']++;
+                    $source->forceFill([
+                        'last_checked_at' => now(),
+                        'last_check_status' => 'failed',
+                        'last_check_message' => Str::limit('Safe skip: ' . $e->getMessage(), 1000),
+                    ])->save();
+
+                    // If an earlier loose extractor created a pending review item from this
+                    // exact source, remove it from the human queue once the safer extractor
+                    // determines that the page cannot be interpreted unambiguously.
+                    $this->invalidateUnsafePendingChange($source, $e->getMessage());
                 } catch (\Throwable $e) {
                     $stats['failed']++;
                     $source->forceFill([
@@ -174,27 +186,29 @@ class PricingDetectionService
 
         $window = $this->planBoundedWindow($text, $source, $needle);
 
-        if ($source->metric === 'api_price_label') {
-            if (preg_match('/(?:USD\s*)?\$\s*\d+(?:\.\d+)?\s*\/(?:\s*1M|\s*million|\s*1K|\s*1k)?[^,.<]{0,30}/i', $window, $m)) {
-                return trim($m[0]);
-            }
-        }
-
         if (in_array($source->metric, ['monthly_price', 'yearly_price'], true)) {
+            // Free plan cards often contain large dollar-denominated trial credits (for example
+            // "$100 credit") that are not subscription prices. Strong "Free" plan semantics
+            // must win before any currency candidate is considered.
+            if ($this->isExplicitlyFreePlan($window, $source, $needle)) {
+                return '0';
+            }
+
             $candidate = $this->selectRecurringPriceCandidate($window, $source);
             if ($candidate !== null) {
                 return $candidate;
             }
+
+            throw new UnsafeAutomaticPricingExtraction(
+                'No unambiguous recurring subscription price was found in this plan block. Credits, usage rates and promotional amounts are intentionally ignored. Configure a Regex/JSON Path rule or verify this source manually.'
+            );
         }
 
-        if (in_array($source->metric, ['monthly_price', 'yearly_price'], true)
-            && preg_match('/^\s*' . preg_quote($needle, '/') . '\b.{0,120}\bfree\b/i', $window)) {
-            return '0';
+        if ($source->metric === 'api_price_label') {
+            return $this->extractApiPriceLabel($window, $source);
         }
 
-        throw new RuntimeException(
-            'Automatic extractor could not confidently find the requested price inside the selected plan block. Promotional savings, discounts and ambiguous amounts are intentionally ignored. Use Regex or JSON Path for this source.'
-        );
+        throw new RuntimeException('Unsupported pricing metric.');
     }
 
     private function selectRecurringPriceCandidate(string $window, PricingSource $source): ?string
@@ -206,7 +220,7 @@ class PricingDetectionService
 
         $usable = [];
         foreach ($candidates as $candidate) {
-            if ($this->isPromotionalAmount($window, $candidate)) {
+            if ($this->isPromotionalAmount($window, $candidate) || $this->isUsageRateAmount($window, $candidate)) {
                 continue;
             }
 
@@ -230,13 +244,6 @@ class PricingDetectionService
                 $candidate['score'] += $candidate['yearly_context'] ? 2 : 0;
             }
 
-            $current = $this->currentValue($source);
-            if ($current !== null && $this->numericValuesMatch($current, $candidate['value'])) {
-                // A currently stored value that still appears on the official plan card is useful
-                // supporting evidence, but explicit billing-period language normally outranks it.
-                $candidate['score'] += 2;
-            }
-
             $usable[] = $candidate;
         }
 
@@ -244,25 +251,21 @@ class PricingDetectionService
             return null;
         }
 
-        // Common annual-billing card pattern:
-        //   "Billed annually. Save $36/year ... $15 $12 /month"
-        // The first non-promotional price is the regular month-to-month price; the second
-        // is the discounted monthly equivalent when paying annually. For a monthly_price
-        // source we monitor the regular monthly rate, not the annual saving or annual equivalent.
-        if ($source->metric === 'monthly_price' && $this->hasAnnualDiscountContext($window)) {
-            foreach ($usable as $monthlyIndex => $candidate) {
-                if (! $candidate['monthly_context'] || $monthlyIndex === 0) {
-                    continue;
-                }
+        $distinct = [];
+        foreach ($usable as $candidate) {
+            $distinct[number_format((float) $candidate['value'], 6, '.', '')] = true;
+        }
 
-                $previousIndex = $monthlyIndex - 1;
-                $distance = $candidate['position'] - ($usable[$previousIndex]['position'] + $usable[$previousIndex]['length']);
-                if ($distance >= 0 && $distance <= 100 && ! $usable[$previousIndex]['yearly_context']) {
-                    $usable[$previousIndex]['score'] += 11;
-                    $usable[$monthlyIndex]['score'] -= 2;
-                }
-                break;
-            }
+        // Pricing pages with Monthly/Annual toggles frequently expose both values in the same
+        // server-rendered HTML. Once tags are flattened there is no provider-independent way to
+        // know which number belongs to the month-to-month plan and which is the annual effective
+        // monthly rate (or an old struck-through value). Guessing here caused Runway, Replit and
+        // Descript false positives. Fail safely instead and let a source-specific Regex/JSON rule
+        // handle these cards when automatic monitoring is required.
+        if (count($distinct) > 1 && $this->hasBillingVariantContext($window)) {
+            throw new UnsafeAutomaticPricingExtraction(
+                'The plan exposes multiple billing variants (monthly/annual or discounted prices). Automatic extraction refused to guess which amount is the regular subscription price.'
+            );
         }
 
         usort($usable, function (array $a, array $b): int {
@@ -280,23 +283,68 @@ class PricingDetectionService
             return null;
         }
 
-        // Do not manufacture a price change when two different amounts are equally plausible.
-        // Failing the source check is safer than sending a false value to the human review queue.
         if ($second
             && ! $this->numericValuesMatch($best['value'], $second['value'])
             && abs($best['score'] - $second['score']) <= 1) {
-            throw new RuntimeException(
-                'Automatic extractor found multiple plausible prices for this plan and refused to guess. Configure a Regex or JSON Path extraction rule.'
+            throw new UnsafeAutomaticPricingExtraction(
+                'Automatic extraction found multiple plausible subscription prices and refused to guess.'
             );
         }
 
         if (count($usable) > 1 && $best['score'] === 0) {
-            throw new RuntimeException(
-                'Automatic extractor found multiple unlabeled currency amounts for this plan and refused to guess. Configure a Regex or JSON Path extraction rule.'
+            throw new UnsafeAutomaticPricingExtraction(
+                'Automatic extraction found multiple unlabeled currency amounts and refused to guess.'
             );
         }
 
         return $best['value'];
+    }
+
+    private function extractApiPriceLabel(string $window, PricingSource $source): string
+    {
+        $current = trim((string) $this->currentValue($source));
+
+        // "Custom", "Contact sales", "Let's talk" etc. are pricing states, not numeric API
+        // rates. Do not let a random feature price elsewhere on the Enterprise card overwrite it.
+        if ($current !== '' && $this->isCustomPriceLabel($current) && $this->hasCustomPricingContext($window)) {
+            return $current;
+        }
+
+        $rates = $this->apiRateCandidates($window);
+        if ($rates === []) {
+            throw new UnsafeAutomaticPricingExtraction(
+                'No clear usage-rate expression was found for this API price label.'
+            );
+        }
+
+        $currentFingerprint = $this->apiRateFingerprint($current);
+        if ($currentFingerprint !== null) {
+            foreach ($rates as $rate) {
+                $fingerprint = $this->apiRateFingerprint($rate['raw']);
+                if ($fingerprint !== null && $fingerprint === $currentFingerprint) {
+                    // Keep the curated label text when the official page still contains the same
+                    // numeric rate/unit. This prevents harmless wording changes from becoming
+                    // price-change review items.
+                    return $current;
+                }
+            }
+        }
+
+        $unique = [];
+        foreach ($rates as $rate) {
+            $fingerprint = $this->apiRateFingerprint($rate['raw']);
+            if ($fingerprint !== null) {
+                $unique[$fingerprint] = $rate['raw'];
+            }
+        }
+
+        if (count($unique) !== 1) {
+            throw new UnsafeAutomaticPricingExtraction(
+                'Multiple different API usage rates were found in this plan block. A source-specific Regex/JSON Path rule is required.'
+            );
+        }
+
+        return $this->cleanValue((string) array_values($unique)[0]);
     }
 
     private function currencyCandidates(string $window): array
@@ -341,25 +389,137 @@ class PricingDetectionService
 
     private function isPromotionalAmount(string $window, array $candidate): bool
     {
-        $before = mb_strtolower(substr($window, max(0, $candidate['position'] - 55), min(55, $candidate['position'])));
-        $after = mb_strtolower(substr($window, $candidate['position'] + $candidate['length'], 45));
+        $before = mb_strtolower(substr($window, max(0, $candidate['position'] - 70), min(70, $candidate['position'])));
+        $after = mb_strtolower(substr($window, $candidate['position'] + $candidate['length'], 70));
 
-        if (preg_match('/(?:save|saves|saving|savings|discount|discounted|coupon|promo(?:tion)?|deal|cashback|credit)\s*(?:up\s+to\s*)?[^.!?]{0,18}$/i', $before)) {
+        if (preg_match('/(?:save|saves|saving|savings|discount|discounted|coupon|promo(?:tion)?|deal|cashback|credit|credits|includes?|included|worth|value)\s*(?:up\s+to\s*)?[^.!?]{0,24}$/i', $before)) {
             return true;
         }
 
-        if (preg_match('/^\s*(?:off|discount|discounted|saving|savings|cashback)\b/i', $after)) {
+        if (preg_match('/^\s*(?:off|discount|discounted|saving|savings|cashback|credit|credits|free\b|in\s+credits?\b|of\s+(?:monthly\s+)?credits?\b)/i', $after)) {
             return true;
         }
 
-        // Explicit "Save $X/year" / "Save $X per year" style values are savings,
-        // not the plan's yearly price.
         if (preg_match('/(?:save|saves|saving|savings)[^.!?]{0,20}$/i', $before)
             && preg_match('/^\s*(?:\/|per\s+)?year\b/i', $after)) {
             return true;
         }
 
         return false;
+    }
+
+    private function isUsageRateAmount(string $window, array $candidate): bool
+    {
+        $after = mb_strtolower(substr($window, $candidate['position'] + $candidate['length'], 60));
+
+        // These are metered API/usage rates, not monthly/yearly subscription prices.
+        return (bool) preg_match(
+            '/^\s*(?:\/\s*|per\s+)(?:hr|hour|minute|min|second|sec|1k\s*(?:characters?|tokens?)?|1m\s*(?:tokens?)?|million\s+(?:tokens?|characters?)|thousand\s+(?:tokens?|characters?)|request|image|generation|credit|characters?|tokens?)\b/i',
+            $after
+        );
+    }
+
+    private function isExplicitlyFreePlan(string $window, PricingSource $source, string $needle): bool
+    {
+        $head = mb_substr(trim($window), 0, 190);
+        $current = $this->currentValue($source);
+        $currentlyFree = $current !== null && $this->numericValuesMatch($current, '0');
+        $planNamedFree = preg_match('/\bfree\b/i', $needle) === 1;
+
+        if ($planNamedFree && preg_match('/\bfree\b/i', $head)) {
+            return true;
+        }
+
+        if (! $currentlyFree) {
+            return false;
+        }
+
+        $quoted = preg_quote($needle, '/');
+        if (preg_match('/^\s*' . $quoted . '\b.{0,95}\b(?:free|free\s+forever|no\s+cost)\b/i', $head)) {
+            return true;
+        }
+
+        if (preg_match('/^\s*' . $quoted . '\b.{0,120}\b(?:no\s+credit\s+card|required\s+no\s+card|start\s+for\s+free|try\s+for\s+free)\b/i', $head)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function hasBillingVariantContext(string $window): bool
+    {
+        $annual = (bool) preg_match('/\b(?:annual|annually|yearly|billed\s+annually|billed\s+yearly)\b/i', $window);
+        $monthly = (bool) preg_match('/\bmonthly\b|\/\s*(?:month|mo)\b|per\s+(?:person\s+)?month\b/i', $window);
+        $discount = (bool) preg_match('/\b(?:save|saving|savings|discount|discounted|off)\b/i', $window);
+
+        return $annual && ($monthly || $discount);
+    }
+
+    private function isCustomPriceLabel(string $value): bool
+    {
+        return (bool) preg_match('/\b(?:custom|contact\s+(?:us|sales)|talk\s+to\s+sales|let[’\']?s\s+talk|get\s+in\s+touch|request\s+(?:a\s+)?quote|quote)\b/i', $value);
+    }
+
+    private function hasCustomPricingContext(string $window): bool
+    {
+        return (bool) preg_match('/\b(?:custom\s+pricing|custom|contact\s+(?:us|sales)|talk\s+to\s+sales|let[’\']?s\s+talk|get\s+in\s+touch|book\s+(?:a\s+)?demo|request\s+(?:a\s+)?quote)\b/i', mb_substr($window, 0, 260));
+    }
+
+    private function apiRateCandidates(string $window): array
+    {
+        $rates = [];
+
+        if (! preg_match_all('/(?:USD\s*)?\$\s*[0-9][0-9,]*(?:\.\d+)?/i', $window, $matches, PREG_OFFSET_CAPTURE)) {
+            return [];
+        }
+
+        foreach ($matches[0] as $match) {
+            $position = $match[1];
+            $raw = substr($window, $position, min(70, strlen($window) - $position));
+            $fingerprint = $this->apiRateFingerprint($raw);
+            if ($fingerprint === null) {
+                continue;
+            }
+
+            $rates[] = [
+                'raw' => trim(preg_split('/[|;,]/', $raw, 2)[0]),
+                'position' => $position,
+            ];
+        }
+
+        return $rates;
+    }
+
+    private function apiRateFingerprint(string $value): ?string
+    {
+        if (! preg_match('/(?:USD\s*)?\$\s*([0-9][0-9,]*(?:\.\d+)?)/i', $value, $amount)) {
+            return null;
+        }
+
+        $normalized = mb_strtolower($value);
+        $unit = match (true) {
+            (bool) preg_match('/(?:\/|per\s+)(?:hr|hour)\b/i', $normalized) => 'hour',
+            (bool) preg_match('/(?:\/|per\s+)(?:min|minute)\b/i', $normalized) => 'minute',
+            (bool) preg_match('/(?:\/|per\s+)(?:sec|second)\b/i', $normalized) => 'second',
+            (bool) preg_match('/(?:\/|per\s+)(?:1m|million)\s*tokens?\b/i', $normalized) => '1m_tokens',
+            (bool) preg_match('/(?:\/|per\s+)(?:1k|thousand)\s*tokens?\b/i', $normalized) => '1k_tokens',
+            (bool) preg_match('/(?:\/|per\s+)(?:1k|thousand)\s*characters?\b/i', $normalized) => '1k_characters',
+            (bool) preg_match('/(?:\/|per\s+)characters?\b/i', $normalized) => 'character',
+            (bool) preg_match('/(?:\/|per\s+)requests?\b/i', $normalized) => 'request',
+            (bool) preg_match('/(?:\/|per\s+)images?\b/i', $normalized) => 'image',
+            (bool) preg_match('/(?:\/|per\s+)generations?\b/i', $normalized) => 'generation',
+            (bool) preg_match('/(?:\/|per\s+)credits?\b/i', $normalized) => 'credit',
+            default => null,
+        };
+
+        if ($unit === null) {
+            return null;
+        }
+
+        $number = number_format((float) str_replace(',', '', $amount[1]), 8, '.', '');
+        $number = rtrim(rtrim($number, '0'), '.');
+
+        return $number . '|' . $unit;
     }
 
     private function hasPeriodContext(string $window, array $candidate, string $period): bool
@@ -446,7 +606,16 @@ class PricingDetectionService
     private function valuesMatch(string $metric, ?string $current, string $detected): bool
     {
         if ($metric === 'api_price_label') {
-            return Str::squish((string) $current) === Str::squish($detected);
+            if (Str::squish((string) $current) === Str::squish($detected)) {
+                return true;
+            }
+
+            $leftFingerprint = $this->apiRateFingerprint((string) $current);
+            $rightFingerprint = $this->apiRateFingerprint($detected);
+
+            return $leftFingerprint !== null
+                && $rightFingerprint !== null
+                && $leftFingerprint === $rightFingerprint;
         }
 
         if ($current === null || $current === '') {
@@ -454,6 +623,25 @@ class PricingDetectionService
         }
 
         return $this->numericValuesMatch($current, $detected);
+    }
+
+    private function invalidateUnsafePendingChange(PricingSource $source, string $reason): void
+    {
+        DetectedPriceChange::query()
+            ->where('pricing_source_id', $source->id)
+            ->where('pricing_plan_id', $source->pricing_plan_id)
+            ->where('metric', $source->metric)
+            ->where('status', 'pending')
+            ->update([
+                'status' => 'rejected',
+                'review_note' => Str::limit(
+                    'Automatically invalidated by the safer pricing extractor: ' . $reason,
+                    1000
+                ),
+                'reviewed_by' => null,
+                'reviewed_at' => now(),
+                'updated_at' => now(),
+            ]);
     }
 
     private function closeStalePendingChange(PricingSource $source, ?string $current, string $detected): void
@@ -490,4 +678,8 @@ class PricingDetectionService
             " has a pending {$change->metric} change: {$change->current_value} → {$change->detected_value}. Review before publishing."
         );
     }
+}
+
+class UnsafeAutomaticPricingExtraction extends RuntimeException
+{
 }
