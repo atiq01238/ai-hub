@@ -299,3 +299,69 @@ a{overflow-wrap:anywhere}
   .mobile-nav > a.mobile-signup-link{background:linear-gradient(135deg,#5b46f6,#812be8)!important;border-color:#765cff!important;color:#fff!important;font-weight:800!important}
   .mobile-nav > a.mobile-signup-link svg{color:#fff}
 }
+
+/* 2026-08-28 — AI model detail mobile action/nav resilience */
+.model-detail-actions > a,
+.model-detail-actions > button{
+  overflow-wrap:normal;
+  word-break:normal;
+}
+.model-detail-actions > a span,
+.model-detail-actions > button span{
+  overflow-wrap:normal;
+  word-break:normal;
+}
+.model-detail-nav a{
+  overflow-wrap:normal;
+  word-break:normal;
+  white-space:nowrap;
+}
+
+@media(max-width:650px){
+  .model-detail-actions{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+    width:100%;
+  }
+  .model-detail-actions > a,
+  .model-detail-actions > button{
+    width:100%;
+    min-width:0;
+    min-height:44px;
+    padding:9px 10px;
+    justify-content:center;
+    white-space:nowrap;
+    line-height:1.15;
+  }
+  .model-detail-actions > :last-child:nth-child(odd){
+    grid-column:1 / -1;
+  }
+  .model-detail-actions svg{
+    flex:0 0 auto;
+  }
+  .model-detail-nav{
+    overflow-x:auto;
+    overflow-y:hidden;
+    scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;
+  }
+  .model-detail-nav::-webkit-scrollbar{display:none}
+  .model-detail-nav .model-wrap{
+    width:max-content;
+    min-width:100%;
+    padding-left:12px;
+    padding-right:12px;
+  }
+  .model-detail-nav a{
+    flex:0 0 auto;
+    white-space:nowrap;
+  }
+}
+
+@media(max-width:430px){
+  .model-detail-actions > a,
+  .model-detail-actions > button{
+    font-size:11.5px;
+  }
+}

@@ -41,7 +41,7 @@
         <link rel="stylesheet" href="{{ asset('css/frontend/saved.css') }}">
         <link rel="stylesheet" href="{{ asset('css/frontend/search-intelligence.css') }}">
         @stack('styles')
-        <link rel="stylesheet" href="{{ asset('css/frontend/ui-polish.css') }}?v=20260828-trendnav1">
+        <link rel="stylesheet" href="{{ asset('css/frontend/ui-polish.css') }}?v=20260828-modelmobile1">
     @endif
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9025296892842875"
      crossorigin="anonymous"></script>
