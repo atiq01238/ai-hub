@@ -49,12 +49,20 @@ class ArticleController extends Controller
             'tags' => Tag::active()->orderBy('sort_order')->orderBy('name')->get(),
             'tools' => Tool::orderBy('name')->get(),
             'models' => AiModel::orderBy('name')->get(),
+            'canPublish' => (bool) $request->user()?->canAccessModule('Content', 'Publish'),
         ]);
     }
 
     public function store(Request $request)
     {
         [$data, $relations] = $this->fromRequest($request);
+
+        $canPublish = (bool) $request->user()?->canAccessModule('Content', 'Publish');
+        if ($canPublish && in_array($data['status'], ['published', 'scheduled'], true)) {
+            $data['approval_status'] = 'approved';
+            $data['approved_at'] = now();
+            $data['reviewer_id'] = $request->user()?->id;
+        }
 
         $article = DB::transaction(function () use ($data, $relations) {
             $article = Article::create($data);
@@ -88,16 +96,46 @@ class ArticleController extends Controller
         $article = Article::findOrFail($id);
         [$data, $relations] = $this->fromRequest($request, $article);
 
-        $approvalInvalidated = $article->approval_status === 'approved' && $this->contentChanged($article, $data, $relations);
+        $canPublish = (bool) $request->user()?->canAccessModule('Content', 'Publish');
+        $publishingNow = $canPublish && in_array($data['status'], ['published', 'scheduled'], true);
+        $approvalBeforeUpdate = $article->approval_status;
+
+        // A user with Content/Publish permission can publish directly from the
+        // editor. Treat that explicit action as approval of the current edit,
+        // rather than immediately invalidating it back to draft.
+        if ($publishingNow) {
+            $data['approval_status'] = 'approved';
+            $data['approved_at'] = now();
+            $data['reviewer_id'] = $request->user()?->id;
+        }
+
+        $approvalInvalidated = ! $publishingNow
+            && $article->approval_status === 'approved'
+            && $this->contentChanged($article, $data, $relations);
+
         if ($approvalInvalidated) {
             $data['approval_status'] = 'draft';
             $data['approved_at'] = null;
             $data['status'] = 'draft';
         }
 
-        DB::transaction(function () use ($article, $data, $relations, $approvalInvalidated) {
+        DB::transaction(function () use ($article, $data, $relations, $approvalInvalidated, $publishingNow, $approvalBeforeUpdate) {
             $article->update($data);
             $this->syncRelations($article, $relations);
+
+            if ($publishingNow && $approvalBeforeUpdate !== 'approved') {
+                ArticleWorkflowEvent::create([
+                    'article_id' => $article->id,
+                    'user_id' => auth()->id(),
+                    'from_status' => $approvalBeforeUpdate,
+                    'to_status' => 'approved',
+                    'action' => $article->status === 'scheduled' ? 'approved_and_scheduled' : 'approved_and_published',
+                    'comment' => $article->status === 'scheduled'
+                        ? 'Article approved and scheduled directly by a publisher.'
+                        : 'Article approved and published directly by a publisher.',
+                ]);
+            }
+
             if ($approvalInvalidated) {
                 ArticleWorkflowEvent::create([
                     'article_id' => $article->id,
@@ -176,8 +214,15 @@ class ArticleController extends Controller
             $data['category'] = Category::find($data['category_id'])?->name;
         }
 
-        // Publication is only allowed after approval. Existing published articles remain editable.
-        if (in_array($data['status'], ['published', 'scheduled'], true) && (($article?->approval_status ?? 'draft') !== 'approved')) {
+        // Editors without publishing rights still use the approval workflow.
+        // Publishers may explicitly approve + publish/schedule directly from
+        // this editor; update() records the workflow transition.
+        $canPublish = (bool) $request->user()?->canAccessModule('Content', 'Publish');
+        if (
+            in_array($data['status'], ['published', 'scheduled'], true)
+            && (($article?->approval_status ?? 'draft') !== 'approved')
+            && ! $canPublish
+        ) {
             $data['status'] = 'draft';
         }
 
