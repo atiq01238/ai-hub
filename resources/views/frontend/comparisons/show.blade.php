@@ -175,6 +175,15 @@
             </div>
         </div>
 
+        @if(!($isPreview ?? false) && $quickRating)
+            @include('frontend.partials.quick-rating', [
+                'type' => 'comparison',
+                'id' => $comparison->id,
+                'summary' => $quickRating,
+                'label' => 'Was this comparison useful?',
+            ])
+        @endif
+
         <div class="detail-product-strip cols-{{ min($items->count(),4) }}">
             @foreach($items as $item)
                 <div class="detail-product-head {{ $winner && $winner->id === $item->id ? 'winner' : '' }}">

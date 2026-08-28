@@ -127,10 +127,10 @@
                 <div>
                     <span class="community-kicker">${icon('star')} COMMUNITY REVIEWS</span>
                     <h2>What AI Orbit users say</h2>
-                    <p>First-hand ratings are moderated before publication.</p>
+                    <p>Star ratings publish instantly. Written reviews are moderated before publication.</p>
                 </div>
                 <div class="community-summary">
-                    <div><strong>${data.average ? data.average.toFixed(1) : '—'}</strong><span>${data.count} published review${data.count === 1 ? '' : 's'}</span></div>
+                    <div><strong>${data.average ? data.average.toFixed(1) : '—'}</strong><span>${data.count} published rating${data.count === 1 ? '' : 's'}</span></div>
                     <a class="community-review-cta" href="${context.type === 'tool' ? `/tools/${context.id}/review` : `/models/${context.id}/review`}">${icon('star')} ${data.authenticated ? 'Write / edit review' : 'Sign in to review'}</a>
                 </div>
             </div>

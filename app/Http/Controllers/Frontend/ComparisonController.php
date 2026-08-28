@@ -8,6 +8,7 @@ use App\Models\AiTestResult;
 use App\Models\Comparison;
 use App\Models\Tool;
 use App\Services\Frontend\ComparisonHistoryService;
+use App\Services\Frontend\QuickFeedbackService;
 use App\Services\ComparisonIntelligenceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -15,7 +16,11 @@ use Illuminate\Validation\Rule;
 
 class ComparisonController extends Controller
 {
-    public function __construct(private readonly ComparisonHistoryService $userHistory, private readonly ComparisonIntelligenceService $intelligence)
+    public function __construct(
+        private readonly ComparisonHistoryService $userHistory,
+        private readonly ComparisonIntelligenceService $intelligence,
+        private readonly QuickFeedbackService $feedback,
+    )
     {
     }
     public function index(Request $request)
@@ -120,6 +125,7 @@ class ComparisonController extends Controller
         $isPreview = true;
         $intelligence = $this->intelligence->build($items, $comparisonType);
         $labComparison = ['stats' => collect(), 'shared' => collect(), 'has_data' => false];
+        $quickRating = null;
 
         if ($request->user()) {
             $this->userHistory->fromPreview(
@@ -132,7 +138,7 @@ class ComparisonController extends Controller
         }
 
         return view('frontend.comparisons.show', compact(
-            'comparison', 'comparisonType', 'items', 'winner', 'title', 'relatedComparisons', 'isPreview', 'intelligence', 'labComparison'
+            'comparison', 'comparisonType', 'items', 'winner', 'title', 'relatedComparisons', 'isPreview', 'intelligence', 'labComparison', 'quickRating'
         ));
     }
 
@@ -162,6 +168,7 @@ class ComparisonController extends Controller
         $isPreview = false;
         $intelligence = $this->intelligence->build($items, $comparisonType);
         $labComparison = ['stats' => collect(), 'shared' => collect(), 'has_data' => false];
+        $quickRating = $this->feedback->ratingSummary('comparison', $comparison->id, $request->user());
 
         if ($request->user()) {
             $this->userHistory->fromPublished($request->user(), $comparison, false);
@@ -177,7 +184,7 @@ class ComparisonController extends Controller
         $relatedComparisons->each(fn (Comparison $item) => $item->setRelation('resolved_items', $item->items()));
 
         return view('frontend.comparisons.show', compact(
-            'comparison', 'comparisonType', 'items', 'winner', 'title', 'relatedComparisons', 'isPreview', 'intelligence', 'labComparison'
+            'comparison', 'comparisonType', 'items', 'winner', 'title', 'relatedComparisons', 'isPreview', 'intelligence', 'labComparison', 'quickRating'
         ));
     }
 

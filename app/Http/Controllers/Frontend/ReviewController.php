@@ -79,6 +79,7 @@ class ReviewController extends Controller
     public function show(Review $review)
     {
         abort_unless($review->status === 'published', 404);
+        abort_if($review->review_type === 'user' && ! filled($review->body), 404);
 
         $review->load(['tool.company', 'tool.category', 'model.company', 'user']);
         $item = $review->model ?: $review->tool;
@@ -127,6 +128,14 @@ class ReviewController extends Controller
     {
         return Review::query()
             ->published()
+            ->where(function (Builder $query) {
+                $query->where('review_type', 'editorial')
+                    ->orWhere(function (Builder $community) {
+                        $community->where('review_type', 'user')
+                            ->whereNotNull('body')
+                            ->where('body', '!=', '');
+                    });
+            })
             ->where(function (Builder $query) {
                 $query->whereHas('tool', fn (Builder $tool) => $tool->where('status', 'published'))
                     ->orWhereHas('model', fn (Builder $model) => $model->whereIn('status', ['active', 'preview']));

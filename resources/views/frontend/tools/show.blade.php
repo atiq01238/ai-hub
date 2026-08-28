@@ -64,7 +64,7 @@
 
             <div class="tool-score-panel">
                 <div class="hero-rating"><i data-lucide="star"></i><strong>{{ number_format((float)$tool->rating, 1) }}</strong><span>/ 5</span></div>
-                <div class="hero-rating-copy"><b>AI Orbit rating</b><small>{{ $reviewCount ? $reviewCount . ' published ' . Str::plural('review', $reviewCount) : 'Editorial profile' }}</small></div>
+                <div class="hero-rating-copy"><b>AI Orbit rating</b><small>{{ $reviewCount ? $reviewCount . ' published ' . Str::plural('rating', $reviewCount) : 'Editorial profile' }}</small></div>
                 @if($benchmarkResults->isNotEmpty())
                     <div class="hero-benchmark"><span>Verified benchmarks</span><strong>{{ $benchmarkResults->count() }}</strong></div>
                 @elseif($tool->benchmark_score)
@@ -72,6 +72,13 @@
                 @endif
             </div>
         </div>
+
+        @include('frontend.partials.quick-rating', [
+            'type' => 'tool',
+            'id' => $tool->id,
+            'summary' => $quickRating,
+            'label' => 'Rate '.$tool->name,
+        ])
 
         <div class="tool-hero-bottom">
             <div class="tool-quick-facts">

@@ -13,6 +13,7 @@ use App\Models\Tool;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use App\Services\Seo\EntitySeoService;
+use App\Services\Frontend\QuickFeedbackService;
 
 class ToolController extends Controller
 {
@@ -89,7 +90,7 @@ class ToolController extends Controller
         ));
     }
 
-    public function show(Tool $tool, EntitySeoService $seoService)
+    public function show(Tool $tool, EntitySeoService $seoService, QuickFeedbackService $feedback)
     {
         abort_unless($tool->status === 'published', 404);
 
@@ -240,6 +241,8 @@ class ToolController extends Controller
             ->unique()
             ->values();
 
+        $quickRating = $feedback->ratingSummary('tool', $tool->id, auth()->user());
+
         $seo = $seoService->tool($tool);
         $seoSchemas = $seoService->schemas('tool', $tool, $seo);
 
@@ -256,6 +259,7 @@ class ToolController extends Controller
             'capabilities',
             'platforms',
             'tags',
+            'quickRating',
             'seo',
             'seoSchemas',
         ));

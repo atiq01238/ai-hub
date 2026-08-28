@@ -11,6 +11,7 @@ class PendingUserActionService
         private readonly SavedItemService $savedItems,
         private readonly ComparisonHistoryService $comparisons,
         private readonly UserInteractionService $interactions,
+        private readonly QuickFeedbackService $quickFeedback,
     ) {
     }
 
@@ -35,6 +36,7 @@ class PendingUserActionService
                 'save' => $this->consumeSave($user, $pending),
                 'interaction' => $this->consumeInteraction($user, $pending),
                 'comparison_save' => $this->consumeComparison($user, $pending),
+                'quick_feedback' => $this->consumeQuickFeedback($user, $pending),
                 default => null,
             };
         } catch (\Throwable $exception) {
@@ -74,6 +76,23 @@ class PendingUserActionService
                 ? 'Marked as helpful.'
                 : 'You are now following this item.',
         ];
+    }
+
+
+    private function consumeQuickFeedback(User $user, array $pending): ?array
+    {
+        $kind = (string) ($pending['kind'] ?? '');
+        $type = (string) ($pending['type'] ?? '');
+        $id = (int) ($pending['id'] ?? 0);
+        $value = $pending['value'] ?? null;
+
+        if ($id < 1 || ! in_array($kind, ['rating', 'vote'], true) || $value === null) {
+            return null;
+        }
+
+        $result = $this->quickFeedback->store($user, $kind, $type, $id, $value);
+
+        return ['message' => (string) ($result['message'] ?? 'Your feedback was saved.')];
     }
 
     private function consumeComparison(User $user, array $pending): ?array

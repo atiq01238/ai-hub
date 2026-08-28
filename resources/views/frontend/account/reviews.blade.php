@@ -27,7 +27,7 @@
                     @elseif($review->tool)
                         <a href="{{ route('reviews.create',$review->tool) }}"><i data-lucide="pencil"></i>Edit review</a>
                     @endif
-                    @if($review->status === 'published')<a href="{{ route('reviews.show',$review) }}"><i data-lucide="external-link"></i>View published</a>@endif
+                    @if($review->status === 'published' && filled($review->body))<a href="{{ route('reviews.show',$review) }}"><i data-lucide="external-link"></i>View published</a>@endif
                 </div>
             </div>
         </article>

@@ -157,6 +157,13 @@
         @endforelse
     </div>
 
+    @include('frontend.partials.quick-vote', [
+        'type' => 'pricing',
+        'id' => $tool->id,
+        'summary' => $pricingFeedback,
+        'label' => 'Is this pricing information accurate?',
+    ])
+
     <div class="pi-detail-grid">
         <section class="pi-panel">
             <div class="pi-panel-title">

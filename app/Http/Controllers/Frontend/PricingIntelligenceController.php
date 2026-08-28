@@ -7,6 +7,7 @@ use App\Models\PricingHistory;
 use App\Models\PricingPlan;
 use App\Models\Tool;
 use Illuminate\Http\Request;
+use App\Services\Frontend\QuickFeedbackService;
 
 class PricingIntelligenceController extends Controller
 {
@@ -60,14 +61,15 @@ class PricingIntelligenceController extends Controller
         return view('frontend.pricing.index', compact('tools','recentChanges','stats','filters','type','sort'));
     }
 
-    public function show(Tool $tool)
+    public function show(Tool $tool, QuickFeedbackService $feedback)
     {
         abort_unless($tool->status === 'published', 404);
         $tool->load(['company','pricingPlans.sources']);
         $history = PricingHistory::where('tool_id',$tool->id)->latest()->limit(20)->get();
         $alternatives = Tool::where('status','published')->whereKeyNot($tool->id)
             ->whereHas('pricingPlans')->with('pricingPlans')->orderByDesc('rating')->limit(4)->get();
-        return view('frontend.pricing.show', compact('tool','history','alternatives'));
+        $pricingFeedback = $feedback->voteSummary('pricing', $tool->id, auth()->user());
+        return view('frontend.pricing.show', compact('tool','history','alternatives','pricingFeedback'));
     }
 
     private function valueScore(Tool $tool): float

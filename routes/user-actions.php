@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\EngagementAnalyticsController;
 
 use App\Http\Controllers\Frontend\FollowPreferenceController;
+use App\Http\Controllers\Frontend\FeedbackController;
 use App\Http\Controllers\Frontend\EmailPreferenceController;
 
 use App\Http\Controllers\Frontend\OnboardingController;
@@ -61,6 +62,16 @@ Route::get('/community/reviews', [CommunityController::class, 'reviews'])
 Route::get('/community/login', [CommunityController::class, 'login'])
     ->name('community.login');
 
+// One-click ratings and lightweight page feedback. Status/intent stay public so
+// guests can choose first, sign in, and have that exact choice applied afterward.
+Route::get('/feedback/status', [FeedbackController::class, 'status'])
+    ->middleware('throttle:90,1')
+    ->name('feedback.status');
+
+Route::post('/feedback/intent', [FeedbackController::class, 'intent'])
+    ->middleware('throttle:30,1')
+    ->name('feedback.intent');
+
 Route::get('/benchmarks/{benchmark:slug}/discussion', function (Benchmark $benchmark) {
     abort_unless($benchmark->is_active, 404);
 
@@ -74,6 +85,10 @@ Route::get('/benchmarks/{benchmark:slug}/discussion', function (Benchmark $bench
 */
 
 Route::middleware(['auth', 'verified', EnsureAccountIsActive::class])->group(function () {
+    Route::post('/feedback', [FeedbackController::class, 'store'])
+        ->middleware('throttle:60,1')
+        ->name('feedback.store');
+
     // Community comments
     Route::post('/community/comments', [CommunityController::class, 'store'])
         ->middleware('throttle:15,1')

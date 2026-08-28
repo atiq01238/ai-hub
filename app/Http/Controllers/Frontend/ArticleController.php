@@ -11,6 +11,7 @@ use App\Models\Tool;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use App\Services\Frontend\QuickFeedbackService;
 
 class ArticleController extends Controller
 {
@@ -86,7 +87,7 @@ class ArticleController extends Controller
         return view('frontend.articles.index', compact('articles', 'featured', 'categoryCounts', 'companies', 'stats'));
     }
 
-    public function show(Article $article)
+    public function show(Article $article, QuickFeedbackService $feedback)
     {
         abort_unless($article->status === 'published' && $article->approval_status === 'approved', 404);
 
@@ -133,6 +134,8 @@ class ArticleController extends Controller
         $next = Article::where('status', 'published')->where('approval_status', 'approved')
             ->where('published_at', '>', $article->published_at)->oldest('published_at')->first();
 
-        return view('frontend.articles.show', compact('article', 'relatedTools', 'relatedModels', 'relatedArticles', 'previous', 'next'));
+        $articleFeedback = $feedback->voteSummary('article', $article->id, auth()->user());
+
+        return view('frontend.articles.show', compact('article', 'relatedTools', 'relatedModels', 'relatedArticles', 'previous', 'next', 'articleFeedback'));
     }
 }

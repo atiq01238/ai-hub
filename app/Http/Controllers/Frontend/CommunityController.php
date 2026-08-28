@@ -337,16 +337,29 @@ class CommunityController extends Controller
 
         $this->targets->reviewTarget($data['type'], (int) $data['id']);
 
-        $query = Review::query()
-            ->with('user:id,name')
+        $baseQuery = Review::query()
             ->where('review_type', 'user')
             ->where('status', 'published');
 
         $data['type'] === 'tool'
-            ? $query->where('tool_id', (int) $data['id'])
-            : $query->where('model_id', (int) $data['id']);
+            ? $baseQuery->where('tool_id', (int) $data['id'])
+            : $baseQuery->where('model_id', (int) $data['id']);
 
-        $reviews = $query->latest('moderated_at')->latest()->limit(20)->get();
+        $ratingCount = (int) (clone $baseQuery)->count();
+        $ratingAverage = $ratingCount > 0
+            ? round((float) (clone $baseQuery)->avg('rating'), 1)
+            : 0.0;
+
+        // Star-only ratings contribute to the aggregate but do not create
+        // repetitive empty cards in the written community review feed.
+        $reviews = (clone $baseQuery)
+            ->with('user:id,name')
+            ->whereNotNull('body')
+            ->where('body', '!=', '')
+            ->latest('moderated_at')
+            ->latest()
+            ->limit(20)
+            ->get();
         $ids = $reviews->pluck('id');
 
         $counts = CommunityReaction::query()
@@ -370,8 +383,8 @@ class CommunityController extends Controller
 
         return response()->json([
             'authenticated' => (bool) $request->user(),
-            'count' => $reviews->count(),
-            'average' => round((float) ($reviews->avg('rating') ?? 0), 1),
+            'count' => $ratingCount,
+            'average' => $ratingAverage,
             'reviews' => $reviews->map(fn (Review $review) => [
                 'id' => $review->id,
                 'rating' => (float) $review->rating,
