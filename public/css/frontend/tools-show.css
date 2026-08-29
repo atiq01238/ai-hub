@@ -33,3 +33,67 @@
 .benchmark-intel-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px}.benchmark-intel-foot>div:first-child{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:#6b7896;font-size:9px}.benchmark-intel-foot>div:first-child span{display:inline-flex;align-items:center;gap:4px}.benchmark-intel-foot svg{width:11px;height:11px}.benchmark-source-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}.benchmark-source-actions a{display:inline-flex;align-items:center;gap:5px;min-height:28px;padding:6px 8px;border:1px solid #334064;border-radius:8px;background:#10182f;color:#aaa5ff;font-size:9px;font-weight:800}.benchmark-source-actions a:hover{border-color:#5d55b8;color:#d7d4ff}
 @media(max-width:720px){.benchmark-intel-top{grid-template-columns:1fr auto;gap:10px}.benchmark-context-grid{grid-template-columns:1fr 1fr}.benchmark-context-grid>div:nth-child(2){border-right:0}.benchmark-context-grid>div:nth-child(-n+2){border-bottom:1px solid #1e2947}.benchmark-intel-foot{align-items:flex-start;flex-direction:column}.benchmark-source-actions{width:100%;justify-content:flex-start}.benchmark-source-actions a{flex:1;justify-content:center}.benchmark-intel-score strong{font-size:18px}}
 @media(max-width:430px){.benchmark-intel-card{padding:12px}.benchmark-intel-top{grid-template-columns:1fr}.benchmark-intel-score{display:flex;align-items:center;justify-content:space-between;text-align:left}.benchmark-rank-chip{margin-top:0}.benchmark-context-grid{grid-template-columns:1fr}.benchmark-context-grid>div{border-right:0;border-bottom:1px solid #1e2947}.benchmark-context-grid>div:last-child{border-bottom:0}.benchmark-source-actions{display:grid;grid-template-columns:1fr}.benchmark-tested-version{align-items:flex-start;flex-direction:column;gap:2px}}
+
+/* 2026-08-29 — Tool taxonomy pills dark-theme contrast fix
+   Scoped to the Features section so global taxonomy/category UI is untouched. */
+#features .taxonomy-link-row{
+    border-top-color:#25304f;
+}
+#features .taxonomy-link-row>strong{
+    color:#7385b0;
+}
+#features .taxonomy-link-row a{
+    min-height:34px;
+    padding:7px 11px;
+    border:1px solid #2a385e !important;
+    background:linear-gradient(145deg,#121b35,#0d152b) !important;
+    color:#c5cff4 !important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.025);
+    line-height:1.2;
+    transition:border-color .18s ease,background .18s ease,color .18s ease,transform .18s ease,box-shadow .18s ease;
+}
+#features .taxonomy-link-row a svg{
+    color:#7c8cff;
+    stroke:currentColor;
+    flex:0 0 auto;
+}
+#features .taxonomy-link-row.use-cases a{
+    border-color:#34315f !important;
+    background:linear-gradient(145deg,#171731,#10152b) !important;
+    color:#d1caff !important;
+}
+#features .taxonomy-link-row.use-cases a svg{
+    color:#9f8cff;
+}
+#features .taxonomy-link-row a:hover{
+    transform:translateY(-1px);
+    border-color:#5563aa !important;
+    background:linear-gradient(145deg,#192346,#111a35) !important;
+    color:#f1f4ff !important;
+    box-shadow:0 8px 22px rgba(0,0,0,.18),0 0 0 1px rgba(116,105,255,.05);
+}
+#features .taxonomy-link-row.use-cases a:hover{
+    border-color:#6656ad !important;
+    background:linear-gradient(145deg,#211d47,#151731) !important;
+}
+#features .taxonomy-link-row a:focus-visible{
+    outline:2px solid #7c73ff;
+    outline-offset:2px;
+}
+
+@media(max-width:720px){
+    #features .taxonomy-link-row{
+        margin-top:16px;
+        padding-top:15px;
+    }
+    #features .taxonomy-link-row>div{
+        gap:7px;
+    }
+    #features .taxonomy-link-row a{
+        min-height:33px;
+        max-width:100%;
+        padding:7px 10px;
+        font-size:11px;
+        white-space:normal;
+    }
+}
