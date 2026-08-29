@@ -4,11 +4,9 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Models\AiModel;
-use App\Models\AiTestResult;
 use App\Models\Comparison;
 use App\Models\Tool;
 use App\Services\Frontend\ComparisonHistoryService;
-use App\Services\Frontend\QuickFeedbackService;
 use App\Services\ComparisonIntelligenceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -16,11 +14,7 @@ use Illuminate\Validation\Rule;
 
 class ComparisonController extends Controller
 {
-    public function __construct(
-        private readonly ComparisonHistoryService $userHistory,
-        private readonly ComparisonIntelligenceService $intelligence,
-        private readonly QuickFeedbackService $feedback,
-    )
+    public function __construct(private readonly ComparisonHistoryService $userHistory, private readonly ComparisonIntelligenceService $intelligence)
     {
     }
     public function index(Request $request)
@@ -87,7 +81,7 @@ class ComparisonController extends Controller
             ->whereIn('status', ['active', 'preview'])
             ->orderByDesc('benchmark_score')
             ->orderBy('name')
-            ->get(['id', 'company_id', 'tool_id', 'name', 'slug', 'logo_path', 'version', 'benchmark_score', 'context_window', 'input_price_per_million', 'output_price_per_million', 'capabilities', 'capability_notes', 'status']);
+            ->get(['id', 'company_id', 'name', 'slug', 'logo_path', 'version', 'benchmark_score', 'context_window', 'status']);
 
         return view('frontend.comparisons.builder', compact('tools', 'models', 'type'));
     }
@@ -107,15 +101,7 @@ class ComparisonController extends Controller
 
         abort_if($items->count() < 2, 404);
 
-        $items->each(function ($item) use ($data) {
-            $item->loadMissing(['company','benchmarkResults.benchmark']);
-            if ($data['type'] === 'model') {
-                $item->loadMissing('tool');
-            }
-            if ($data['type'] === 'tool') {
-                $item->loadMissing(['category', 'featureTerms', 'pricingPlans']);
-            }
-        });
+        $this->hydrateForDisplay($items, $data['type']);
 
         $comparison = null;
         $comparisonType = $data['type'];
@@ -123,9 +109,7 @@ class ComparisonController extends Controller
         $title = $items->pluck('name')->join(' vs ');
         $relatedComparisons = collect();
         $isPreview = true;
-        $intelligence = $this->intelligence->build($items, $comparisonType);
-        $labComparison = ['stats' => collect(), 'shared' => collect(), 'has_data' => false];
-        $quickRating = null;
+        $intelligence = $this->safeIntelligence($items, $comparisonType);
 
         if ($request->user()) {
             $this->userHistory->fromPreview(
@@ -138,7 +122,7 @@ class ComparisonController extends Controller
         }
 
         return view('frontend.comparisons.show', compact(
-            'comparison', 'comparisonType', 'items', 'winner', 'title', 'relatedComparisons', 'isPreview', 'intelligence', 'labComparison', 'quickRating'
+            'comparison', 'comparisonType', 'items', 'winner', 'title', 'relatedComparisons', 'isPreview', 'intelligence'
         ));
     }
 
@@ -152,23 +136,13 @@ class ComparisonController extends Controller
         $items = $comparison->items();
         abort_if($items->count() < 2, 404);
 
-        $items->each(function ($item) use ($comparison) {
-            $item->loadMissing(['company','benchmarkResults.benchmark']);
-            if ($comparison->comparable_type === 'model') {
-                $item->loadMissing('tool');
-            }
-            if ($comparison->comparable_type === 'tool') {
-                $item->loadMissing(['category', 'featureTerms', 'pricingPlans']);
-            }
-        });
+        $this->hydrateForDisplay($items, $comparison->comparable_type);
 
         $comparisonType = $comparison->comparable_type;
         $winner = $this->winner($items);
         $title = $comparison->title;
         $isPreview = false;
-        $intelligence = $this->intelligence->build($items, $comparisonType);
-        $labComparison = ['stats' => collect(), 'shared' => collect(), 'has_data' => false];
-        $quickRating = $this->feedback->ratingSummary('comparison', $comparison->id, $request->user());
+        $intelligence = $this->safeIntelligence($items, $comparisonType);
 
         if ($request->user()) {
             $this->userHistory->fromPublished($request->user(), $comparison, false);
@@ -184,64 +158,55 @@ class ComparisonController extends Controller
         $relatedComparisons->each(fn (Comparison $item) => $item->setRelation('resolved_items', $item->items()));
 
         return view('frontend.comparisons.show', compact(
-            'comparison', 'comparisonType', 'items', 'winner', 'title', 'relatedComparisons', 'isPreview', 'intelligence', 'labComparison', 'quickRating'
+            'comparison', 'comparisonType', 'items', 'winner', 'title', 'relatedComparisons', 'isPreview', 'intelligence'
         ));
     }
 
-
-    private function testLabComparison(Collection $items, string $comparisonType): array
+    private function hydrateForDisplay(Collection $items, string $type): void
     {
-        if ($comparisonType !== 'model' || $items->isEmpty()) {
-            return ['stats' => collect(), 'shared' => collect(), 'has_data' => false];
+        foreach ($items as $item) {
+            // These are the only relations the Blade template needs directly.
+            // Benchmark/pricing relations are queried by the intelligence service
+            // and are deliberately not force-loaded here.
+            $relations = ['company'];
+            if ($type === 'tool') {
+                $relations[] = 'category';
+            }
+
+            try {
+                $item->loadMissing($relations);
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
+    }
 
-        $results = AiTestResult::query()
-            ->with('test')
-            ->whereIn('ai_model_id', $items->pluck('id'))
-            ->complete()
-            ->whereHas('test', fn ($q) => $q->published())
-            ->get();
+    private function safeIntelligence(Collection $items, string $type): array
+    {
+        try {
+            return $this->intelligence->build($items, $type);
+        } catch (\Throwable $e) {
+            // Comparison pages should remain usable even when an optional
+            // benchmark/pricing evidence query is temporarily incompatible with
+            // a legacy row or schema. The visible page falls back to catalog data.
+            report($e);
 
-        $stats = $items->mapWithKeys(function ($model) use ($results) {
-            $rows = $results->where('ai_model_id', $model->id);
-            return [$model->id => [
-                'average' => $rows->isNotEmpty() ? round((float) $rows->avg('overall_score'), 1) : null,
-                'tests' => $rows->count(),
-                'runs' => (int) $rows->sum('run_count'),
-                'verified' => $rows->whereIn('verification_level', ['verified', 'high_confidence'])->count(),
-            ]];
-        });
-
-        $shared = $results->groupBy('ai_test_id')
-            ->filter(fn ($rows) => $rows->pluck('ai_model_id')->unique()->count() >= 2)
-            ->map(function ($rows) {
-                $first = $rows->first();
-                return [
-                    'test' => $first->test,
-                    'scores' => $rows->keyBy('ai_model_id'),
-                ];
-            })
-            ->sortByDesc(fn ($row) => $row['test']?->published_at?->timestamp ?? 0)
-            ->take(8)
-            ->values();
-
-        return ['stats' => $stats, 'shared' => $shared, 'has_data' => $stats->contains(fn ($row) => $row['tests'] > 0)];
+            return [
+                'benchmarkMatrix' => [],
+                'benchmarkMeta' => [],
+                'wins' => [],
+                'pricing' => [],
+                'overall' => null,
+                'valueWinner' => null,
+            ];
+        }
     }
 
     private function winner(Collection $items): mixed
     {
-        $eligible = $items->filter(function ($item) {
-            if ($item->benchmark_score !== null && (float) $item->benchmark_score > 0) {
-                return true;
-            }
-
-            return isset($item->rating) && $item->rating !== null && (float) $item->rating > 0;
-        });
-
-        return $eligible->sortByDesc(function ($item) {
-            $benchmark = $item->benchmark_score !== null ? (float) $item->benchmark_score : 0.0;
-            $rating = isset($item->rating) && $item->rating !== null ? (float) $item->rating * 10 : 0.0;
-
+        return $items->sortByDesc(function ($item) {
+            $benchmark = (float) ($item->benchmark_score ?? 0);
+            $rating = (float) ($item->rating ?? 0) * 10;
             return $benchmark > 0 ? $benchmark : $rating;
         })->first();
     }
