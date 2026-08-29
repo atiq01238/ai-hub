@@ -7,6 +7,7 @@ use App\Models\AiModel;
 use App\Models\Comparison;
 use App\Models\Tool;
 use App\Services\Frontend\ComparisonHistoryService;
+use App\Services\Frontend\QuickFeedbackService;
 use App\Services\ComparisonIntelligenceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -14,9 +15,13 @@ use Illuminate\Validation\Rule;
 
 class ComparisonController extends Controller
 {
-    public function __construct(private readonly ComparisonHistoryService $userHistory, private readonly ComparisonIntelligenceService $intelligence)
-    {
+    public function __construct(
+        private readonly ComparisonHistoryService $userHistory,
+        private readonly ComparisonIntelligenceService $intelligence,
+        private readonly QuickFeedbackService $feedback,
+    ) {
     }
+
     public function index(Request $request)
     {
         $type = in_array($request->query('type'), ['tool', 'model'], true)
@@ -44,14 +49,28 @@ class ComparisonController extends Controller
         };
 
         $comparisons = $query->paginate(9)->withQueryString();
-        $comparisons->getCollection()->each(fn (Comparison $comparison) => $comparison->setRelation('resolved_items', $comparison->items()));
+        $comparisons->getCollection()->each(function (Comparison $comparison) {
+            try {
+                $comparison->setRelation('resolved_items', $comparison->items());
+            } catch (\Throwable $e) {
+                report($e);
+                $comparison->setRelation('resolved_items', collect());
+            }
+        });
 
         $featured = Comparison::query()
             ->where('status', 'published')
             ->orderByDesc('views')
             ->limit(3)
             ->get();
-        $featured->each(fn (Comparison $comparison) => $comparison->setRelation('resolved_items', $comparison->items()));
+        $featured->each(function (Comparison $comparison) {
+            try {
+                $comparison->setRelation('resolved_items', $comparison->items());
+            } catch (\Throwable $e) {
+                report($e);
+                $comparison->setRelation('resolved_items', collect());
+            }
+        });
 
         $stats = [
             'published' => Comparison::where('status', 'published')->count(),
@@ -95,9 +114,16 @@ class ComparisonController extends Controller
         ]);
 
         $modelClass = $data['type'] === 'tool' ? Tool::class : AiModel::class;
-        $query = $modelClass::query()->with('company');
-        $rows = $query->whereIn('id', $data['items'])->get()->keyBy('id');
-        $items = collect($data['items'])->map(fn ($id) => $rows->get((int) $id))->filter()->values();
+        $rows = $modelClass::query()
+            ->with('company')
+            ->whereIn('id', $data['items'])
+            ->get()
+            ->keyBy('id');
+
+        $items = collect($data['items'])
+            ->map(fn ($id) => $rows->get((int) $id))
+            ->filter()
+            ->values();
 
         abort_if($items->count() < 2, 404);
 
@@ -105,11 +131,14 @@ class ComparisonController extends Controller
 
         $comparison = null;
         $comparisonType = $data['type'];
-        $winner = $this->winner($items);
         $title = $items->pluck('name')->join(' vs ');
         $relatedComparisons = collect();
         $isPreview = true;
         $intelligence = $this->safeIntelligence($items, $comparisonType);
+        $winner = data_get($intelligence, 'overall');
+        $labComparison = ['stats' => collect(), 'shared' => collect(), 'has_data' => false];
+        // Preview comparisons do not have a persisted comparison ID to rate.
+        $quickRating = null;
 
         if ($request->user()) {
             $this->userHistory->fromPreview(
@@ -122,7 +151,8 @@ class ComparisonController extends Controller
         }
 
         return view('frontend.comparisons.show', compact(
-            'comparison', 'comparisonType', 'items', 'winner', 'title', 'relatedComparisons', 'isPreview', 'intelligence'
+            'comparison', 'comparisonType', 'items', 'winner', 'title',
+            'relatedComparisons', 'isPreview', 'intelligence', 'labComparison', 'quickRating'
         ));
     }
 
@@ -133,16 +163,34 @@ class ComparisonController extends Controller
         $comparison->increment('views');
         $comparison->refresh();
 
-        $items = $comparison->items();
+        try {
+            $items = $comparison->items();
+        } catch (\Throwable $e) {
+            report($e);
+            $items = collect();
+        }
+
+        // A saved comparison is only meaningful when at least two catalog items
+        // can be recovered. Comparison::items() includes stale-ID recovery.
         abort_if($items->count() < 2, 404);
 
         $this->hydrateForDisplay($items, $comparison->comparable_type);
 
         $comparisonType = $comparison->comparable_type;
-        $winner = $this->winner($items);
         $title = $comparison->title;
         $isPreview = false;
         $intelligence = $this->safeIntelligence($items, $comparisonType);
+        $winner = data_get($intelligence, 'overall');
+        $labComparison = ['stats' => collect(), 'shared' => collect(), 'has_data' => false];
+
+        // Quick feedback is optional UI. A feedback-table/config problem must
+        // never take the whole comparison page down.
+        try {
+            $quickRating = $this->feedback->ratingSummary('comparison', $comparison->id, $request->user());
+        } catch (\Throwable $e) {
+            report($e);
+            $quickRating = null;
+        }
 
         if ($request->user()) {
             $this->userHistory->fromPublished($request->user(), $comparison, false);
@@ -155,19 +203,25 @@ class ComparisonController extends Controller
             ->orderByDesc('views')
             ->limit(4)
             ->get();
-        $relatedComparisons->each(fn (Comparison $item) => $item->setRelation('resolved_items', $item->items()));
+
+        $relatedComparisons->each(function (Comparison $item) {
+            try {
+                $item->setRelation('resolved_items', $item->items());
+            } catch (\Throwable $e) {
+                report($e);
+                $item->setRelation('resolved_items', collect());
+            }
+        });
 
         return view('frontend.comparisons.show', compact(
-            'comparison', 'comparisonType', 'items', 'winner', 'title', 'relatedComparisons', 'isPreview', 'intelligence'
+            'comparison', 'comparisonType', 'items', 'winner', 'title',
+            'relatedComparisons', 'isPreview', 'intelligence', 'labComparison', 'quickRating'
         ));
     }
 
     private function hydrateForDisplay(Collection $items, string $type): void
     {
         foreach ($items as $item) {
-            // These are the only relations the Blade template needs directly.
-            // Benchmark/pricing relations are queried by the intelligence service
-            // and are deliberately not force-loaded here.
             $relations = ['company'];
             if ($type === 'tool') {
                 $relations[] = 'category';
@@ -186,28 +240,41 @@ class ComparisonController extends Controller
         try {
             return $this->intelligence->build($items, $type);
         } catch (\Throwable $e) {
-            // Comparison pages should remain usable even when an optional
-            // benchmark/pricing evidence query is temporarily incompatible with
-            // a legacy row or schema. The visible page falls back to catalog data.
             report($e);
 
+            // Keep every key used by the comparison Blade available. This is a
+            // presentation-safe fallback only; it never fabricates benchmark data.
             return [
                 'benchmarkMatrix' => [],
                 'benchmarkMeta' => [],
+                'sharedBenchmarkKeys' => [],
+                'benchmarkLeaders' => [],
                 'wins' => [],
+                'weightedWins' => [],
+                'verifiedBenchmarkItemIds' => [],
+                'verifiedComposite' => [],
                 'pricing' => [],
                 'overall' => null,
+                'overallVerdict' => [
+                    'winner_id' => null,
+                    'confidence' => 'limited',
+                    'confidence_label' => 'Limited evidence',
+                    'shared_benchmarks' => 0,
+                    'clear_benchmarks' => 0,
+                    'reason' => 'Verified comparison evidence is temporarily unavailable. AI Orbit is not declaring an evidence-backed winner.',
+                ],
+                'metricWinners' => [
+                    'benchmark' => null,
+                    'capabilities' => null,
+                    'price' => null,
+                    'rating' => null,
+                    'popularity' => null,
+                    'context' => null,
+                ],
                 'valueWinner' => null,
+                'valueSignalReason' => null,
+                'evidenceAsOf' => null,
             ];
         }
-    }
-
-    private function winner(Collection $items): mixed
-    {
-        return $items->sortByDesc(function ($item) {
-            $benchmark = (float) ($item->benchmark_score ?? 0);
-            $rating = (float) ($item->rating ?? 0) * 10;
-            return $benchmark > 0 ? $benchmark : $rating;
-        })->first();
     }
 }

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 class Comparison extends Model
@@ -16,81 +17,75 @@ class Comparison extends Model
 
     protected $casts = [
         'item_ids' => 'array',
-        'views'    => 'integer',
+        'views' => 'integer',
         'last_verified_at' => 'datetime',
         'auto_generated' => 'boolean',
         'seo_faq' => 'array',
     ];
 
     /**
-     * Fetch the actual Tool or AiModel rows this comparison points to,
-     * in the order they were selected.
+     * Resolve current catalog items in display order.
+     *
+     * Historical comparison rows can carry stale numeric IDs after catalog
+     * imports. We therefore recover only from explicit human-readable evidence
+     * already stored on the comparison (title/slug); no fuzzy guessing.
      */
-    public function items()
+    public function items(): Collection
     {
         $modelClass = $this->comparable_type === 'tool' ? Tool::class : AiModel::class;
+
         $ids = collect($this->item_ids ?? [])
             ->filter(fn ($id) => is_numeric($id))
             ->map(fn ($id) => (int) $id)
             ->unique()
             ->values();
 
-        $rows = $ids->isEmpty()
+        $directRows = $ids->isEmpty()
             ? collect()
             : $modelClass::query()->whereIn('id', $ids)->get()->keyBy('id');
 
         $resolved = $ids
-            ->map(fn ($id) => $rows->get($id))
+            ->map(fn ($id) => $directRows->get($id))
             ->filter()
             ->values();
 
-        // Historical comparisons can retain stale numeric IDs after catalog
-        // maintenance/imports. If fewer than two records resolve, recover by
-        // the human-readable comparison title instead of sending users to 404.
         if ($resolved->count() >= 2) {
             return $resolved;
         }
 
-        $titleNames = collect(preg_split('/\s+vs\.?\s+/i', trim((string) $this->title)) ?: [])
-            ->map(fn ($name) => trim($name))
-            ->filter()
-            ->unique()
-            ->values();
+        $catalog = $modelClass::query()->get();
+        $byName = $catalog->keyBy(fn ($item) => mb_strtolower(trim((string) $item->name)));
+        $bySlug = $catalog->keyBy(fn ($item) => (string) ($item->slug ?: Str::slug((string) $item->name)));
 
-        if ($titleNames->count() < 2) {
-            return $resolved;
+        $recovered = collect($resolved);
+
+        // Title is the strongest recovery source because admins edit it together
+        // with the comparison pair.
+        $titleParts = $this->pairParts((string) $this->title, false);
+        foreach ($titleParts as $name) {
+            $match = $byName->get(mb_strtolower($name)) ?: $bySlug->get(Str::slug($name));
+            if ($match) {
+                $recovered->push($match);
+            }
         }
 
-        // First try exact catalog names.
-        $nameRows = $modelClass::query()
-            ->whereIn('name', $titleNames->all())
-            ->get()
-            ->keyBy(fn ($item) => mb_strtolower(trim((string) $item->name)));
-
-        $recovered = $titleNames
-            ->map(fn ($name) => $nameRows->get(mb_strtolower($name)))
-            ->filter()
-            ->values();
-
-        if ($recovered->count() >= 2) {
-            return $recovered;
+        if ($recovered->unique('id')->count() < 2) {
+            // Stored URL slug is a second exact recovery source.
+            foreach ($this->pairParts((string) $this->slug, true) as $slugPart) {
+                $match = $bySlug->get($slugPart);
+                if ($match) {
+                    $recovered->push($match);
+                }
+            }
         }
 
-        // Last-resort normalized-name lookup handles punctuation differences
-        // such as dots/spaces without guessing across unrelated products.
-        $all = $modelClass::query()->get();
-        $bySlug = $all->keyBy(fn ($item) => Str::slug((string) $item->name));
-        $normalized = $titleNames
-            ->map(fn ($name) => $bySlug->get(Str::slug($name)))
-            ->filter()
-            ->values();
-
-        return $normalized->count() >= 2 ? $normalized : $resolved;
+        return $recovered->unique('id')->values();
     }
 
     /**
-     * Preserve old comparison URLs and tolerate title-order aliases.
-     * Exact stored slugs always win; aliases only apply to published records.
+     * Preserve saved comparison URLs after title/order cleanup.
+     * Exact stored slugs win. Fallback aliases are derived only from the saved
+     * title or the currently resolved pair, so unrelated comparisons cannot bind.
      */
     public function resolveRouteBinding($value, $field = null)
     {
@@ -105,19 +100,47 @@ class Comparison extends Model
 
         return static::query()
             ->where('status', 'published')
-            ->get(['id', 'title', 'slug', 'status'])
+            ->get()
             ->first(function (Comparison $comparison) use ($needle) {
-                if (Str::slug((string) $comparison->title) === $needle) {
-                    return true;
+                $aliases = collect();
+
+                $titleParts = $comparison->pairParts((string) $comparison->title, false);
+                if ($titleParts->count() === 2) {
+                    $aliases->push(Str::slug($titleParts[0] . '-vs-' . $titleParts[1]));
+                    $aliases->push(Str::slug($titleParts[1] . '-vs-' . $titleParts[0]));
                 }
 
-                $parts = collect(preg_split('/\s+vs\.?\s+/i', trim((string) $comparison->title)) ?: [])
-                    ->map(fn ($part) => trim($part))
-                    ->filter()
-                    ->values();
+                try {
+                    $names = $comparison->items()->pluck('name')->filter()->values();
+                    if ($names->count() === 2) {
+                        $aliases->push(Str::slug($names[0] . '-vs-' . $names[1]));
+                        $aliases->push(Str::slug($names[1] . '-vs-' . $names[0]));
+                    }
+                } catch (\Throwable $e) {
+                    report($e);
+                }
 
-                return $parts->count() === 2
-                    && Str::slug($parts[1] . '-vs-' . $parts[0]) === $needle;
+                return $aliases->filter()->unique()->contains($needle);
             });
+    }
+
+    private function pairParts(string $value, bool $alreadySlugged): Collection
+    {
+        if ($value === '') {
+            return collect();
+        }
+
+        if ($alreadySlugged) {
+            $parts = explode('-vs-', trim($value), 2);
+            return collect($parts)
+                ->map(fn ($part) => trim($part))
+                ->filter()
+                ->values();
+        }
+
+        return collect(preg_split('/\s+vs\.?\s+/i', trim($value), 2) ?: [])
+            ->map(fn ($part) => trim($part))
+            ->filter()
+            ->values();
     }
 }
