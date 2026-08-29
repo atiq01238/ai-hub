@@ -19,7 +19,7 @@
 @endpush
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('css/frontend/tools-show.css') }}?v=20260828-benchmarkintel1">
+<link rel="stylesheet" href="{{ asset('css/frontend/tools-show.css') }}?v=20260829-taxonomypills2">
 @endpush
 
 @section('content')

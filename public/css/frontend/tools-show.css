@@ -97,3 +97,73 @@
         white-space:normal;
     }
 }
+
+
+/* 2026-08-29 v2 — hard override for taxonomy pills.
+   The asset version is bumped in tools/show.blade.php so CDN/browser caches cannot keep the old white pills. */
+body .tool-detail-main #features .taxonomy-link-row > div > a,
+body .tool-detail-main #features .taxonomy-link-row > div > a:link,
+body .tool-detail-main #features .taxonomy-link-row > div > a:visited {
+    -webkit-appearance:none !important;
+    appearance:none !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:flex-start !important;
+    gap:6px !important;
+    min-height:34px !important;
+    padding:7px 11px !important;
+    border:1px solid #33456f !important;
+    border-radius:999px !important;
+    background:#111a33 !important;
+    background-image:linear-gradient(145deg,#151f3d 0%,#0e172f 100%) !important;
+    color:#d5ddff !important;
+    -webkit-text-fill-color:#d5ddff !important;
+    text-decoration:none !important;
+    font-size:12px !important;
+    font-weight:750 !important;
+    line-height:1.2 !important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.035) !important;
+}
+body .tool-detail-main #features .taxonomy-link-row.use-cases > div > a,
+body .tool-detail-main #features .taxonomy-link-row.use-cases > div > a:link,
+body .tool-detail-main #features .taxonomy-link-row.use-cases > div > a:visited {
+    border-color:#433a75 !important;
+    background:#171735 !important;
+    background-image:linear-gradient(145deg,#1b1a42 0%,#11162f 100%) !important;
+    color:#ded9ff !important;
+    -webkit-text-fill-color:#ded9ff !important;
+}
+body .tool-detail-main #features .taxonomy-link-row > div > a svg,
+body .tool-detail-main #features .taxonomy-link-row > div > a svg * {
+    color:#8ea0ff !important;
+    stroke:#8ea0ff !important;
+}
+body .tool-detail-main #features .taxonomy-link-row.use-cases > div > a svg,
+body .tool-detail-main #features .taxonomy-link-row.use-cases > div > a svg * {
+    color:#aa96ff !important;
+    stroke:#aa96ff !important;
+}
+body .tool-detail-main #features .taxonomy-link-row > div > a:hover,
+body .tool-detail-main #features .taxonomy-link-row > div > a:focus-visible {
+    border-color:#6575d8 !important;
+    background:#1a2548 !important;
+    background-image:linear-gradient(145deg,#202c54 0%,#151d3b 100%) !important;
+    color:#ffffff !important;
+    -webkit-text-fill-color:#ffffff !important;
+    box-shadow:0 8px 24px rgba(0,0,0,.24),0 0 0 1px rgba(113,104,255,.10) !important;
+}
+body .tool-detail-main #features .taxonomy-link-row>strong {
+    color:#7e90bb !important;
+}
+@media(max-width:720px){
+    body .tool-detail-main #features .taxonomy-link-row > div > a,
+    body .tool-detail-main #features .taxonomy-link-row > div > a:link,
+    body .tool-detail-main #features .taxonomy-link-row > div > a:visited {
+        min-height:34px !important;
+        max-width:100% !important;
+        padding:7px 10px !important;
+        font-size:11px !important;
+        white-space:normal !important;
+        overflow-wrap:anywhere !important;
+    }
+}
