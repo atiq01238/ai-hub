@@ -80,7 +80,7 @@
 ) !!}</script>
 @endpush
 @push('styles')
-<link rel="stylesheet" href="{{ asset('css/frontend/tools.css') }}?v=20260828-mobilefix1">
+<link rel="stylesheet" href="{{ asset('css/frontend/tools.css') }}?v=20260829-quickcompare2">
 @endpush
 
 @section('content')
@@ -325,9 +325,37 @@
                             $isFree = $pricing->contains('Free');
                             $priceLabel = $isFree ? ($pricing->contains('Paid') ? 'Free + Paid' : 'Free') : ($pricing->first() ?? 'Pricing varies');
                             $capabilities = collect($tool->capabilities ?? [])->take(3);
+                            $quickCapabilities = $tool->featureTerms->pluck('name')
+                                ->merge(collect($tool->capabilities ?? []))
+                                ->filter()->unique()->take(4)->values();
+                            $quickUseCases = $tool->useCaseTerms->pluck('name')
+                                ->filter()->unique()->take(4)->values();
+                            $quickPlatforms = collect($tool->platforms ?? [])
+                                ->filter()->unique()->take(4)->values();
+                            $quickBenchmarks = $tool->benchmarkResults
+                                ->filter(fn ($result) => $result->benchmark)
+                                ->unique('benchmark_id')
+                                ->take(6)
+                                ->map(fn ($result) => [
+                                    'id' => (int) $result->benchmark_id,
+                                    'name' => $result->benchmark->name,
+                                    'score' => (float) $result->score,
+                                    'higher_is_better' => (bool) $result->benchmark->higher_is_better,
+                                ])->values();
                             $cover = $tool->cover_image_url;
                         @endphp
-                        <article class="tool-directory-card" data-tool-card data-tool-id="{{ $tool->id }}" data-tool-name="{{ $tool->name }}" data-tool-logo="{{ $tool->logo_url }}" data-tool-rating="{{ number_format((float)$tool->rating,1) }}" data-tool-price="{{ $priceLabel }}" data-tool-benchmark="{{ $tool->benchmark_score ? number_format((float)$tool->benchmark_score,1) : '—' }}" data-tool-category="{{ $tool->category?->name ?? 'AI Tool' }}" data-tool-company="{{ $tool->company?->name ?? 'Independent' }}">
+                        <article class="tool-directory-card" data-tool-card
+                            data-tool-id="{{ $tool->id }}"
+                            data-tool-name="{{ $tool->name }}"
+                            data-tool-logo="{{ $tool->logo_url }}"
+                            data-tool-rating="{{ (float) $tool->rating > 0 ? number_format((float)$tool->rating,1) : '' }}"
+                            data-tool-price="{{ $priceLabel }}"
+                            data-tool-category="{{ $tool->category?->name ?? 'AI Tool' }}"
+                            data-tool-company="{{ $tool->company?->name ?? 'Independent' }}"
+                            data-tool-platforms="{{ $quickPlatforms->join('|') }}"
+                            data-tool-capabilities="{{ $quickCapabilities->join('|') }}"
+                            data-tool-use-cases="{{ $quickUseCases->join('|') }}"
+                            data-tool-benchmarks="{{ $quickBenchmarks->toJson() }}">
                             <div class="tool-card-media" @if($cover) style="--tool-cover:url('{{ $cover }}')" @endif>
                                 <div class="tool-media-shade"></div>
                                 <span class="tool-rank-badge"><i data-lucide="trending-up"></i>{{ $tool->popularity }}% popular</span>
@@ -398,16 +426,30 @@
 
 <div class="quick-compare-modal" data-quick-compare-modal aria-hidden="true">
     <div class="quick-compare-backdrop" data-quick-compare-close></div>
-    <section class="quick-compare-dialog" role="dialog" aria-modal="true" aria-labelledby="quick-compare-title">
+    <section class="quick-compare-dialog" role="dialog" aria-modal="true" aria-labelledby="quick-compare-title" data-quick-compare-dialog>
         <div class="quick-compare-head">
-            <div><span>Quick comparison</span><h2 id="quick-compare-title">Compare selected AI tools</h2><p>A fast side-by-side view using the directory data. The full comparison page can add deeper feature and benchmark analysis later.</p></div>
+            <div>
+                <span><i data-lucide="zap"></i> Quick comparison</span>
+                <h2 id="quick-compare-title" data-quick-compare-title>Compare selected AI tools</h2>
+                <p data-quick-compare-subtitle>Fast directory snapshot · capabilities, use cases, pricing and comparable benchmark evidence.</p>
+            </div>
             <button type="button" data-quick-compare-close aria-label="Close comparison"><i data-lucide="x"></i></button>
         </div>
+
         <div class="quick-compare-table" data-quick-compare-table></div>
+        <div class="quick-compare-evidence" data-quick-compare-evidence></div>
+
+        <div class="quick-compare-footer">
+            <div class="quick-compare-footnote"><i data-lucide="shield-check"></i><span>Benchmark scores are compared only when the selected tools share the same verified benchmark.</span></div>
+            <div class="quick-compare-actions">
+                <button type="button" class="quick-compare-secondary" data-quick-compare-change><i data-lucide="replace"></i> Change tools</button>
+                <a class="quick-compare-primary" href="{{ route('comparisons.builder', ['type' => 'tool']) }}" data-quick-compare-full data-preview-url="{{ route('comparisons.preview') }}">View full comparison <i data-lucide="arrow-right"></i></a>
+            </div>
+        </div>
     </section>
 </div>
 @endsection
 
 @push('scripts')
-<script src="{{ asset('js/frontend/tools.js') }}"></script>
+<script src="{{ asset('js/frontend/tools.js') }}?v=20260829-quickcompare2"></script>
 @endpush

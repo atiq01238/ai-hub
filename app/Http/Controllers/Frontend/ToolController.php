@@ -32,7 +32,19 @@ class ToolController extends Controller
         ]);
 
         $query = Tool::query()
-            ->with(['company', 'category', 'subcategoryTerm'])
+            ->with([
+                'company',
+                'category',
+                'subcategoryTerm',
+                'featureTerms:id,name,slug',
+                'useCaseTerms:id,name,slug',
+                'benchmarkResults' => fn ($query) => $query
+                    ->with('benchmark:id,name,slug,higher_is_better')
+                    ->where('verified', true)
+                    ->where('status', 'verified')
+                    ->latest('tested_at')
+                    ->latest('id'),
+            ])
             ->where('status', 'published');
 
         $this->applyFilters($query, $validated);
