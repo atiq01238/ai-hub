@@ -3,6 +3,22 @@
 
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
+
+    const removeHeroReviewCtas = () => {
+        document.querySelectorAll(
+            '.tool-hero-actions [data-community-review-cta], ' +
+            '.model-detail-actions [data-community-review-cta], ' +
+            '.tool-hero-actions a[href*="/review"], ' +
+            '.model-detail-actions a[href*="/review"]'
+        ).forEach(node => node.remove());
+    };
+
+    // Older cached community.js versions used to inject a Write Review button.
+    // Remove it immediately and also if a stale script adds it later.
+    removeHeroReviewCtas();
+    const heroReviewObserver = new MutationObserver(removeHeroReviewCtas);
+    heroReviewObserver.observe(document.documentElement, {childList: true, subtree: true});
+
     const jsonFetch = async (url, options = {}) => {
         const response = await fetch(url, {
             credentials: 'same-origin',

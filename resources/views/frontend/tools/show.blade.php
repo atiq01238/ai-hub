@@ -29,7 +29,6 @@
     $pricing = collect($tool->pricing_models ?? []);
     $priceLabel = $pricing->contains('Free') ? ($pricing->contains('Paid') ? 'Free + Paid' : 'Free') : ($pricing->first() ?: 'Pricing varies');
     $publishedReviews = $tool->reviews;
-    $reviewCount = $publishedReviews->count();
     $pros = collect($editorReview?->pros ?? [])->filter();
     $cons = collect($editorReview?->cons ?? [])->filter();
 @endphp
@@ -62,23 +61,8 @@
                 </div>
             </div>
 
-            <div class="tool-score-panel">
-                <div class="hero-rating"><i data-lucide="star"></i><strong>{{ number_format((float)$tool->rating, 1) }}</strong><span>/ 5</span></div>
-                <div class="hero-rating-copy"><b>AI Orbit rating</b><small>{{ $reviewCount ? $reviewCount . ' published ' . Str::plural('rating', $reviewCount) : 'Editorial profile' }}</small></div>
-                @if($benchmarkResults->isNotEmpty())
-                    <div class="hero-benchmark"><span>Verified benchmarks</span><strong>{{ $benchmarkResults->count() }}</strong></div>
-                @elseif($tool->benchmark_score)
-                    <div class="hero-benchmark"><span>Legacy score</span><strong>{{ number_format((float)$tool->benchmark_score,1) }}</strong></div>
-                @endif
-            </div>
         </div>
 
-        @include('frontend.partials.quick-rating', [
-            'type' => 'tool',
-            'id' => $tool->id,
-            'summary' => $quickRating,
-            'label' => 'Rate '.$tool->name,
-        ])
 
         <div class="tool-hero-bottom">
             <div class="tool-quick-facts">
@@ -90,9 +74,17 @@
             <div class="tool-hero-actions">
                 <button type="button" class="detail-secondary-btn" data-save-item data-save-type="tool" data-save-id="{{ $tool->id }}" aria-pressed="false"><i data-lucide="bookmark"></i><span data-save-label data-default-label="Save">Save</span></button>
                 <a href="{{ route('comparisons.builder', ['type' => 'tool', 'item' => $tool->id]) }}" class="detail-secondary-btn"><i data-lucide="scale"></i><span>Compare</span></a>
+                <a href="#pricing" class="detail-secondary-btn tool-pricing-action"><i data-lucide="badge-dollar-sign"></i><span>Pricing</span></a>
                 @if($tool->website)<a href="{{ $tool->website }}" target="_blank" rel="noopener noreferrer nofollow" class="detail-primary-btn">Visit Website<i data-lucide="arrow-up-right"></i></a>@endif
             </div>
         </div>
+
+        @include('frontend.partials.quick-rating', [
+            'type' => 'tool',
+            'id' => $tool->id,
+            'summary' => $quickRating,
+            'label' => 'Rate '.$tool->name,
+        ])
     </div>
 </section>
 

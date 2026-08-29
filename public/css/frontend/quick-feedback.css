@@ -6,3 +6,24 @@
 .tool-detail-hero .qf-card{margin:14px 0 4px}.model-detail-hero .qf-card{margin:14px 0 2px}.comparison-detail-hero .qf-card{margin:15px 0 18px}.article-body>.qf-card{margin:26px 0}.pi-detail-body>.qf-card{margin:22px 0}
 .qf-toast{position:fixed;right:22px;bottom:24px;z-index:9999;max-width:min(360px,calc(100vw - 32px));padding:11px 14px;border:1px solid rgba(126,108,255,.35);border-radius:11px;background:#11182a;color:#f4f6ff;font-size:12px;font-weight:700;box-shadow:0 16px 44px rgba(0,0,0,.35);opacity:0;transform:translateY(8px);pointer-events:none;transition:.2s ease}.qf-toast.show{opacity:1;transform:translateY(0)}
 @media(max-width:760px){.qf-card{align-items:flex-start;flex-direction:column;gap:12px;padding:14px}.qf-rating-controls,.qf-vote-controls{width:100%;justify-content:flex-start}.qf-status{text-align:left}.qf-stars button{font-size:30px;padding:3px 5px}.qf-vote-controls button{flex:1 1 calc(50% - 6px);min-width:130px}.tool-detail-hero .qf-card,.model-detail-hero .qf-card,.comparison-detail-hero .qf-card{margin-top:12px}.qf-toast{right:16px;bottom:18px}}
+
+/* Quick rating replaces the old dedicated Write Review hero CTA. Keep the
+   full review routes/backend available, but do not crowd detail-page actions. */
+.model-detail-actions a[href*="review"],
+.model-detail-actions .write-review-btn,
+.model-detail-actions .review-action-btn,
+.tool-hero-actions a[href*="review"],
+.tool-hero-actions .write-review-btn,
+.tool-hero-actions .review-action-btn {
+    display: none !important;
+}
+
+
+/* 2026-08-29 — Tool hero final mobile action flow.
+   saved.js injects Follow immediately after Save; Blade provides Compare, Pricing, Visit. */
+.tool-hero-actions .tool-pricing-action{scroll-margin-top:140px}
+@media(max-width:720px){
+    .tool-hero-actions{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:9px!important}
+    .tool-hero-actions>*{width:100%;min-width:0}
+    .tool-hero-actions .detail-primary-btn{grid-column:1/-1!important}
+}

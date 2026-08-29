@@ -1,9 +1,9 @@
 @once
     @push('styles')
-        <link rel="stylesheet" href="{{ asset('css/frontend/quick-feedback.css') }}?v=20260828-qf1">
+        <link rel="stylesheet" href="{{ asset('css/frontend/quick-feedback.css') }}?v=20260829-qf3">
     @endpush
     @push('scripts')
-        <script src="{{ asset('js/frontend/quick-feedback.js') }}?v=20260828-qf1"></script>
+        <script src="{{ asset('js/frontend/quick-feedback.js') }}?v=20260829-qf3"></script>
     @endpush
 @endonce
 

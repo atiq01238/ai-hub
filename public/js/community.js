@@ -77,25 +77,11 @@
         return null;
     };
 
-    const ensureReviewButton = context => {
-        const actions = context.type === 'tool'
-            ? document.querySelector('.tool-hero-actions')
-            : document.querySelector('.model-detail-actions');
+    // Quick Rating is the primary hero rating action. Full written reviews remain
+    // available inside the community review section, but no hero CTA is injected.
 
-        if (!actions || actions.querySelector('[data-community-review-cta]')) return;
-
-        const link = document.createElement('a');
-        link.dataset.communityReviewCta = '1';
-        link.className = context.type === 'tool' ? 'detail-secondary-btn' : '';
-        link.href = context.type === 'tool'
-            ? `/tools/${context.id}/review`
-            : `/models/${context.id}/review`;
-        link.innerHTML = `${icon('star')}<span>Write Review</span>`;
-        actions.appendChild(link);
-    };
 
     const renderReviews = async context => {
-        ensureReviewButton(context);
 
         const mount = mountPointForReviews(context.type);
         if (!mount) return;
