@@ -48,13 +48,13 @@
         </div>
 
         <div class="cb-detail__signal">
-            <span class="cb-eyebrow">Top benchmark signal</span>
+            <span class="cb-eyebrow">Evidence-backed signal</span>
             @if($winner)
                 <strong>{{ $winner->name }}</strong>
-                <small>{{ number_format((float)($winner->benchmark_score ?? 0), 1) }}/100 composite</small>
+                <small>{{ data_get($comparisonIntelligence, 'overallVerdict.reason') }}</small>
             @else
-                <strong>—</strong>
-                <small>No benchmark data available</small>
+                <strong>No clear leader</strong>
+                <small>{{ data_get($comparisonIntelligence, 'overallVerdict.reason', 'No shared verified benchmark evidence.') }}</small>
             @endif
         </div>
     </section>
@@ -62,9 +62,9 @@
     @if($items->count())
         <section class="cb-item-grid">
             @foreach($items as $item)
-                <article class="card cb-item-card {{ $winnerId === $item->id && (float)($item->benchmark_score ?? 0) > 0 ? 'is-winner' : '' }}">
-                    @if($winnerId === $item->id && (float)($item->benchmark_score ?? 0) > 0)
-                        <span class="cb-item-card__winner"><i data-lucide="trophy"></i>Highest benchmark score</span>
+                <article class="card cb-item-card {{ $winnerId === $item->id ? 'is-winner' : '' }}">
+                    @if($winnerId === $item->id)
+                        <span class="cb-item-card__winner"><i data-lucide="shield-check"></i>Evidence-backed leader</span>
                     @endif
                     <div class="cb-item-card__head">
                         <span class="cb-item-card__icon"><i data-lucide="{{ $comparison->comparable_type === 'tool' ? 'wrench' : 'brain-circuit' }}"></i></span>
@@ -75,9 +75,14 @@
                     </div>
 
                     <div class="cb-score">
-                        <span>Composite benchmark</span>
-                        <strong>{{ number_format((float)($item->benchmark_score ?? 0), 1) }}</strong>
-                        <div><span style="width: {{ min(100, max(0, (float)($item->benchmark_score ?? 0))) }}%"></span></div>
+                        <span>Verified composite benchmark</span>
+                        @if(data_get($comparisonIntelligence, 'verifiedComposite.'.$item->id, false))
+                            <strong>{{ number_format((float)$item->benchmark_score, 1) }}</strong>
+                            <div><span style="width: {{ min(100, max(0, (float)$item->benchmark_score)) }}%"></span></div>
+                        @else
+                            <strong>—</strong>
+                            <small>Not verified</small>
+                        @endif
                     </div>
 
                     <dl class="cb-item-card__facts">
@@ -87,7 +92,7 @@
                             <div><dt>Pricing</dt><dd>{{ collect($item->pricing_models ?? [])->map(fn($v)=>ucfirst($v))->implode(', ') ?: '—' }}</dd></div>
                         @else
                             <div><dt>Version</dt><dd>{{ $item->version ?: '—' }}</dd></div>
-                            <div><dt>Context</dt><dd>{{ $item->context_window ? number_format($item->context_window) : '—' }}</dd></div>
+                            <div><dt>Context</dt><dd>{{ filled($item->context_window) ? $item->context_window : '—' }}</dd></div>
                             <div><dt>Status</dt><dd>{{ ucfirst($item->status ?? 'unknown') }}</dd></div>
                         @endif
                     </dl>
@@ -123,8 +128,8 @@
                             @foreach($items as $item)<td>{{ $item->company?->name ?? '—' }}</td>@endforeach
                         </tr>
                         <tr>
-                            <td>Benchmark score</td>
-                            @foreach($items as $item)<td><strong>{{ number_format((float)($item->benchmark_score ?? 0), 1) }}</strong></td>@endforeach
+                            <td>Verified composite score</td>
+                            @foreach($items as $item)<td>@if(data_get($comparisonIntelligence, 'verifiedComposite.'.$item->id, false))<strong>{{ number_format((float)$item->benchmark_score, 1) }}</strong>@else<span class="muted">Not verified</span>@endif</td>@endforeach
                         </tr>
                         <tr>
                             <td>Status</td>
@@ -138,7 +143,7 @@
                             </tr>
                             <tr>
                                 <td>Context window</td>
-                                @foreach($items as $item)<td>{{ $item->context_window ? number_format($item->context_window) : '—' }}</td>@endforeach
+                                @foreach($items as $item)<td>{{ $item->context_window ?: '—' }}</td>@endforeach
                             </tr>
                             <tr>
                                 <td>Input / 1M</td>
