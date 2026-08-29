@@ -45,7 +45,14 @@
         'UTF-8'
     );
 
-    $comparisonFaq = collect($comparison->seo_faq ?? [])
+    $heroSummary = trim((string) data_get($comparison, 'summary'))
+        ?: 'A practical side-by-side look at performance, pricing, capabilities and product fit.';
+
+    $overallVerdict = data_get($intelligence ?? [], 'overallVerdict', []);
+    $metricWinners = data_get($intelligence ?? [], 'metricWinners', []);
+    $evidenceAsOf = data_get($intelligence ?? [], 'evidenceAsOf');
+
+    $comparisonFaq = collect(data_get($comparison, 'seo_faq', []))
         ->map(function ($faq) {
             return [
                 'question' => str_ireplace(
@@ -66,7 +73,7 @@
         )
         ->values();
 
-    $comparisonUrl = route('comparisons.show', $comparison);
+    $comparisonUrl = ($isPreview ?? false) ? request()->fullUrl() : route('comparisons.show', $comparison);
 @endphp
 
 @section('title', $comparisonSeoTitle)
@@ -81,7 +88,7 @@
 )
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('css/frontend/comparisons.css') }}">
+<link rel="stylesheet" href="{{ asset('css/frontend/comparisons.css') }}?v=20260829-compv3">
 @endpush
 @if(!($isPreview ?? false))
 
@@ -95,7 +102,7 @@
         'name' => $comparisonSeoTitle,
         'description' => $comparisonSeoDescription,
         'url' => $comparisonUrl,
-        'dateModified' => optional($comparison->last_verified_at)->toAtomString(),
+        'dateModified' => optional($evidenceAsOf ?: $comparison->last_verified_at)->toAtomString(),
     ];
 
     $comparisonBreadcrumbSchema = [
@@ -167,7 +174,7 @@
             <div>
                 <span class="comparison-kicker"><i data-lucide="scale"></i> {{ $isPreview ? 'Live comparison' : 'AI Orbit comparison' }}</span>
                 <h1>{{ $title }}</h1>
-                <p>A practical side-by-side look at performance, pricing, capabilities and product fit.</p>
+                <p>{{ $heroSummary }}</p>
             </div>
             <div class="detail-actions">
                 <a href="{{ route('comparisons.builder', ['type'=>$comparisonType]) }}"><i data-lucide="refresh-cw"></i> New comparison</a>
@@ -175,19 +182,10 @@
             </div>
         </div>
 
-        @if(!($isPreview ?? false) && $quickRating)
-            @include('frontend.partials.quick-rating', [
-                'type' => 'comparison',
-                'id' => $comparison->id,
-                'summary' => $quickRating,
-                'label' => 'Was this comparison useful?',
-            ])
-        @endif
-
         <div class="detail-product-strip cols-{{ min($items->count(),4) }}">
             @foreach($items as $item)
                 <div class="detail-product-head {{ $winner && $winner->id === $item->id ? 'winner' : '' }}">
-                    @if($winner && $winner->id === $item->id)<span class="winner-badge"><i data-lucide="trophy"></i> Highest overall score</span>@endif
+                    @if($winner && $winner->id === $item->id)<span class="winner-badge"><i data-lucide="shield-check"></i> Evidence-backed leader</span>@endif
                     <div class="detail-product-logo"><img src="{{ $item->logo_url }}" alt="{{ $item->name }} logo"></div>
                     <small>{{ $item->company->name ?? 'Independent' }}</small>
                     <h2>{{ $item->name }}</h2>
@@ -201,10 +199,18 @@
 
 <section class="comparison-detail-body">
 <div class="compare-container">
-    <div class="comparison-verdict">
-        <div class="verdict-icon"><i data-lucide="trophy"></i></div>
-        <div><span>OVERALL LEADER</span><h2>{{ $winner?->name ?? 'No clear leader yet' }}</h2><p>Based primarily on the benchmark score available in your AI Orbit dataset{{ $comparisonType === 'tool' ? ', with rating used when benchmark data is unavailable' : '' }}.</p></div>
-        @if($winner)<strong>{{ number_format((float)($winner->benchmark_score ?: (($winner->rating ?? 0)*10)),1) }}<small>/100</small></strong>@endif
+    <div class="comparison-verdict {{ $winner ? 'has-evidence-winner' : 'no-evidence-winner' }}">
+        <div class="verdict-icon"><i data-lucide="{{ $winner ? 'shield-check' : 'scale' }}"></i></div>
+        <div>
+            <span>{{ $winner ? 'EVIDENCE-BACKED LEADER' : 'NO EVIDENCE-BACKED OVERALL WINNER' }}</span>
+            <h2>{{ $winner?->name ?? 'No clear leader yet' }}</h2>
+            <p>{{ data_get($overallVerdict, 'reason', 'Shared verified evidence is not strong enough to declare an overall winner.') }}</p>
+            <div class="verdict-meta">
+                <b class="confidence-chip confidence-{{ data_get($overallVerdict, 'confidence', 'limited') }}">{{ data_get($overallVerdict, 'confidence_label', 'Limited evidence') }}</b>
+                <small>{{ (int) data_get($overallVerdict, 'shared_benchmarks', 0) }} shared verified benchmark{{ (int) data_get($overallVerdict, 'shared_benchmarks', 0) === 1 ? '' : 's' }}</small>
+                @if($evidenceAsOf)<small>Evidence checked {{ $evidenceAsOf->format('M j, Y') }}</small>@endif
+            </div>
+        </div>
     </div>
 
     <div class="comparison-table-card">
@@ -214,19 +220,21 @@
                 <thead><tr><th>Metric</th>@foreach($items as $item)<th>{{ $item->name }}</th>@endforeach</tr></thead>
                 <tbody>
                     <tr><th>Provider</th>@foreach($items as $item)<td>{{ $item->company->name ?? '—' }}</td>@endforeach</tr>
-                    <tr><th>Benchmark score</th>@foreach($items as $item)<td>@if($item->benchmark_score !== null)<strong class="score-value">{{ number_format((float)$item->benchmark_score,1) }}</strong><span class="mini-score-bar"><i style="width:{{ min(100,max(0,(float)$item->benchmark_score)) }}%"></i></span>@else<span class="muted">Not verified</span>@endif</td>@endforeach</tr>
+                    <tr><th>Verified composite score</th>@foreach($items as $item)<td>@if(data_get($intelligence, 'verifiedComposite.'.$item->id, false))<strong class="score-value">{{ number_format((float)$item->benchmark_score,1) }}</strong>@if(data_get($metricWinners, 'benchmark') === $item->id)<span class="metric-win-chip"><i data-lucide="check-circle-2"></i> Evidence leader</span>@endif<span class="mini-score-bar"><i style="width:{{ min(100,max(0,(float)$item->benchmark_score)) }}%"></i></span>@else<span class="muted">Not verified</span>@endif</td>@endforeach</tr>
                     @if($comparisonType === 'tool')
-                        <tr><th>Rating</th>@foreach($items as $item)<td><span class="rating-cell"><i data-lucide="star"></i>{{ number_format((float)$item->rating,1) }}/5</span></td>@endforeach</tr>
-                        <tr><th>Popularity</th>@foreach($items as $item)<td>{{ number_format((int)$item->popularity) }}</td>@endforeach</tr>
+                        <tr><th>Rating</th>@foreach($items as $item)<td><span class="rating-cell"><i data-lucide="star"></i>{{ number_format((float)$item->rating,1) }}/5</span>@if(data_get($metricWinners, 'rating') === $item->id)<span class="metric-win-chip">Highest rating</span>@endif</td>@endforeach</tr>
+                        <tr><th>Popularity</th>@foreach($items as $item)<td>{{ number_format((int)$item->popularity) }}@if(data_get($metricWinners, 'popularity') === $item->id)<span class="metric-win-chip">Most popular</span>@endif</td>@endforeach</tr>
                         <tr><th>Category</th>@foreach($items as $item)<td>{{ $item->category->name ?? '—' }}</td>@endforeach</tr>
                         <tr><th>Pricing</th>@foreach($items as $item)<td>@forelse((array)$item->pricing_models as $price)<span class="data-chip">{{ ucfirst((string)$price) }}</span>@empty—@endforelse</td>@endforeach</tr>
+                        <tr><th>Comparable paid start</th>@foreach($items as $item)@php($price=data_get($intelligence, 'pricing.'.$item->id, []))<td>@if(data_get($price,'starting_paid') !== null)<strong>{{ data_get($price,'currency') ?: '$' }}{{ number_format((float)data_get($price,'starting_paid'),2) }}/mo</strong>@if(data_get($price,'has_free_tier'))<span class="data-chip">Free tier</span>@endif @if(data_get($metricWinners, 'price') === $item->id)<span class="metric-win-chip">Lowest paid start</span>@endif @else<span class="muted">Not comparable</span>@if(data_get($price,'has_free_tier'))<span class="data-chip">Free tier</span>@endif @endif</td>@endforeach</tr>
                         <tr><th>Platforms</th>@foreach($items as $item)<td>@forelse((array)$item->platforms as $platform)<span class="data-chip">{{ $platform }}</span>@empty—@endforelse</td>@endforeach</tr>
                         <tr><th>Launch date</th>@foreach($items as $item)<td>{{ $item->launch_date?->format('M Y') ?? '—' }}</td>@endforeach</tr>
                     @else
                         <tr><th>Version</th>@foreach($items as $item)<td>{{ $item->version ?: '—' }}</td>@endforeach</tr>
-                        <tr><th>Context window</th>@foreach($items as $item)<td><strong>{{ $item->context_window ?: '—' }}</strong></td>@endforeach</tr>
+                        <tr><th>Context window</th>@foreach($items as $item)<td><strong>{{ $item->context_window ?: '—' }}</strong>@if(data_get($metricWinners, 'context') === $item->id)<span class="metric-win-chip">Largest context</span>@endif</td>@endforeach</tr>
                         <tr><th>Input / 1M tokens</th>@foreach($items as $item)<td>{{ $item->input_price_per_million !== null ? '$'.number_format((float)$item->input_price_per_million,2) : 'Not verified' }}</td>@endforeach</tr>
                         <tr><th>Output / 1M tokens</th>@foreach($items as $item)<td>{{ $item->output_price_per_million !== null ? '$'.number_format((float)$item->output_price_per_million,2) : 'Not verified' }}</td>@endforeach</tr>
+                        <tr><th>Combined input + output</th>@foreach($items as $item)@php($combined=data_get($intelligence,'pricing.'.$item->id.'.combined'))<td>@if($combined !== null)<strong>${{ number_format((float)$combined,2) }}</strong>@if(data_get($metricWinners, 'price') === $item->id)<span class="metric-win-chip">Lowest comparable cost</span>@endif @else<span class="muted">Not comparable</span>@endif</td>@endforeach</tr>
                         <tr><th>Status</th>@foreach($items as $item)<td><span class="status-chip {{ $item->status }}">{{ ucfirst($item->status) }}</span></td>@endforeach</tr>
                         <tr><th>Release date</th>@foreach($items as $item)<td>{{ $item->release_date?->format('M Y') ?? '—' }}</td>@endforeach</tr>
                     @endif
@@ -235,23 +243,25 @@
         </div>
     </div>
 
-    @if(!empty($intelligence['benchmarkMatrix']))
+    @if(!empty($intelligence['sharedBenchmarkKeys']))
     <div class="comparison-table-card">
-      <div class="table-title"><span><i data-lucide="gauge"></i></span><div><h2>Verified benchmark intelligence</h2><p>Latest verified results shared by at least one compared item. Different benchmark variants should be interpreted with their source methodology.</p></div></div>
+      <div class="table-title"><span><i data-lucide="gauge"></i></span><div><h2>Shared verified benchmark evidence</h2><p>Only benchmarks with verified results for at least two compared items are used to decide evidence wins. Lower-is-better metrics are handled correctly.</p></div></div>
       <div class="comparison-table-scroll"><table class="comparison-table"><thead><tr><th>Benchmark</th>@foreach($items as $item)<th>{{ $item->name }}</th>@endforeach</tr></thead><tbody>
-      @foreach($intelligence['benchmarkMatrix'] as $key=>$scores)@php($b=$intelligence['benchmarkMeta'][$key])<tr><th>{{ $b->name }} @if($b->version)<small>{{ $b->version }}</small>@endif</th>@foreach($items as $item)@php($r=$scores[$item->id]??null)<td>@if($r)<strong>{{ number_format((float)$r->score,2) }}{{ $b->unit==='%'?'%':' '.$b->unit }}</strong><br><small>Verified{{ $r->tested_at?' · '.$r->tested_at->format('M Y'):'' }}</small>@else—@endif</td>@endforeach</tr>@endforeach
+      @foreach($intelligence['sharedBenchmarkKeys'] as $key)@php($scores=$intelligence['benchmarkMatrix'][$key];$b=$intelligence['benchmarkMeta'][$key];$leader=data_get($intelligence,'benchmarkLeaders.'.$key,[]))<tr><th>{{ $b->name }} @if($b->version)<small>{{ $b->version }}</small>@endif<br><small>{{ $b->higher_is_better ? 'Higher is better' : 'Lower is better' }}</small></th>@foreach($items as $item)@php($r=$scores[$item->id]??null)<td>@if($r)<strong>{{ number_format((float)$r->score,2) }}{{ $b->unit==='%'?'%':' '.$b->unit }}</strong>@if(in_array($item->id,(array)data_get($leader,'item_ids',[]),true))<span class="metric-win-chip">{{ data_get($leader,'is_tie') ? 'Tie' : 'Best' }}</span>@endif<br><small>Verified{{ $r->tested_at?' · '.$r->tested_at->format('M Y'):'' }}</small>@if($r->source_url)<br><a class="evidence-link" href="{{ $r->source_url }}" target="_blank" rel="noopener noreferrer nofollow">Source <i data-lucide="external-link"></i></a>@endif @else—@endif</td>@endforeach</tr>@endforeach
       </tbody></table></div>
     </div>
+    @else
+    <div class="comparison-evidence-note"><i data-lucide="shield-alert"></i><div><strong>No shared verified benchmark yet</strong><p>Individual benchmark records may exist, but AI Orbit will not compare unrelated benchmark families or treat missing evidence as a zero.</p></div></div>
     @endif
 
-    @if($intelligence['valueWinner'])<div class="comparison-verdict"><div class="verdict-icon"><i data-lucide="badge-dollar-sign"></i></div><div><span>VALUE SIGNAL</span><h2>{{ $intelligence['valueWinner']->name }}</h2><p>Best current value signal from available benchmark score and structured pricing. Treat this as data guidance, not a universal winner.</p></div></div>@endif
+    @if($intelligence['valueWinner'])<div class="comparison-verdict value-verdict"><div class="verdict-icon"><i data-lucide="badge-dollar-sign"></i></div><div><span>VALUE SIGNAL</span><h2>{{ $intelligence['valueWinner']->name }}</h2><p>{{ $intelligence['valueSignalReason'] }}</p></div></div>@endif
 
     <div class="capability-comparison">
         <div class="table-title"><span><i data-lucide="sparkles"></i></span><div><h2>Capabilities</h2><p>What each product is designed to do.</p></div></div>
         <div class="capability-columns cols-{{ min($items->count(),4) }}">
             @foreach($items as $item)
                 @php($caps = $comparisonType === 'tool' ? (array)$item->capabilities : (array)$item->capabilities)
-                <div class="capability-column"><div class="capability-column-head"><div class="tiny-logo"><img src="{{ $item->logo_url }}" alt="{{ $item->name }} logo"></div><strong>{{ $item->name }}</strong></div><div class="capability-chip-list">@forelse($caps as $cap)<span><i data-lucide="check"></i>{{ is_string($cap) ? $cap : (is_array($cap) ? ($cap['name'] ?? 'Capability') : 'Capability') }}</span>@empty<span class="muted">No capability data yet.</span>@endforelse</div></div>
+                <div class="capability-column"><div class="capability-column-head"><div class="tiny-logo"><img src="{{ $item->logo_url }}" alt="{{ $item->name }} logo"></div><strong>{{ $item->name }}</strong>@if(data_get($metricWinners, 'capabilities') === $item->id)<span class="metric-win-chip">Most capabilities</span>@endif</div><div class="capability-chip-list">@forelse($caps as $cap)<span><i data-lucide="check"></i>{{ is_string($cap) ? $cap : (is_array($cap) ? ($cap['name'] ?? 'Capability') : 'Capability') }}</span>@empty<span class="muted">No capability data yet.</span>@endforelse</div></div>
             @endforeach
         </div>
     </div>
