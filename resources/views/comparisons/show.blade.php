@@ -48,13 +48,13 @@
         </div>
 
         <div class="cb-detail__signal">
-            <span class="cb-eyebrow">Evidence-backed signal</span>
+            <span class="cb-eyebrow">Stored benchmark signal</span>
             @if($winner)
                 <strong>{{ $winner->name }}</strong>
-                <small>{{ data_get($comparisonIntelligence, 'overallVerdict.reason') }}</small>
+                <small>{{ number_format((float) $winner->benchmark_score, 1) }}/100 stored composite</small>
             @else
-                <strong>No clear leader</strong>
-                <small>{{ data_get($comparisonIntelligence, 'overallVerdict.reason', 'No shared verified benchmark evidence.') }}</small>
+                <strong>No verified score</strong>
+                <small>No positive stored composite benchmark is available for these items.</small>
             @endif
         </div>
     </section>
@@ -64,7 +64,7 @@
             @foreach($items as $item)
                 <article class="card cb-item-card {{ $winnerId === $item->id ? 'is-winner' : '' }}">
                     @if($winnerId === $item->id)
-                        <span class="cb-item-card__winner"><i data-lucide="shield-check"></i>Evidence-backed leader</span>
+                        <span class="cb-item-card__winner"><i data-lucide="shield-check"></i>Highest stored benchmark</span>
                     @endif
                     <div class="cb-item-card__head">
                         <span class="cb-item-card__icon"><i data-lucide="{{ $comparison->comparable_type === 'tool' ? 'wrench' : 'brain-circuit' }}"></i></span>
@@ -76,9 +76,9 @@
 
                     <div class="cb-score">
                         <span>Verified composite benchmark</span>
-                        @if(data_get($comparisonIntelligence, 'verifiedComposite.'.$item->id, false))
-                            <strong>{{ number_format((float)$item->benchmark_score, 1) }}</strong>
-                            <div><span style="width: {{ min(100, max(0, (float)$item->benchmark_score)) }}%"></span></div>
+                        @if($item->benchmark_score !== null && (float) $item->benchmark_score > 0)
+                            <strong>{{ number_format((float) $item->benchmark_score, 1) }}</strong>
+                            <div><span style="width: {{ min(100, max(0, (float) $item->benchmark_score)) }}%"></span></div>
                         @else
                             <strong>—</strong>
                             <small>Not verified</small>
@@ -129,7 +129,7 @@
                         </tr>
                         <tr>
                             <td>Verified composite score</td>
-                            @foreach($items as $item)<td>@if(data_get($comparisonIntelligence, 'verifiedComposite.'.$item->id, false))<strong>{{ number_format((float)$item->benchmark_score, 1) }}</strong>@else<span class="muted">Not verified</span>@endif</td>@endforeach
+                            @foreach($items as $item)<td>@if($item->benchmark_score !== null && (float) $item->benchmark_score > 0)<strong>{{ number_format((float) $item->benchmark_score, 1) }}</strong>@else<span class="muted">Not verified</span>@endif</td>@endforeach
                         </tr>
                         <tr>
                             <td>Status</td>

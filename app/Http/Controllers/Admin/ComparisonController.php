@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AiModel;
 use App\Models\Comparison;
 use App\Models\Tool;
+use App\Services\ComparisonIntelligenceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -13,6 +14,10 @@ use Illuminate\Validation\ValidationException;
 
 class ComparisonController extends Controller
 {
+    public function __construct(private readonly ComparisonIntelligenceService $intelligence)
+    {
+    }
+
     public function index(Request $request)
     {
         $query = Comparison::latest();
@@ -38,9 +43,19 @@ class ComparisonController extends Controller
     {
         $comparison = Comparison::findOrFail($id);
         $comparison->increment('views');
+
+        // Keep the admin detail page intentionally lightweight and resilient.
+        // Public comparison pages can run the richer intelligence pipeline, but
+        // an admin CRUD redirect must never fail because benchmark/pricing
+        // evidence is incomplete or a legacy relation is unavailable.
         $items = $comparison->items();
-        $winner = $items->sortByDesc(fn ($item) => (float) ($item->benchmark_score ?? 0))->first();
-        return view('comparisons.show', compact('comparison','items','winner'));
+
+        $winner = $items
+            ->filter(fn ($item) => $item->benchmark_score !== null && (float) $item->benchmark_score > 0)
+            ->sortByDesc(fn ($item) => (float) $item->benchmark_score)
+            ->first();
+
+        return view('comparisons.show', compact('comparison', 'items', 'winner'));
     }
 
     public function edit(int $id)
@@ -94,13 +109,42 @@ class ComparisonController extends Controller
         $chosen = $toolIds ?: $modelIds;
         if (count($chosen) < 2 || count($chosen) > 4) throw ValidationException::withMessages(['tool_ids'=>'Select between 2 and 4 unique items.']);
 
+        $type = $toolIds ? 'tool' : 'model';
+        $chosen = array_map('intval', $chosen);
+        $duplicate = $this->semanticDuplicate($type, $chosen, $comparison?->id);
+        if ($duplicate) {
+            $field = $toolIds ? 'tool_ids' : 'model_ids';
+            throw ValidationException::withMessages([
+                $field => 'This same comparison set already exists as “' . $duplicate->title . '”. Reverse item order does not create a separate comparison.',
+            ]);
+        }
+
         $payload = [
-            'title'=>$data['title'], 'comparable_type'=>$toolIds ? 'tool' : 'model',
-            'item_ids'=>array_map('intval',$chosen), 'status'=>$data['status'],
+            'title'=>$data['title'], 'comparable_type'=>$type,
+            'item_ids'=>$chosen, 'status'=>$data['status'],
         ];
         // Preserve URLs on edit. A slug is generated only once when the comparison is created.
         if (!$comparison) $payload['slug'] = $this->uniqueSlug($data['title']);
         return $payload;
+    }
+
+    private function semanticDuplicate(string $type, array $itemIds, ?int $ignoreId = null): ?Comparison
+    {
+        $signature = $this->itemSignature($itemIds);
+
+        return Comparison::query()
+            ->where('comparable_type', $type)
+            ->when($ignoreId, fn ($query) => $query->where('id', '!=', $ignoreId))
+            ->get(['id', 'title', 'item_ids'])
+            ->first(fn (Comparison $candidate) => $this->itemSignature($candidate->item_ids ?? []) === $signature);
+    }
+
+    private function itemSignature(array $itemIds): string
+    {
+        $ids = array_values(array_unique(array_map('intval', $itemIds)));
+        sort($ids, SORT_NUMERIC);
+
+        return implode(':', $ids);
     }
 
     private function uniqueSlug(string $title): string
