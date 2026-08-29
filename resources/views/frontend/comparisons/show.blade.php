@@ -66,7 +66,9 @@
         )
         ->values();
 
-    $comparisonUrl = route('comparisons.show', $comparison);
+    $comparisonUrl = ($isPreview ?? false)
+        ? request()->fullUrl()
+        : route('comparisons.show', $comparison);
 @endphp
 
 @section('title', $comparisonSeoTitle)
@@ -175,7 +177,7 @@
             </div>
         </div>
 
-        @if(!($isPreview ?? false) && $quickRating)
+        @if(!($isPreview ?? false) && !empty($quickRating))
             @include('frontend.partials.quick-rating', [
                 'type' => 'comparison',
                 'id' => $comparison->id,
