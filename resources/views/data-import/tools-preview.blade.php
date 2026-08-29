@@ -29,7 +29,7 @@
         <div>
             <span class="import-eyebrow">Duplicate handling</span>
             <h3>Existing tools</h3>
-            <p>Skip existing is safest. Update will overwrite imported text/catalog fields.</p>
+            <p>Skip existing is safest. Update existing is now blank-safe: only non-empty imported fields and explicitly supplied taxonomy columns are changed.</p>
         </div>
 
         <div class="import-choice-wrap">
@@ -64,7 +64,9 @@
                         <th>Company</th>
                         <th>Tool</th>
                         <th>Category</th>
-                        <th>Pricing</th>
+                        <th>Capabilities</th>
+                        <th>Use Cases</th>
+                        <th>Tags</th>
                         <th>Status</th>
                         <th>Result</th>
                     </tr>
@@ -86,8 +88,10 @@
                                     <small>{{ $row['subcategory'] }}</small>
                                 @endif
                             </td>
-                            <td>{{ implode(', ', $row['pricing_models']) ?: '—' }}</td>
-                            <td>{{ ucfirst($row['status']) }}</td>
+                            <td>{{ !empty($row['provided']['capabilities']) ? count($row['capabilities']) . ' mapped' : 'Preserve' }}</td>
+                            <td>{{ !empty($row['provided']['use_cases']) ? count($row['use_cases']) . ' mapped' : 'Preserve' }}</td>
+                            <td>{{ !empty($row['provided']['tags']) ? count($row['tags']) . ' mapped' : 'Preserve' }}</td>
+                            <td>{{ $row['status'] !== '' ? ucfirst($row['status']) : 'Preserve' }}</td>
                             <td>@include('data-import.partials.state', ['row' => $row])</td>
                         </tr>
                     @endforeach

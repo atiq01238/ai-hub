@@ -36,6 +36,40 @@ class TaxonomyNormalizer
         return Feature::active()->whereIn('name', $this->canonicalFeatureNames($names))->pluck('id')->all();
     }
 
+    public function canonicalUseCaseNames(array $names): array
+    {
+        return $this->canonicalTermNames($names, UseCase::active()->pluck('name')->all());
+    }
+
+    public function unknownUseCaseNames(array $names): array
+    {
+        $canonical = $this->canonicalUseCaseNames($names);
+        $known = UseCase::active()->whereIn('name', $canonical)->pluck('name')->map(fn ($n) => Str::lower($n))->all();
+        return collect($canonical)->reject(fn ($name) => in_array(Str::lower($name), $known, true))->values()->all();
+    }
+
+    public function useCaseIds(array $names): array
+    {
+        return UseCase::active()->whereIn('name', $this->canonicalUseCaseNames($names))->pluck('id')->all();
+    }
+
+    public function canonicalTagNames(array $names): array
+    {
+        return $this->canonicalTermNames($names, Tag::active()->pluck('name')->all());
+    }
+
+    public function unknownTagNames(array $names): array
+    {
+        $canonical = $this->canonicalTagNames($names);
+        $known = Tag::active()->whereIn('name', $canonical)->pluck('name')->map(fn ($n) => Str::lower($n))->all();
+        return collect($canonical)->reject(fn ($name) => in_array(Str::lower($name), $known, true))->values()->all();
+    }
+
+    public function tagIds(array $names): array
+    {
+        return Tag::active()->whereIn('name', $this->canonicalTagNames($names))->pluck('id')->all();
+    }
+
     public function inferredUseCaseIds(array $featureNames, ?string $categoryName = null): array
     {
         $rules = config('taxonomy_v2.use_case_inference', []);
@@ -119,5 +153,18 @@ class TaxonomyNormalizer
             }
         }
         return $map;
+    }
+
+    private function canonicalTermNames(array $names, array $knownNames): array
+    {
+        $map = collect($knownNames)->mapWithKeys(fn ($name) => [Str::lower(trim((string) $name)) => (string) $name]);
+
+        return collect($names)
+            ->map(fn ($name) => trim((string) $name))
+            ->filter()
+            ->map(fn ($name) => $map->get(Str::lower($name), $name))
+            ->unique(fn ($name) => Str::lower($name))
+            ->values()
+            ->all();
     }
 }
