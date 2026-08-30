@@ -14,10 +14,11 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use App\Services\Seo\EntitySeoService;
 use App\Services\Frontend\QuickFeedbackService;
+use App\Services\Analytics\ToolTrendingService;
 
 class ToolController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, ToolTrendingService $toolTrendingService)
     {
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
@@ -48,9 +49,52 @@ class ToolController extends Controller
             ->where('status', 'published');
 
         $this->applyFilters($query, $validated);
-        $this->applySort($query, $validated['sort'] ?? 'popular');
+
+        // Use the same first-party 30-day activity intelligence that powers
+        // the site's Trending AI experience. This keeps the directory's
+        // "Most Popular" ordering and card badges aligned instead of
+        // displaying the legacy static popularity percentage.
+        $publishedToolCount = Tool::where('status', 'published')->count();
+        $trendingTools = $toolTrendingService->homepage(max(1, $publishedToolCount));
+        $trendById = $trendingTools->keyBy('id');
+        $activeTrendIds = $trendingTools
+            ->filter(fn (Tool $tool) => (int) ($tool->trend_current_score ?? 0) > 0)
+            ->pluck('id')
+            ->values();
+
+        if (($validated['sort'] ?? 'popular') === 'popular' && $activeTrendIds->isNotEmpty()) {
+            // Rank tools with measured activity first. Any tools without enough
+            // first-party activity fall back to the existing popularity/rating
+            // order, so pagination remains deterministic.
+            $cases = [];
+            $bindings = [];
+            foreach ($activeTrendIds as $rank => $toolId) {
+                $cases[] = 'WHEN ? THEN ?';
+                $bindings[] = (int) $toolId;
+                $bindings[] = (int) $rank;
+            }
+
+            $query->orderByRaw(
+                'CASE tools.id '.implode(' ', $cases).' ELSE ? END ASC',
+                [...$bindings, $activeTrendIds->count()]
+            )->orderByDesc('popularity')->orderByDesc('rating');
+        } else {
+            $this->applySort($query, $validated['sort'] ?? 'popular');
+        }
 
         $tools = $query->paginate(12)->withQueryString();
+
+        $tools->setCollection($tools->getCollection()->map(function (Tool $tool) use ($trendById) {
+            $trend = $trendById->get($tool->id);
+
+            $tool->trend_label = $trend?->trend_label ?? '—';
+            $tool->trend_change = (float) ($trend?->trend_change ?? 0);
+            $tool->trend_current_score = (int) ($trend?->trend_current_score ?? 0);
+            $tool->trend_details = $trend?->trend_details
+                ?? 'Not enough first-party activity in the last 30 days yet.';
+
+            return $tool;
+        }));
 
         $categories = Category::query()
             ->product()->active()
@@ -84,13 +128,8 @@ class ToolController extends Controller
             'topRated' => Tool::where('status', 'published')->where('rating', '>=', 4.5)->count(),
         ];
 
-        $featuredTools = Tool::query()
-            ->with(['company', 'category'])
-            ->where('status', 'published')
-            ->orderByDesc('popularity')
-            ->orderByDesc('rating')
-            ->take(4)
-            ->get();
+        $featuredTools = $trendingTools->take(4);
+        $featuredTools->loadMissing(['company', 'category']);
 
         return view('frontend.tools.index', compact(
             'tools',

@@ -187,8 +187,8 @@
 @if(!request()->hasAny(['q','category','pricing','rating','company','platform','feature']) && $featuredTools->isNotEmpty())
 <section class="tools-page-container featured-strip-section">
     <div class="section-heading-row">
-        <div><span class="section-kicker"><i data-lucide="flame"></i> Trending now</span><h2>Popular AI tools this week</h2></div>
-        <span class="section-note">Ranked by popularity and user rating</span>
+        <div><span class="section-kicker"><i data-lucide="flame"></i> Trending now</span><h2>Trending AI tools</h2></div>
+        <span class="section-note">Ranked by AI Orbit activity · last 30 days</span>
     </div>
     <div class="featured-tool-strip">
         @foreach($featuredTools as $rank => $tool)
@@ -358,7 +358,15 @@
                             data-tool-benchmarks="{{ $quickBenchmarks->toJson() }}">
                             <div class="tool-card-media" @if($cover) style="--tool-cover:url('{{ $cover }}')" @endif>
                                 <div class="tool-media-shade"></div>
-                                <span class="tool-rank-badge"><i data-lucide="trending-up"></i>{{ $tool->popularity }}% popular</span>
+                                @if(($tool->trend_current_score ?? 0) > 0)
+                                    @php
+                                        $trendChange = (float) ($tool->trend_change ?? 0);
+                                        $trendPercent = number_format(abs($trendChange), 0).'%';
+                                    @endphp
+                                    <span class="tool-rank-badge" title="{{ $tool->trend_details }}">
+                                        <i data-lucide="{{ $trendChange < 0 ? 'trending-down' : 'trending-up' }}"></i>{{ $trendPercent }}
+                                    </span>
+                                @endif
                                 <button type="button" class="save-tool-btn" data-save-item data-save-type="tool" data-save-id="{{ $tool->id }}" aria-label="Save {{ $tool->name }}" aria-pressed="false"><i data-lucide="bookmark"></i></button>
                             </div>
                             <div class="tool-card-body">
