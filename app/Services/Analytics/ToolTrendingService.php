@@ -120,12 +120,10 @@ class ToolTrendingService
                     $label = ($change > 0 ? '↑ ' : '↓ ').number_format(abs($change), 0).'%';
                 }
             } elseif ($currentScore > 0) {
-                $change = 100.0;
-                $activityCount = $currentViews + $currentClicks + $currentSearches;
-                // During the first month of analytics there is no honest prior
-                // baseline to compare against, so show the measured 30-day
-                // activity count instead of making every tool look "New".
-                $label = $hasPreviousActivity ? '↑ New' : '30d '.number_format($activityCount);
+                // No previous-period baseline means growth percentage is unknown.
+                // Never convert a zero baseline into a fabricated +100% change.
+                $change = null;
+                $label = '—';
             } else {
                 $change = 0.0;
                 $label = '—';
@@ -167,7 +165,7 @@ class ToolTrendingService
                     return $scoreCompare;
                 }
 
-                $changeCompare = $b->trend_change <=> $a->trend_change;
+                $changeCompare = ((float) ($b->trend_change ?? 0)) <=> ((float) ($a->trend_change ?? 0));
                 if ($changeCompare !== 0) {
                     return $changeCompare;
                 }

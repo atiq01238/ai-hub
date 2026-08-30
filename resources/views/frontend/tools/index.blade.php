@@ -358,9 +358,9 @@
                             data-tool-benchmarks="{{ $quickBenchmarks->toJson() }}">
                             <div class="tool-card-media" @if($cover) style="--tool-cover:url('{{ $cover }}')" @endif>
                                 <div class="tool-media-shade"></div>
-                                @if(($tool->trend_current_score ?? 0) > 0)
+                                @if(($tool->trend_current_score ?? 0) > 0 && ($tool->trend_previous_score ?? 0) > 0 && $tool->trend_change !== null)
                                     @php
-                                        $trendChange = (float) ($tool->trend_change ?? 0);
+                                        $trendChange = (float) $tool->trend_change;
                                         $trendPercent = number_format(abs($trendChange), 0).'%';
                                     @endphp
                                     <span class="tool-rank-badge" title="{{ $tool->trend_details }}">

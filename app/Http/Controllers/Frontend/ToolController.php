@@ -88,8 +88,9 @@ class ToolController extends Controller
             $trend = $trendById->get($tool->id);
 
             $tool->trend_label = $trend?->trend_label ?? '—';
-            $tool->trend_change = (float) ($trend?->trend_change ?? 0);
+            $tool->trend_change = $trend?->trend_change;
             $tool->trend_current_score = (int) ($trend?->trend_current_score ?? 0);
+            $tool->trend_previous_score = (int) ($trend?->trend_previous_score ?? 0);
             $tool->trend_details = $trend?->trend_details
                 ?? 'Not enough first-party activity in the last 30 days yet.';
 
