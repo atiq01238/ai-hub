@@ -22,7 +22,9 @@ class UseCase extends Model
 
     public function tools()
     {
-        return $this->belongsToMany(Tool::class, 'tool_use_case')->withTimestamps();
+        return $this->belongsToMany(Tool::class, 'tool_use_case')
+            ->withPivot(['fit_note','verification_status','tool_source_id','verified_at','notes'])
+            ->withTimestamps();
     }
 
     public function models()

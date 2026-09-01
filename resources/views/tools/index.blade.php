@@ -54,7 +54,7 @@
     </select>
     <select class="select" name="pricing" aria-label="Pricing model">
         <option value="">All pricing</option>
-        @foreach(['Free','Freemium','Paid','Enterprise'] as $pricing)
+        @foreach(['Free','Paid','Usage-based','Enterprise'] as $pricing)
             <option value="{{ $pricing }}" @selected(request('pricing') === $pricing)>{{ $pricing }}</option>
         @endforeach
     </select>

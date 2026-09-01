@@ -42,6 +42,7 @@
                         <th>Row</th>
                         <th>Entity</th>
                         <th>Benchmark</th>
+                        <th>Class</th>
                         <th>Score</th>
                         <th>Source</th>
                         <th>Verified</th>
@@ -54,6 +55,7 @@
                             <td>#{{ $row['row_number'] }}</td>
                             <td>{{ ucfirst($row['entity_type']) }} · {{ $row['entity_name'] ?: '—' }}</td>
                             <td><strong>{{ $row['benchmark_name'] }}</strong></td>
+                            <td>{{ $row['benchmark_class'] ? \App\Models\Benchmark::classLabel($row['benchmark_class']) : 'Auto / Unclassified' }}</td>
                             <td>{{ $row['score'] ?? '—' }}</td>
                             <td>{{ $row['source_name'] ?: '—' }}</td>
                             <td>{{ $row['verified'] ? 'Yes' : 'No' }}</td>

@@ -26,11 +26,35 @@
 @php
     $logo = $tool->logo_url;
     $cover = $tool->cover_image_url;
-    $pricing = collect($tool->pricing_models ?? []);
-    $priceLabel = $pricing->contains('Free') ? ($pricing->contains('Paid') ? 'Free + Paid' : 'Free') : ($pricing->first() ?: 'Pricing varies');
     $publishedReviews = $tool->reviews;
     $pros = collect($editorReview?->pros ?? [])->filter();
     $cons = collect($editorReview?->cons ?? [])->filter();
+    // Defensive fallback: the controller normally provides this value, but keep the view safe
+    // for alternate render paths, cached views, or partial controller integrations.
+    $productStatusSource = $productStatusSource ?? null;
+    $technicalProfile = $technicalProfile ?? null;
+    $integrations = $integrations ?? collect();
+    $dataConfidence = $dataConfidence ?? ['score'=>0,'label'=>'Low','freshness'=>'unverified','verified_sources'=>0,'total_sources'=>0,'verified_claims'=>0,'known_claims'=>0,'last_verified_at'=>null,'sections'=>[]];
+    $factEvidenceMap = $factEvidenceMap ?? collect();
+    $factVerified = fn($type, $key) => (($factEvidenceMap->get($type.'.'.$key)?->verification_status ?? 'pending') === 'verified');
+    $sourceFor = fn($id) => $id ? ($sourceMap->get((int)$id) ?? null) : null;
+    $apiSource = $sourceFor($technicalProfile?->api_source_id);
+    $repositorySource = $sourceFor($technicalProfile?->repository_source_id);
+    $deploymentSource = $sourceFor($technicalProfile?->deployment_source_id);
+    $termsSource = $sourceFor($technicalProfile?->terms_source_id);
+    $availabilitySource = $sourceFor($technicalProfile?->availability_source_id);
+    $privacySource = $sourceFor($technicalProfile?->privacy_source_id);
+    $securitySource = $sourceFor($technicalProfile?->security_source_id);
+    $hasTechnicalIntel = $technicalProfile && (
+        $technicalProfile->api_status !== 'unknown' || $technicalProfile->open_source_status !== 'unknown' ||
+        $technicalProfile->self_hosting_status !== 'unknown' || $technicalProfile->commercial_use_status !== 'unknown' ||
+        !empty($technicalProfile->deployment_modes) || !empty($technicalProfile->supported_languages) || !empty($technicalProfile->region_availability)
+    );
+    $hasTrustIntel = $technicalProfile && (
+        $technicalProfile->data_training_policy !== 'unknown' || $technicalProfile->privacy_summary || $technicalProfile->data_retention_note ||
+        $technicalProfile->security_summary || $technicalProfile->sso_status !== 'unknown' || !empty($technicalProfile->security_certifications) ||
+        !empty($technicalProfile->compliance_certifications) || !empty($technicalProfile->data_residency)
+    );
 @endphp
 
 <section class="tool-detail-hero tool-detail-hero-network">
@@ -52,7 +76,10 @@
                 <div class="tool-detail-title">
                     <div class="tool-eyebrow-row">
                         @if($tool->category)<span class="category-pill">{{ $tool->category->name }}</span>@endif
-                        @if($tool->status === 'published')<span class="verified-pill"><i data-lucide="badge-check"></i> Published</span>@endif
+                        @if($verifiedIdentitySource)<span class="verified-pill" title="Verified from an official source"><i data-lucide="badge-check"></i> Source verified</span>@endif
+                        @if(($tool->product_status ?? 'unknown') !== 'unknown')
+                            <span class="lifecycle-pill lifecycle-pill--{{ $tool->product_status }}" title="{{ $tool->product_status_verified_at ? 'Lifecycle status verified '. $tool->product_status_verified_at->format('M j, Y') : 'Lifecycle status saved; verification pending' }}"><i data-lucide="activity"></i>{{ $tool->product_status_label }}@if($tool->product_status_verified_at)<i data-lucide="badge-check"></i>@endif</span>
+                        @endif
                         @if($tool->launch_date)<span class="launch-pill">Since {{ $tool->launch_date->format('Y') }}</span>@endif
                     </div>
                     <h1>{{ $tool->name }}</h1>
@@ -67,7 +94,7 @@
         <div class="tool-hero-bottom">
             <div class="tool-quick-facts">
                 <span><i data-lucide="badge-dollar-sign"></i><small>Pricing</small><b>{{ $priceLabel }}</b></span>
-                <span><i data-lucide="trending-up"></i><small>Popularity</small><b>{{ number_format((float)$tool->popularity,0) }}%</b></span>
+                <span><i data-lucide="shield-check"></i><small>Verification</small><b>{{ $dataConfidence['can_show_confidence'] ? (($dataConfidence['confidence_score'] ?? 0).'/100') : 'Pending' }}</b></span>
                 <span><i data-lucide="monitor-smartphone"></i><small>Platforms</small><b>{{ $platforms->take(2)->join(' + ') ?: 'Web' }}</b></span>
                 @if($tool->company)<span><i data-lucide="building-2"></i><small>Company</small><b>{{ $tool->company->name }}</b></span>@endif
             </div>
@@ -93,6 +120,9 @@
         <div class="detail-nav-links">
             <a href="#overview" class="active">Overview</a>
             @if($capabilities->isNotEmpty() || $tool->featureTerms->isNotEmpty())<a href="#features">Features</a>@endif
+            @if($hasTechnicalIntel)<a href="#technical">Technical</a>@endif
+            @if($hasTrustIntel)<a href="#trust">Trust</a>@endif
+            @if($integrations->isNotEmpty())<a href="#integrations">Integrations</a>@endif
             <a href="#pricing">Pricing</a>
             @if($benchmarkResults->isNotEmpty() || $tool->benchmark_score)<a href="#benchmarks">Benchmarks</a>@endif
             @if($editorialReviews->isNotEmpty() || $pros->isNotEmpty() || $cons->isNotEmpty())
@@ -110,8 +140,8 @@
         <section class="detail-panel overview-panel" id="overview">
             <div class="detail-section-head"><div><span>Overview</span><h2>What is {{ $tool->name }}?</h2></div><i data-lucide="sparkles"></i></div>
             <div class="rich-description">{!! nl2br(e($tool->overview)) !!}</div>
-            @if($capabilities->isNotEmpty())
-            <div class="best-for-box"><span><i data-lucide="target"></i>Best for</span><div>@foreach($capabilities->take(5) as $capability)<b>{{ $capability }}</b>@endforeach</div></div>
+            @if($tool->useCaseTerms->isNotEmpty())
+            <div class="best-for-box"><span><i data-lucide="target"></i>Best for</span><div>@foreach($tool->useCaseTerms->take(5) as $useCase)<b title="{{ $useCase->pivot?->fit_note ?: ($useCase->short_description ?: 'AI Orbit use-case classification') }}">{{ $useCase->name }}@if(($useCase->pivot?->verification_status ?? 'pending') === 'verified') <i data-lucide="badge-check"></i>@endif</b>@endforeach</div></div>
             @endif
         </section>
 
@@ -119,17 +149,42 @@
         <section class="detail-panel" id="features">
             <div class="detail-section-head"><div><span>Capabilities</span><h2>Features & use cases</h2><p>Core capabilities listed for {{ $tool->name }}.</p></div><i data-lucide="blocks"></i></div>
             <div class="feature-detail-grid">
-                @forelse($capabilities as $capability)
-                    <article><span><i data-lucide="check"></i></span><div><h3>{{ $capability }}</h3><p>Available as part of {{ $tool->name }}'s current capability set.</p></div></article>
+                @forelse($tool->featureTerms as $feature)
+                    @php
+                        $featureDescription = trim((string) ($feature->pivot?->description ?? '')) ?: ($feature->short_description ?: $feature->description);
+                        $featureEvidence = !empty($feature->pivot?->tool_source_id) ? $sourceMap->get($feature->pivot->tool_source_id) : null;
+                        $featureVerified = ($feature->pivot?->verification_status ?? 'pending') === 'verified';
+                    @endphp
+                    <article>
+                        <span class="{{ $featureVerified ? 'is-verified' : 'is-pending' }}"><i data-lucide="{{ $featureVerified ? 'badge-check' : 'clock-3' }}"></i></span>
+                        <div>
+                            <h3>{{ $feature->name }}</h3>
+                            <p>{{ $featureDescription ?: 'Capability description has not been verified for this tool yet.' }}</p>
+                            <div class="feature-evidence-row">
+                                @if($featureVerified)<span class="evidence-state evidence-state--verified"><i data-lucide="badge-check"></i>Verified capability</span>@else<span class="evidence-state"><i data-lucide="clock-3"></i>Evidence pending</span>@endif
+                                @if($featureEvidence)<a href="{{ $featureEvidence->source_url }}" target="_blank" rel="noopener noreferrer nofollow">Source<i data-lucide="arrow-up-right"></i></a>@endif
+                            </div>
+                        </div>
+                    </article>
                 @empty
-                    @forelse($tool->featureTerms as $feature)<article><span><i data-lucide="check"></i></span><div><h3>{{ $feature->name }}</h3><p>{{ $feature->description ?? 'Supported capability.' }}</p></div></article>@empty<p class="detail-empty">Capability details have not been published yet.</p>@endforelse
+                    @forelse($capabilities as $capability)
+                        <article><span><i data-lucide="circle-help"></i></span><div><h3>{{ $capability }}</h3><p>Legacy capability label. Structured evidence has not been attached yet.</p><div class="feature-evidence-row"><span class="evidence-state"><i data-lucide="clock-3"></i>Evidence pending</span></div></div></article>
+                    @empty<p class="detail-empty">Capability details have not been published yet.</p>@endforelse
                 @endforelse
             </div>
             @if($tool->featureTerms->isNotEmpty())
             <div class="taxonomy-link-row"><strong>Explore capabilities</strong><div>@foreach($tool->featureTerms->take(10) as $feature)<a href="{{ route('features.show',$feature) }}"><i data-lucide="{{ $feature->icon ?: 'sparkles' }}"></i>{{ $feature->name }}</a>@endforeach</div></div>
             @endif
             @if($tool->useCaseTerms->isNotEmpty())
-            <div class="taxonomy-link-row use-cases"><strong>Best use cases</strong><div>@foreach($tool->useCaseTerms->take(10) as $useCase)<a href="{{ route('use-cases.show',$useCase) }}"><i data-lucide="target"></i>{{ $useCase->name }}</a>@endforeach</div></div>
+            <div class="taxonomy-link-row use-cases"><strong>Best use cases</strong><div>@foreach($tool->useCaseTerms->take(10) as $useCase)<a href="{{ route('use-cases.show',$useCase) }}"><i data-lucide="target"></i>{{ $useCase->name }}@if(($useCase->pivot?->verification_status ?? 'pending') === 'verified')<i data-lucide="badge-check"></i>@endif</a>@endforeach</div></div>
+            @if($tool->useCaseTerms->contains(fn($useCase) => trim((string)($useCase->pivot?->fit_note ?? '')) !== ''))
+                <div class="use-case-fit-list">
+                    @foreach($tool->useCaseTerms->filter(fn($useCase) => trim((string)($useCase->pivot?->fit_note ?? '')) !== '')->take(6) as $useCase)
+                        @php $useCaseEvidence = !empty($useCase->pivot?->tool_source_id) ? $sourceMap->get($useCase->pivot->tool_source_id) : null; @endphp
+                        <div><strong>{{ $useCase->name }}</strong><p>{{ $useCase->pivot->fit_note }}</p><span>{{ ($useCase->pivot?->verification_status ?? 'pending') === 'verified' ? 'Verified fit' : 'Evidence pending' }}@if($useCaseEvidence) · <a href="{{ $useCaseEvidence->source_url }}" target="_blank" rel="noopener noreferrer nofollow">source</a>@endif</span></div>
+                    @endforeach
+                </div>
+            @endif
             @endif
             @if($platforms->isNotEmpty() || $tags->isNotEmpty())
             <div class="platform-tag-row">
@@ -140,15 +195,51 @@
         </section>
         @endif
 
+        @if($hasTechnicalIntel)
+        <section class="detail-panel" id="technical">
+            <div class="detail-section-head"><div><span>Technical profile</span><h2>Access, deployment & licensing</h2><p>Structured product facts with evidence status. Unknown facts are never guessed.</p></div><i data-lucide="terminal-square"></i></div>
+            <div class="feature-detail-grid">
+                <article><span class="{{ $factVerified('technical','api_status') ? 'is-verified' : 'is-pending' }}"><i data-lucide="braces"></i></span><div><h3>API access</h3><p>{{ \App\Models\ToolTechnicalProfile::API_STATUSES[$technicalProfile->api_status] ?? Str::headline($technicalProfile->api_status) }}</p>@if($technicalProfile->api_docs_url)<a href="{{ $technicalProfile->api_docs_url }}" target="_blank" rel="noopener noreferrer nofollow">API docs <i data-lucide="arrow-up-right"></i></a>@endif <small>{{ $factVerified('technical','api_status') ? 'Verified fact' : 'Evidence pending' }}</small>@if($apiSource)<a href="{{ $apiSource->source_url }}" target="_blank" rel="noopener noreferrer nofollow">Source <i data-lucide="arrow-up-right"></i></a>@endif</div></article>
+                <article><span class="{{ $factVerified('technical','open_source_status') ? 'is-verified' : 'is-pending' }}"><i data-lucide="git-fork"></i></span><div><h3>Open source & license</h3><p>{{ \App\Models\ToolTechnicalProfile::OPEN_SOURCE_STATUSES[$technicalProfile->open_source_status] ?? Str::headline($technicalProfile->open_source_status) }}@if($technicalProfile->license_name) · {{ $technicalProfile->license_name }}@endif</p>@if($technicalProfile->repository_url)<a href="{{ $technicalProfile->repository_url }}" target="_blank" rel="noopener noreferrer nofollow">Repository <i data-lucide="arrow-up-right"></i></a>@endif <small>{{ $factVerified('technical','open_source_status') ? 'Verified fact' : 'Evidence pending' }}</small>@if($repositorySource)<a href="{{ $repositorySource->source_url }}" target="_blank" rel="noopener noreferrer nofollow">Source <i data-lucide="arrow-up-right"></i></a>@endif</div></article>
+                <article><span class="{{ $factVerified('technical','self_hosting_status') ? 'is-verified' : 'is-pending' }}"><i data-lucide="server-cog"></i></span><div><h3>Deployment</h3><p>{{ \App\Models\ToolTechnicalProfile::SELF_HOSTING_STATUSES[$technicalProfile->self_hosting_status] ?? Str::headline($technicalProfile->self_hosting_status) }}</p>@if(!empty($technicalProfile->deployment_modes))<div class="feature-evidence-row">@foreach($technicalProfile->deployment_modes as $mode)<span class="evidence-state">{{ $mode }}</span>@endforeach</div>@endif <small>{{ $factVerified('technical','self_hosting_status') ? 'Verified fact' : 'Evidence pending' }}</small>@if($deploymentSource)<a href="{{ $deploymentSource->source_url }}" target="_blank" rel="noopener noreferrer nofollow">Deployment source <i data-lucide="arrow-up-right"></i></a>@endif</div></article>
+                <article><span class="{{ $factVerified('technical','commercial_use_status') ? 'is-verified' : 'is-pending' }}"><i data-lucide="badge-dollar-sign"></i></span><div><h3>Commercial use</h3><p>{{ \App\Models\ToolTechnicalProfile::COMMERCIAL_USE_STATUSES[$technicalProfile->commercial_use_status] ?? Str::headline($technicalProfile->commercial_use_status) }}</p><small>{{ $factVerified('technical','commercial_use_status') ? 'Verified fact' : 'Evidence pending' }}</small>@if($termsSource)<a href="{{ $termsSource->source_url }}" target="_blank" rel="noopener noreferrer nofollow">Terms evidence <i data-lucide="arrow-up-right"></i></a>@endif</div></article>
+            </div>
+            @if(!empty($technicalProfile->supported_languages) || !empty($technicalProfile->region_availability))
+            <div class="best-for-box"><span><i data-lucide="globe-2"></i>Availability</span><div>@foreach($technicalProfile->supported_languages ?? [] as $language)<b>{{ $language }}</b>@endforeach @foreach($technicalProfile->region_availability ?? [] as $region)<b>{{ $region }}</b>@endforeach</div>@if($availabilitySource)<a href="{{ $availabilitySource->source_url }}" target="_blank" rel="noopener noreferrer nofollow">{{ $availabilitySource->verification_status === 'verified' ? 'Verified availability source' : 'Availability source · pending' }}</a>@endif</div>
+            @endif
+        </section>
+        @endif
+
+        @if($hasTrustIntel)
+        <section class="detail-panel" id="trust">
+            <div class="detail-section-head"><div><span>Trust intelligence</span><h2>Privacy, security & compliance</h2><p>Provider policies and certifications are shown only when recorded with evidence.</p></div><i data-lucide="shield-check"></i></div>
+            <div class="feature-detail-grid">
+                <article><span class="{{ $factVerified('privacy','data_training_policy') ? 'is-verified' : 'is-pending' }}"><i data-lucide="database"></i></span><div><h3>Data training policy</h3><p>{{ \App\Models\ToolTechnicalProfile::TRAINING_POLICIES[$technicalProfile->data_training_policy] ?? Str::headline($technicalProfile->data_training_policy) }}</p>@if($technicalProfile->data_retention_note)<small>{{ $technicalProfile->data_retention_note }}</small>@endif <small>{{ $factVerified('privacy','data_training_policy') ? 'Verified fact' : 'Evidence pending' }}</small>@if($privacySource)<a href="{{ $privacySource->source_url }}" target="_blank" rel="noopener noreferrer nofollow">Privacy source <i data-lucide="arrow-up-right"></i></a>@endif</div></article>
+                <article><span class="{{ $factVerified('security','sso_status') ? 'is-verified' : 'is-pending' }}"><i data-lucide="key-round"></i></span><div><h3>SSO / enterprise access</h3><p>{{ \App\Models\ToolTechnicalProfile::SSO_STATUSES[$technicalProfile->sso_status] ?? Str::headline($technicalProfile->sso_status) }}</p><small>{{ $factVerified('security','sso_status') ? 'Verified fact' : 'Evidence pending' }}</small>@if($securitySource)<a href="{{ $securitySource->source_url }}" target="_blank" rel="noopener noreferrer nofollow">Security source <i data-lucide="arrow-up-right"></i></a>@endif</div></article>
+            </div>
+            @if($technicalProfile->privacy_summary)<div class="rich-description"><strong>Privacy:</strong> {{ $technicalProfile->privacy_summary }}</div>@endif
+            @if($technicalProfile->security_summary)<div class="rich-description"><strong>Security:</strong> {{ $technicalProfile->security_summary }}</div>@endif
+            @if(!empty($technicalProfile->security_certifications) || !empty($technicalProfile->compliance_certifications) || !empty($technicalProfile->data_residency))
+            <div class="best-for-box"><span><i data-lucide="badge-check"></i>Recorded assurances</span><div>@foreach(array_merge($technicalProfile->security_certifications ?? [], $technicalProfile->compliance_certifications ?? [], $technicalProfile->data_residency ?? []) as $item)<b>{{ $item }}</b>@endforeach</div></div>
+            @endif
+        </section>
+        @endif
+
+        @if($integrations->isNotEmpty())
+        <section class="detail-panel" id="integrations">
+            <div class="detail-section-head"><div><span>Compatibility</span><h2>Integrations</h2><p>Structured integrations recorded for {{ $tool->name }}. A check mark means the integration mapping is tied to a verified source.</p></div><i data-lucide="plug-zap"></i></div>
+            <div class="best-for-box"><span><i data-lucide="network"></i>Works with</span><div>@foreach($integrations as $integration)<b title="{{ ucfirst($integration->pivot?->verification_status ?? 'pending') }}">{{ $integration->name }}@if(($integration->pivot?->verification_status ?? 'pending') === 'verified') <i data-lucide="badge-check"></i>@endif</b>@endforeach</div></div>
+        </section>
+        @endif
+
         <section class="detail-panel" id="pricing">
             <div class="detail-section-head"><div><span>Pricing</span><h2>{{ $tool->name }} pricing plans</h2><p>Pricing stored in AI Orbit's pricing database. Always verify final rates on the provider website.</p></div><i data-lucide="badge-dollar-sign"></i></div>
             @if($pricingPlans->isNotEmpty())
             <div class="pricing-detail-grid">
                 @foreach($pricingPlans as $plan)
-                <article class="pricing-detail-card {{ $loop->index === 1 ? 'featured' : '' }}">
-                    @if($loop->index === 1)<span class="plan-badge">Popular</span>@endif
+                <article class="pricing-detail-card">
                     <small>{{ $tool->name }}</small><h3>{{ $plan->plan_name }}</h3>
-                    <div class="plan-price">@if((float)$plan->monthly_price === 0.0 && $plan->monthly_price !== null)<strong>Free</strong>@elseif($plan->monthly_price !== null)<strong>{{ strtoupper($plan->currency ?? 'USD') }} {{ rtrim(rtrim(number_format((float)$plan->monthly_price,2), '0'), '.') }}</strong><span>/month</span>@elseif(($plan->billing_type ?? '') === 'usage')<strong>Usage-based</strong>@elseif(($plan->billing_type ?? '') === 'included')<strong>Included</strong>@else<strong>Custom</strong>@endif</div>
+                    <div class="plan-price">@if(($plan->billing_type ?? '') === 'usage')<strong>Usage-based</strong>@elseif(($plan->billing_type ?? '') === 'custom')<strong>Custom</strong>@elseif(($plan->billing_type ?? '') === 'included')<strong>Included</strong>@elseif((float)$plan->monthly_price === 0.0 && $plan->monthly_price !== null)<strong>Free</strong>@elseif($plan->monthly_price !== null)<strong>{{ strtoupper($plan->currency ?? 'USD') }} {{ rtrim(rtrim(number_format((float)$plan->monthly_price,2), '0'), '.') }}</strong><span>/month</span>@else<strong>Custom</strong>@endif</div>
                     @if($plan->yearly_price)<p class="yearly-price">{{ strtoupper($plan->currency ?? 'USD') }} {{ number_format((float)$plan->yearly_price,2) }} billed yearly</p>@endif
                     @if($plan->api_price_label)<p class="api-price"><i data-lucide="code-2"></i>{{ $plan->api_price_label }}</p>@endif
                     <p class="api-price"><i data-lucide="shield-check"></i>{{ ucfirst($plan->freshness) }}@if($plan->last_verified_at) · verified {{ $plan->last_verified_at->diffForHumans() }}@endif</p>
@@ -166,81 +257,107 @@
 
         @if($benchmarkResults->isNotEmpty() || $tool->benchmark_score)
         <section class="detail-panel benchmark-intelligence-panel" id="benchmarks">
-            <div class="detail-section-head"><div><span>Performance</span><h2>Verified benchmarks & scores</h2><p>Each result is ranked only against published tools measured on the same benchmark, with source and test context shown below.</p></div><i data-lucide="gauge"></i></div>
+            <div class="detail-section-head"><div><span>Evidence-separated performance</span><h2>Verified benchmarks & scores</h2><p>AI Orbit keeps technical tests, product-experience evidence and independent research in separate semantic classes. Only comparable results may contribute to the same composite.</p></div><i data-lucide="gauge"></i></div>
             @if($benchmarkResults->isNotEmpty())
-            <div class="benchmark-intel-list">
-                @foreach($benchmarkResults->take(8) as $result)
-                @php
-                    $benchmark = $result->benchmark;
-                    $context = $benchmarkContexts->get($result->id, []);
-                    $min = (float) ($benchmark->min_score ?? 0);
-                    $max = (float) ($benchmark->max_score ?: 100);
-                    $range = max(.000001, $max - $min);
-                    $rawPosition = (((float) $result->score - $min) / $range) * 100;
-                    $pct = max(0, min(100, $benchmark->higher_is_better ? $rawPosition : 100 - $rawPosition));
-                    $score = (float) $result->score;
-                    $scoreDecimals = abs($score - round($score, 1)) > .0001 ? 2 : 1;
-                    $gap = isset($context['gap']) ? (float) $context['gap'] : null;
-                    $gapDecimals = $gap !== null && abs($gap - round($gap, 1)) > .0001 ? 2 : 1;
-                    $sourceType = match($result->source_type) {
-                        'research_paper' => 'Research paper',
-                        'benchmark_org' => 'Benchmark org',
-                        'official' => 'Official source',
-                        'independent' => 'Independent',
-                        default => $result->source_type ? Str::headline($result->source_type) : 'Verified source',
-                    };
-                    $sourceUrl = $result->source_url ?: $benchmark->official_url;
-                    $methodologyUrl = $benchmark->methodology_url;
-                @endphp
-                <article class="benchmark-intel-card">
-                    <div class="benchmark-intel-top">
-                        <div class="benchmark-intel-copy">
-                            <div class="benchmark-badges">
-                                <span class="benchmark-category-chip">{{ $benchmark->category ?: 'Benchmark' }}</span>
-                                <span class="benchmark-verified-chip"><i data-lucide="badge-check"></i>Verified</span>
-                                <span class="benchmark-source-chip">{{ $sourceType }}</span>
-                            </div>
-                            <h3>{{ $benchmark->name }}</h3>
-                            <div class="benchmark-tested-version"><span>Tested product / version</span><strong>{{ $result->model_version ?: $tool->name }}</strong></div>
-                        </div>
-                        <div class="benchmark-intel-score">
-                            <div><strong>{{ number_format($score, $scoreDecimals) }}</strong><small>@if($benchmark->unit && !in_array($benchmark->unit,['%','points'],true)) {{ $benchmark->unit }}@elseif($max > 0) / {{ number_format($max,0) }}@endif</small></div>
-                            @if(!empty($context['rank']))<span class="benchmark-rank-chip">#{{ $context['rank'] }} of {{ $context['total'] }}</span>@endif
-                        </div>
-                    </div>
-
-                    <div class="benchmark-performance-track" aria-label="Normalized benchmark position"><i style="width:{{ $pct }}%"></i></div>
-
-                    <div class="benchmark-context-grid">
-                        <div><span>Verified rank</span><strong>@if(!empty($context['rank']))#{{ $context['rank'] }} of {{ $context['total'] }} tools @else Not available @endif</strong></div>
-                        <div><span>Scoring direction</span><strong>{{ $benchmark->higher_is_better ? 'Higher is better' : 'Lower is better' }}</strong></div>
-                        <div><span>Leader context</span><strong>
-                            @if(($context['total'] ?? 0) === 1)Only verified tool
-                            @elseif(!empty($context['is_leader']))Current verified leader
-                            @elseif($gap !== null && !empty($context['leader_name'])){{ number_format($gap,$gapDecimals) }} pts behind {{ $context['leader_name'] }}
-                            @else Comparison unavailable
+                @foreach($benchmarkGroups as $benchmarkClass => $groupResults)
+                    @php
+                        $benchmarkClassLabel = \App\Models\Benchmark::classLabel($benchmarkClass);
+                        $benchmarkClassDescription = match($benchmarkClass) {
+                            \App\Models\Benchmark::CLASS_TECHNICAL => 'Measured technical performance such as accuracy, reasoning, coding, latency or task execution.',
+                            \App\Models\Benchmark::CLASS_PRODUCT_EXPERIENCE => 'User/reviewer product-experience evidence. This is not treated as a technical benchmark.',
+                            \App\Models\Benchmark::CLASS_INDEPENDENT_RESEARCH => 'Independent research or third-party evaluation evidence shown separately from technical composites.',
+                            \App\Models\Benchmark::CLASS_AI_ORBIT_TESTED => 'First-party AI Orbit testing. It remains separate from external technical benchmarks.',
+                            default => 'Evidence not yet safe to place in a comparable benchmark class; excluded from universal composites.',
+                        };
+                        $classComposite = $benchmarkClassComposites[$benchmarkClass] ?? null;
+                    @endphp
+                    <div class="benchmark-class-group">
+                        <div class="benchmark-class-head">
+                            <div><span>{{ $benchmarkClassLabel }}</span><p>{{ $benchmarkClassDescription }}</p></div>
+                            @if($classComposite !== null && $benchmarkClass !== \App\Models\Benchmark::CLASS_UNCLASSIFIED)
+                                <strong>{{ number_format((float)$classComposite,1) }}<small>/100 class composite</small></strong>
+                            @else
+                                <strong class="is-evidence-only">Evidence only</strong>
                             @endif
-                        </strong></div>
-                        <div><span>Tested</span><strong>{{ $result->tested_at?->format('M j, Y') ?: 'Date not published' }}</strong></div>
-                    </div>
+                        </div>
+                        <div class="benchmark-intel-list">
+                            @foreach($groupResults->take(8) as $result)
+                            @php
+                                $benchmark = $result->benchmark;
+                                $context = $benchmarkContexts->get($result->id, []);
+                                $min = (float) ($benchmark->min_score ?? 0);
+                                $max = (float) ($benchmark->max_score ?: 100);
+                                $range = max(.000001, $max - $min);
+                                $rawPosition = (((float) $result->score - $min) / $range) * 100;
+                                $pct = max(0, min(100, $benchmark->higher_is_better ? $rawPosition : 100 - $rawPosition));
+                                $score = (float) $result->score;
+                                $scoreDecimals = abs($score - round($score, 1)) > .0001 ? 2 : 1;
+                                $gap = isset($context['gap']) ? (float) $context['gap'] : null;
+                                $gapDecimals = $gap !== null && abs($gap - round($gap, 1)) > .0001 ? 2 : 1;
+                                $sourceType = match($result->source_type) {
+                                    'research_paper' => 'Research paper',
+                                    'benchmark_org' => 'Benchmark org',
+                                    'official' => 'Official source',
+                                    'independent' => 'Independent',
+                                    'ai_hub' => 'AI Orbit',
+                                    'community' => 'Community evidence',
+                                    default => $result->source_type ? Str::headline($result->source_type) : 'Verified source',
+                                };
+                                $sourceUrl = $result->source_url ?: $benchmark->official_url;
+                                $methodologyUrl = $benchmark->methodology_url;
+                            @endphp
+                            <article class="benchmark-intel-card">
+                                <div class="benchmark-intel-top">
+                                    <div class="benchmark-intel-copy">
+                                        <div class="benchmark-badges">
+                                            <span class="benchmark-category-chip">{{ $benchmark->category ?: 'Benchmark' }}</span>
+                                            <span class="benchmark-class-chip">{{ $benchmark->benchmark_class_label }}</span>
+                                            <span class="benchmark-verified-chip"><i data-lucide="badge-check"></i>Verified</span>
+                                            <span class="benchmark-source-chip">{{ $sourceType }}</span>
+                                        </div>
+                                        <h3>{{ $benchmark->name }}</h3>
+                                        <div class="benchmark-tested-version"><span>Tested product / version</span><strong>{{ $result->model_version ?: $tool->name }}</strong></div>
+                                    </div>
+                                    <div class="benchmark-intel-score">
+                                        <div><strong>{{ number_format($score, $scoreDecimals) }}</strong><small>@if($benchmark->unit && !in_array($benchmark->unit,['%','points'],true)) {{ $benchmark->unit }}@elseif($max > 0) / {{ number_format($max,0) }}@endif</small></div>
+                                        @if(!empty($context['rank']))<span class="benchmark-rank-chip">#{{ $context['rank'] }} of {{ $context['total'] }}</span>@endif
+                                    </div>
+                                </div>
 
-                    <div class="benchmark-intel-foot">
-                        <div>
-                            @if($result->source_name)<span><i data-lucide="database"></i>{{ $result->source_name }}</span>@endif
-                            @if($result->verified_at)<span><i data-lucide="shield-check"></i>AI Orbit verified {{ $result->verified_at->format('M j, Y') }}</span>@endif
-                        </div>
-                        <div class="benchmark-source-actions">
-                            @if($sourceUrl)<a href="{{ $sourceUrl }}" target="_blank" rel="noopener noreferrer">View source<i data-lucide="arrow-up-right"></i></a>@endif
-                            @if($methodologyUrl && $methodologyUrl !== $sourceUrl)<a href="{{ $methodologyUrl }}" target="_blank" rel="noopener noreferrer">Methodology<i data-lucide="book-open-check"></i></a>@endif
+                                <div class="benchmark-performance-track" aria-label="Normalized position within this benchmark"><i style="width:{{ $pct }}%"></i></div>
+
+                                <div class="benchmark-context-grid">
+                                    <div><span>Same-benchmark rank</span><strong>@if(!empty($context['rank']))#{{ $context['rank'] }} of {{ $context['total'] }} tools @else Not available @endif</strong></div>
+                                    <div><span>Scoring direction</span><strong>{{ $benchmark->higher_is_better ? 'Higher is better' : 'Lower is better' }}</strong></div>
+                                    <div><span>Leader context</span><strong>
+                                        @if(($context['total'] ?? 0) === 1)Only verified tool
+                                        @elseif(!empty($context['is_leader']))Current verified leader
+                                        @elseif($gap !== null && !empty($context['leader_name'])){{ number_format($gap,$gapDecimals) }} pts behind {{ $context['leader_name'] }}
+                                        @else Comparison unavailable
+                                        @endif
+                                    </strong></div>
+                                    <div><span>Tested</span><strong>{{ $result->tested_at?->format('M j, Y') ?: 'Date not published' }}</strong></div>
+                                </div>
+
+                                <div class="benchmark-intel-foot">
+                                    <div>
+                                        @if($result->source_name)<span><i data-lucide="database"></i>{{ $result->source_name }}</span>@endif
+                                        @if($result->verified_at)<span><i data-lucide="shield-check"></i>AI Orbit verified {{ $result->verified_at->format('M j, Y') }}</span>@endif
+                                    </div>
+                                    <div class="benchmark-source-actions">
+                                        @if($sourceUrl)<a href="{{ $sourceUrl }}" target="_blank" rel="noopener noreferrer">View source<i data-lucide="arrow-up-right"></i></a>@endif
+                                        @if($methodologyUrl && $methodologyUrl !== $sourceUrl)<a href="{{ $methodologyUrl }}" target="_blank" rel="noopener noreferrer">Methodology<i data-lucide="book-open-check"></i></a>@endif
+                                    </div>
+                                </div>
+                            </article>
+                            @endforeach
                         </div>
                     </div>
-                </article>
                 @endforeach
-            </div>
             @elseif($tool->benchmark_score)
-            <div class="single-score-card"><div class="score-ring" style="--score:{{ max(0,min(100,(float)$tool->benchmark_score)) }}"><span>{{ number_format((float)$tool->benchmark_score,1) }}</span></div><div><small>AI Orbit benchmark score</small><h3>{{ $tool->name }} overall performance</h3><p>Detailed verified benchmark evidence has not been published yet, so this aggregate should be treated as a legacy summary rather than a comparable rank.</p></div></div>
+                <div class="single-score-card"><div class="score-ring" style="--score:{{ max(0,min(100,(float)$tool->benchmark_score)) }}"><span>{{ number_format((float)$tool->benchmark_score,1) }}</span></div><div><small>Legacy benchmark summary</small><h3>{{ $tool->name }} stored benchmark score</h3><p>No structured benchmark evidence is attached yet. This legacy value is shown only for compatibility and must not be interpreted as a cross-methodology quality score.</p></div></div>
             @else
-            <p class="detail-empty">No verified benchmark results are published for {{ $tool->name }} yet.</p>
+                <p class="detail-empty">No verified benchmark results are published for {{ $tool->name }} yet.</p>
             @endif
         </section>
         @endif
@@ -266,10 +383,10 @@
 
         @if($relatedTools->isNotEmpty())
         <section class="detail-panel" id="alternatives">
-            <div class="detail-section-head"><div><span>Alternatives</span><h2>Similar AI tools</h2><p>Other highly rated tools in related categories or from the same company.</p></div><i data-lucide="shuffle"></i></div>
+            <div class="detail-section-head"><div><span>Alternatives</span><h2>Evidence-based similar tools</h2><p>Ranked by use-case, capability, pricing, platform, taxonomy and compatible benchmark overlap—not popularity alone.</p></div><i data-lucide="shuffle"></i></div>
             <div class="alternative-grid">
                 @foreach($relatedTools as $related)
-                <a href="{{ route('tools.show', $related) }}" class="alternative-card"><img src="{{ $related->logo_url }}" alt="{{ $related->name }} logo"><div><h3>{{ $related->name }}</h3><p>{{ $related->category?->name ?: 'AI Tool' }} • {{ $related->company?->name ?: 'Independent' }}</p><span><i data-lucide="star"></i>{{ number_format((float)$related->rating,1) }} <b>{{ collect($related->pricing_models ?? [])->contains('Free') ? 'Free option' : 'Paid' }}</b></span></div><i data-lucide="arrow-up-right"></i></a>
+                <a href="{{ route('tools.show', $related) }}" class="alternative-card"><img src="{{ $related->logo_url }}" alt="{{ $related->name }} logo"><div><h3>{{ $related->name }}</h3><p>{{ $related->category?->name ?: 'AI Tool' }} • {{ $related->company?->name ?: 'Independent' }}</p><span><i data-lucide="scan-search"></i><b>{{ number_format((float)$related->alternative_match_score,0) }}% match</b> @if(!empty($related->alternative_match_reasons)){{ implode(' · ', $related->alternative_match_reasons) }}@endif</span></div><i data-lucide="arrow-up-right"></i></a>
                 @endforeach
             </div>
         </section>
@@ -286,7 +403,42 @@
                 @if($tool->launch_date)<div><dt>Launched</dt><dd>{{ $tool->launch_date->format('M Y') }}</dd></div>@endif
                 <div><dt>Platforms</dt><dd>{{ $platforms->join(', ') ?: 'Not specified' }}</dd></div>
                 @if($tool->company)<div><dt>Developer</dt><dd>{{ $tool->company->name }}</dd></div>@endif
+                <div>
+                    <dt>Product status</dt>
+                    <dd>
+                        @if(($tool->product_status ?? 'unknown') === 'unknown')
+                            Not yet verified
+                        @else
+                            {{ $tool->product_status_label }}
+                            @if($tool->product_status_verified_at)<i data-lucide="badge-check"></i>@endif
+                        @endif
+                    </dd>
+                </div>
+                @if($productStatusSource && ($tool->product_status ?? 'unknown') !== 'unknown')
+                    <div><dt>Lifecycle evidence</dt><dd><a href="{{ $productStatusSource->source_url }}" target="_blank" rel="noopener noreferrer nofollow">{{ $tool->product_status_verified_at ? 'Verified source' : 'Source · pending verification' }}</a></dd></div>
+                @endif
+                @if($primarySource)<div><dt>Source</dt><dd><a href="{{ $primarySource->source_url }}" target="_blank" rel="noopener noreferrer nofollow">{{ $primarySource->verification_status === 'verified' ? 'Verified official source' : 'Official source · verification pending' }}</a></dd></div>@endif
             </dl>
+        </section>
+
+        <section class="sidebar-card verification-card">
+            <div class="sidebar-title"><span>AI Orbit Verification</span><i data-lucide="shield-check"></i></div>
+            <dl>
+                <div><dt>Status</dt><dd>{{ $dataConfidence['can_show_confidence'] ? 'Evidence-backed' : 'Verification pending' }}</dd></div>
+                <div><dt>Profile completeness</dt><dd><strong>{{ $dataConfidence['profile_completeness'] }}%</strong></dd></div>
+                @if($dataConfidence['can_show_confidence'])
+                    <div><dt>Evidence confidence</dt><dd><strong>{{ $dataConfidence['confidence_score'] }}/100</strong> · {{ $dataConfidence['confidence_label'] }}</dd></div>
+                    <div><dt>Freshness</dt><dd>{{ Str::headline($dataConfidence['freshness']) }}</dd></div>
+                @endif
+                <div><dt>Verified sources</dt><dd>{{ $dataConfidence['verified_sources'] }}/{{ $dataConfidence['total_sources'] }}</dd></div>
+                <div><dt>Verified claims</dt><dd>{{ $dataConfidence['verified_claims'] }}/{{ $dataConfidence['known_claims'] }}</dd></div>
+                <div><dt>Last verified</dt><dd>{{ $dataConfidence['last_verified_at']?->format('M j, Y') ?? 'Not yet verified' }}</dd></div>
+            </dl>
+            @if($dataConfidence['can_show_confidence'])
+                <p>Evidence confidence measures verified claim coverage, source verification and freshness. Profile completeness is shown separately.</p>
+            @else
+                <p>Not enough verified evidence to calculate a confidence score. At least 1 verified source and 2 verified claims are required.</p>
+            @endif
         </section>
 
         @if($tool->company)

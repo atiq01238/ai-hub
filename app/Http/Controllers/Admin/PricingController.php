@@ -9,6 +9,7 @@ use App\Models\PricingPlan;
 use App\Models\PricingSource;
 use App\Models\Tool;
 use App\Services\Pricing\PricingDetectionService;
+use App\Services\Tools\ToolCommercialProfileService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -211,7 +212,7 @@ class PricingController extends Controller
         );
     }
 
-    public function approveChange(Request $request, int $id)
+    public function approveChange(Request $request, int $id, ToolCommercialProfileService $commercialProfile)
     {
         $change = DetectedPriceChange::with(['plan', 'tool', 'source'])->findOrFail($id);
         abort_unless($change->status === 'pending', 422, 'This change has already been reviewed.');
@@ -280,7 +281,10 @@ class PricingController extends Controller
             ]);
         });
 
-        return back()->with('status', 'Detected price approved and published to the pricing plan.');
+        $plan->refresh();
+        if ($plan->tool) $commercialProfile->refresh($plan->tool);
+
+        return back()->with('status', 'Detected price approved and published to the pricing plan. Tool commercial classification was refreshed.');
     }
 
     public function rejectChange(Request $request, int $id)

@@ -22,7 +22,9 @@ class Feature extends Model
 
     public function tools()
     {
-        return $this->belongsToMany(Tool::class, 'feature_tool')->withTimestamps();
+        return $this->belongsToMany(Tool::class, 'feature_tool')
+            ->withPivot(['description','verification_status','tool_source_id','verified_at','notes'])
+            ->withTimestamps();
     }
 
     public function models()

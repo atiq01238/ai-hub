@@ -91,8 +91,18 @@
                         </label>
 
                         <label class="cb-field">
+                            <span>Benchmark class <b>*</b></span>
+                            <select class="select" name="benchmark_class" required>
+                                @foreach($benchmarkClasses as $value => $label)
+                                    <option value="{{ $value }}" @selected(old('benchmark_class', 'technical_performance') === $value)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            <small>Semantic class controls which scores may be combined.</small>
+                        </label>
+
+                        <label class="cb-field">
                             <span>Score <b>*</b></span>
-                            <div class="cb-score-input"><input class="input" type="number" name="score" min="0" max="100" step="0.01" value="{{ old('score') }}" placeholder="0–100" required><span>/ 100</span></div>
+                            <div class="cb-score-input"><input class="input" type="number" name="score" min="0" step="0.01" value="{{ old('score') }}" placeholder="Measured score" required></div>
                         </label>
 
                         <label class="cb-field">
@@ -139,9 +149,9 @@
                     <h3>Record integrity</h3>
                     <p>Prefer source-backed scores with a test date and verification state.</p>
                     <div class="cb-builder__review-list">
-                        <div><span>Allowed score</span><strong>0–100</strong></div>
+                        <div><span>Score</span><strong>Raw metric</strong></div>
                         <div><span>History</span><strong>Preserved</strong></div>
-                        <div><span>Composite</span><strong>Recalculated</strong></div>
+                        <div><span>Composite</span><strong>Class-safe only</strong></div>
                     </div>
                     <button class="btn btn-primary cb-builder__save" type="submit">
                         <i data-lucide="save"></i>
@@ -160,6 +170,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const typeInputs = [...document.querySelectorAll('input[name="type"]')];
     const modelField = document.getElementById('benchmarkModelField');
     const toolField = document.getElementById('benchmarkToolField');
+    const benchmarkClassMap = @json($benchmarkDefinitions->pluck('benchmark_class','name'));
+    const benchmarkNameInput = document.querySelector('input[name="benchmark_name"]');
+    const benchmarkClassSelect = document.querySelector('select[name="benchmark_class"]');
 
     function syncType() {
         const type = document.querySelector('input[name="type"]:checked')?.value || 'model';
@@ -178,8 +191,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function syncBenchmarkClass() {
+        const knownClass = benchmarkClassMap[benchmarkNameInput?.value || ''];
+        if (knownClass && benchmarkClassSelect) benchmarkClassSelect.value = knownClass;
+    }
+
     typeInputs.forEach(input => input.addEventListener('change', syncType));
+    benchmarkNameInput?.addEventListener('change', syncBenchmarkClass);
+    benchmarkNameInput?.addEventListener('input', syncBenchmarkClass);
     syncType();
+    syncBenchmarkClass();
 });
 </script>
 @endpush

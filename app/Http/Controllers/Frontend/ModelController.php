@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use App\Services\Seo\EntitySeoService;
 use App\Services\Taxonomy\TaxonomyNormalizer;
 use App\Services\Frontend\QuickFeedbackService;
+use App\Services\BenchmarkScoringService;
 
 class ModelController extends Controller
 {
@@ -78,7 +79,7 @@ class ModelController extends Controller
         return view('frontend.models.index', compact('models','companies','capabilities','stats','leaders'));
     }
 
-    public function show(AiModel $model, EntitySeoService $seoService, QuickFeedbackService $feedback)
+    public function show(AiModel $model, EntitySeoService $seoService, QuickFeedbackService $feedback, BenchmarkScoringService $benchmarkScoring)
     {
         abort_unless(in_array($model->status, ['active','preview'], true), 404);
         $model->load(['company','tool','featureTerms','useCaseTerms','tagTerms','pricingSources','benchmarkResults' => fn ($q) => $q->with('benchmark')->where('verified',true)->latest('tested_at')]);
@@ -103,10 +104,12 @@ class ModelController extends Controller
         $labStats = ['average' => null, 'tests' => 0, 'runs' => 0, 'verified' => 0, 'types' => collect()];
 
         $quickRating = $feedback->ratingSummary('model', $model->id, auth()->user());
+        $benchmarkPrimaryClass = $benchmarkScoring->primaryCompositeClass($model);
+        $benchmarkClassComposites = $benchmarkScoring->classComposites($model);
 
         $seo = $seoService->model($model);
         $seoSchemas = $seoService->schemas('model', $model, $seo);
 
-        return view('frontend.models.show', compact('model','relatedModels','latestNews','benchmarks','capabilities','labResults','labStats','quickRating','seo','seoSchemas'));
+        return view('frontend.models.show', compact('model','relatedModels','latestNews','benchmarks','capabilities','labResults','labStats','quickRating','benchmarkPrimaryClass','benchmarkClassComposites','seo','seoSchemas'));
     }
 }

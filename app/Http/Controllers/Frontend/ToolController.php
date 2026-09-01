@@ -3,22 +3,29 @@
 namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
+use App\Models\Benchmark;
 use App\Models\BenchmarkResult;
 use App\Models\Category;
 use App\Models\Company;
 use App\Models\Feature;
 use App\Models\NewsItem;
+use App\Models\Platform;
 use App\Models\PricingPlan;
 use App\Models\Tool;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use App\Services\Seo\EntitySeoService;
 use App\Services\Frontend\QuickFeedbackService;
-use App\Services\Analytics\ToolTrendingService;
+use App\Services\Tools\ToolCommercialProfileService;
+use App\Services\Tools\ToolAlternativeScoringService;
+use App\Services\Tools\ToolDataConfidenceService;
+use App\Services\BenchmarkScoringService;
 
 class ToolController extends Controller
 {
-    public function index(Request $request, ToolTrendingService $toolTrendingService)
+    public function __construct(private readonly ToolCommercialProfileService $commercialProfile) {}
+
+    public function index(Request $request)
     {
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
@@ -26,8 +33,9 @@ class ToolController extends Controller
             'pricing' => ['nullable', 'in:free,paid'],
             'rating' => ['nullable', 'in:4,4.5'],
             'company' => ['nullable', 'string', 'max:100'],
-            'platform' => ['nullable', 'in:Web,API,Desktop,Mobile'],
+            'platform' => ['nullable', 'string', 'max:100'],
             'feature' => ['nullable', 'string', 'max:100'],
+            'verified_tech' => ['nullable', 'in:api,open-source,self-hosted'],
             'sort' => ['nullable', 'in:popular,rating,newest,benchmark,name'],
             'view' => ['nullable', 'in:grid,list'],
         ]);
@@ -39,6 +47,7 @@ class ToolController extends Controller
                 'subcategoryTerm',
                 'featureTerms:id,name,slug',
                 'useCaseTerms:id,name,slug',
+                'platformTerms:id,name,slug,sort_order',
                 'benchmarkResults' => fn ($query) => $query
                     ->with('benchmark:id,name,slug,higher_is_better')
                     ->where('verified', true)
@@ -49,53 +58,9 @@ class ToolController extends Controller
             ->where('status', 'published');
 
         $this->applyFilters($query, $validated);
-
-        // Use the same first-party 30-day activity intelligence that powers
-        // the site's Trending AI experience. This keeps the directory's
-        // "Most Popular" ordering and card badges aligned instead of
-        // displaying the legacy static popularity percentage.
-        $publishedToolCount = Tool::where('status', 'published')->count();
-        $trendingTools = $toolTrendingService->homepage(max(1, $publishedToolCount));
-        $trendById = $trendingTools->keyBy('id');
-        $activeTrendIds = $trendingTools
-            ->filter(fn (Tool $tool) => (int) ($tool->trend_current_score ?? 0) > 0)
-            ->pluck('id')
-            ->values();
-
-        if (($validated['sort'] ?? 'popular') === 'popular' && $activeTrendIds->isNotEmpty()) {
-            // Rank tools with measured activity first. Any tools without enough
-            // first-party activity fall back to the existing popularity/rating
-            // order, so pagination remains deterministic.
-            $cases = [];
-            $bindings = [];
-            foreach ($activeTrendIds as $rank => $toolId) {
-                $cases[] = 'WHEN ? THEN ?';
-                $bindings[] = (int) $toolId;
-                $bindings[] = (int) $rank;
-            }
-
-            $query->orderByRaw(
-                'CASE tools.id '.implode(' ', $cases).' ELSE ? END ASC',
-                [...$bindings, $activeTrendIds->count()]
-            )->orderByDesc('popularity')->orderByDesc('rating');
-        } else {
-            $this->applySort($query, $validated['sort'] ?? 'popular');
-        }
+        $this->applySort($query, $validated['sort'] ?? 'popular');
 
         $tools = $query->paginate(12)->withQueryString();
-
-        $tools->setCollection($tools->getCollection()->map(function (Tool $tool) use ($trendById) {
-            $trend = $trendById->get($tool->id);
-
-            $tool->trend_label = $trend?->trend_label ?? '—';
-            $tool->trend_change = $trend?->trend_change;
-            $tool->trend_current_score = (int) ($trend?->trend_current_score ?? 0);
-            $tool->trend_previous_score = (int) ($trend?->trend_previous_score ?? 0);
-            $tool->trend_details = $trend?->trend_details
-                ?? 'Not enough first-party activity in the last 30 days yet.';
-
-            return $tool;
-        }));
 
         $categories = Category::query()
             ->product()->active()
@@ -122,15 +87,29 @@ class ToolController extends Controller
             ->take(16)
             ->get();
 
+        $freeQuery = Tool::query()->where('status', 'published');
+        $this->commercialProfile->applyFilter($freeQuery, 'free');
+
         $stats = [
             'tools' => Tool::where('status', 'published')->count(),
             'categories' => $categories->count(),
-            'free' => Tool::where('status', 'published')->whereJsonContains('pricing_models', 'Free')->count(),
+            'free' => $freeQuery->count(),
             'topRated' => Tool::where('status', 'published')->where('rating', '>=', 4.5)->count(),
         ];
 
-        $featuredTools = $trendingTools->take(4);
-        $featuredTools->loadMissing(['company', 'category']);
+        $platformFilters = Platform::query()
+            ->active()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id','name','slug']);
+
+        $featuredTools = Tool::query()
+            ->with(['company', 'category'])
+            ->where('status', 'published')
+            ->orderByDesc('popularity')
+            ->orderByDesc('rating')
+            ->take(4)
+            ->get();
 
         return view('frontend.tools.index', compact(
             'tools',
@@ -139,10 +118,11 @@ class ToolController extends Controller
             'features',
             'stats',
             'featuredTools',
+            'platformFilters',
         ));
     }
 
-    public function show(Tool $tool, EntitySeoService $seoService, QuickFeedbackService $feedback)
+    public function show(Tool $tool, EntitySeoService $seoService, QuickFeedbackService $feedback, BenchmarkScoringService $benchmarkScoring, ToolAlternativeScoringService $alternatives, ToolDataConfidenceService $confidence)
     {
         abort_unless($tool->status === 'published', 404);
 
@@ -153,6 +133,10 @@ class ToolController extends Controller
             'featureTerms',
             'useCaseTerms',
             'tagTerms',
+            'platformTerms' => fn ($query) => $query->where('is_active', true)->orderBy('sort_order'),
+            'integrationTerms' => fn ($query) => $query->where('is_active', true)->orderBy('name'),
+            'technicalProfile', 'factEvidence',
+            'sources' => fn ($query) => $query->where('enabled', true)->orderByDesc('is_primary')->latest('verified_at')->latest('id'),
             'models' => fn ($query) => $query
                 ->whereIn('status', ['active', 'preview'])
                 ->orderByDesc('benchmark_score')
@@ -174,6 +158,11 @@ class ToolController extends Controller
             ->filter(fn ($result) => $result->benchmark)
             ->unique('benchmark_id')
             ->values();
+
+        $benchmarkGroups = $benchmarkResults
+            ->groupBy(fn ($result) => $result->benchmark->benchmark_class ?: Benchmark::CLASS_UNCLASSIFIED);
+        $benchmarkClassComposites = $benchmarkScoring->classComposites($tool);
+        $benchmarkPrimaryClass = $benchmarkScoring->primaryCompositeClass($tool);
 
         $benchmarkContexts = collect();
 
@@ -230,36 +219,10 @@ class ToolController extends Controller
             ->orderBy('id')
             ->get();
 
-        $relatedTools = Tool::query()
-            ->with(['company', 'category'])
-            ->where('status', 'published')
-            ->where('id', '!=', $tool->id)
-            ->when($tool->category_id, function (Builder $query) use ($tool) {
-                $query->where(function (Builder $related) use ($tool) {
-                    $related->where('category_id', $tool->category_id);
-                    if ($tool->company_id) {
-                        $related->orWhere('company_id', $tool->company_id);
-                    }
-                });
-            })
-            ->orderByDesc('rating')
-            ->orderByDesc('popularity')
-            ->take(4)
-            ->get();
+        $tool->setRelation('pricingPlans', $pricingPlans);
+        $priceLabel = $this->commercialProfile->summaryLabel($tool, $pricingPlans);
 
-        if ($relatedTools->count() < 4) {
-            $fallback = Tool::query()
-                ->with(['company', 'category'])
-                ->where('status', 'published')
-                ->where('id', '!=', $tool->id)
-                ->whereNotIn('id', $relatedTools->pluck('id'))
-                ->orderByDesc('rating')
-                ->orderByDesc('popularity')
-                ->take(4 - $relatedTools->count())
-                ->get();
-
-            $relatedTools = $relatedTools->concat($fallback);
-        }
+        $relatedTools = $alternatives->alternatives($tool, 4);
 
         $latestNews = NewsItem::query()
             ->with('company')
@@ -286,7 +249,19 @@ class ToolController extends Controller
 
         $ratingBreakdown = collect($tool->rating_breakdown ?? []);
         $capabilities = collect($tool->capabilities ?? [])->filter()->values();
-        $platforms = collect($tool->platforms ?? [])->filter()->values();
+        $platforms = $tool->platformTerms->pluck('name')->filter()->values();
+        if ($platforms->isEmpty()) {
+            $platforms = collect($tool->platforms ?? [])->filter()->values();
+        }
+        $primarySource = $tool->sources->firstWhere('is_primary', true) ?: $tool->sources->first();
+        $sourceMap = $tool->sources->keyBy('id');
+        $productStatusSource = $tool->product_status_source_id ? $sourceMap->get($tool->product_status_source_id) : null;
+        $technicalProfile = $tool->technicalProfile;
+        $integrations = $tool->integrationTerms->values();
+        $factEvidenceMap = $tool->factEvidence->keyBy(fn ($evidence) => $evidence->fact_type.'.'.$evidence->fact_key);
+        $dataConfidence = $confidence->score($tool);
+        $verifiedIdentitySource = $tool->sources
+            ->first(fn ($source) => in_array($source->source_type, ['official_product','company'], true) && $source->verification_status === 'verified');
         $tags = $tool->tagTerms->pluck('name')
             ->merge(collect($tool->tags ?? []))
             ->filter()
@@ -306,11 +281,23 @@ class ToolController extends Controller
             'editorReview',
             'editorialReviews',
             'benchmarkResults',
+            'benchmarkGroups',
+            'benchmarkClassComposites',
+            'benchmarkPrimaryClass',
             'benchmarkContexts',
             'ratingBreakdown',
             'capabilities',
             'platforms',
             'tags',
+            'priceLabel',
+            'primarySource',
+            'sourceMap',
+            'productStatusSource',
+            'verifiedIdentitySource',
+            'technicalProfile',
+            'integrations',
+            'factEvidenceMap',
+            'dataConfidence',
             'quickRating',
             'seo',
             'seoSchemas',
@@ -334,12 +321,8 @@ class ToolController extends Controller
             $query->whereHas('category', fn (Builder $q) => $q->where('slug', $filters['category']));
         }
 
-        if (($filters['pricing'] ?? null) === 'free') {
-            $query->whereJsonContains('pricing_models', 'Free');
-        }
-
-        if (($filters['pricing'] ?? null) === 'paid') {
-            $query->whereJsonContains('pricing_models', 'Paid');
+        if (in_array(($filters['pricing'] ?? null), ['free', 'paid'], true)) {
+            $this->commercialProfile->applyFilter($query, $filters['pricing']);
         }
 
         if (!empty($filters['rating'])) {
@@ -351,11 +334,47 @@ class ToolController extends Controller
         }
 
         if (!empty($filters['platform'])) {
-            $query->whereJsonContains('platforms', $filters['platform']);
+            $platform = Platform::query()
+                ->active()
+                ->where(function (Builder $platformQuery) use ($filters) {
+                    $platformQuery->where('slug', $filters['platform'])
+                        ->orWhere('name', $filters['platform']);
+                })
+                ->first();
+
+            if ($platform) {
+                $query->where(function (Builder $platformMatch) use ($platform) {
+                    $platformMatch->whereHas('platformTerms', fn (Builder $terms) => $terms->where('platforms.id', $platform->id))
+                        ->orWhere(function (Builder $legacy) use ($platform) {
+                            $legacy->whereDoesntHave('platformTerms')
+                                ->whereJsonContains('platforms', $platform->name);
+                        });
+                });
+            } else {
+                $query->whereRaw('1 = 0');
+            }
         }
 
         if (!empty($filters['feature'])) {
             $query->whereHas('featureTerms', fn (Builder $q) => $q->where('slug', $filters['feature']));
+        }
+
+        if (!empty($filters['verified_tech'])) {
+            $factMap = [
+                'api' => ['api_status', ['available', 'limited']],
+                'open-source' => ['open_source_status', ['open_source', 'source_available', 'mixed']],
+                'self-hosted' => ['self_hosting_status', ['supported', 'enterprise_only']],
+            ];
+
+            [$factKey, $allowedStatuses] = $factMap[$filters['verified_tech']];
+
+            $query->whereHas('technicalProfile', function (Builder $profile) use ($factKey, $allowedStatuses) {
+                $profile->whereIn($factKey, $allowedStatuses);
+            })->whereHas('factEvidence', function (Builder $evidence) use ($factKey) {
+                $evidence->where('fact_type', 'technical')
+                    ->where('fact_key', $factKey)
+                    ->where('verification_status', 'verified');
+            });
         }
     }
 

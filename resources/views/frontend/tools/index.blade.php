@@ -9,6 +9,7 @@
         'company',
         'platform',
         'feature',
+        'verified_tech',
         'sort',
         'view',
     ]);
@@ -85,7 +86,7 @@
 
 @section('content')
 @php
-    $activeFilters = collect(['category','pricing','rating','company','platform','feature'])
+    $activeFilters = collect(['category','pricing','rating','company','platform','feature','verified_tech'])
         ->filter(fn ($key) => request()->filled($key))
         ->count();
 @endphp
@@ -187,8 +188,8 @@
 @if(!request()->hasAny(['q','category','pricing','rating','company','platform','feature']) && $featuredTools->isNotEmpty())
 <section class="tools-page-container featured-strip-section">
     <div class="section-heading-row">
-        <div><span class="section-kicker"><i data-lucide="flame"></i> Trending now</span><h2>Trending AI tools</h2></div>
-        <span class="section-note">Ranked by AI Orbit activity · last 30 days</span>
+        <div><span class="section-kicker"><i data-lucide="flame"></i> Trending now</span><h2>Popular AI tools this week</h2></div>
+        <span class="section-note">Ranked by popularity and user rating</span>
     </div>
     <div class="featured-tool-strip">
         @foreach($featuredTools as $rank => $tool)
@@ -283,8 +284,8 @@
                 <div class="filter-group">
                     <button type="button" class="filter-group-toggle"><span>Platform</span><i data-lucide="chevron-down"></i></button>
                     <div class="filter-options compact-options">
-                        @foreach(['Web','API','Desktop','Mobile'] as $platform)
-                            <label><span><input type="radio" name="platform" value="{{ $platform }}" @checked(request('platform')===$platform)><i></i>{{ $platform }}</span></label>
+                        @foreach($platformFilters as $platform)
+                            <label><span><input type="radio" name="platform" value="{{ $platform->slug }}" @checked(in_array(request('platform'), [$platform->slug, $platform->name], true))><i></i>{{ $platform->name }}</span></label>
                         @endforeach
                     </div>
                 </div>
@@ -300,6 +301,15 @@
                 </div>
                 @endif
 
+                <div class="filter-group">
+                    <button type="button" class="filter-group-toggle"><span>Verified technical facts</span><i data-lucide="chevron-down"></i></button>
+                    <div class="filter-options compact-options">
+                        <label><span><input type="radio" name="verified_tech" value="api" @checked(request('verified_tech')==='api')><i></i>Verified API access</span></label>
+                        <label><span><input type="radio" name="verified_tech" value="open-source" @checked(request('verified_tech')==='open-source')><i></i>Verified open source</span></label>
+                        <label><span><input type="radio" name="verified_tech" value="self-hosted" @checked(request('verified_tech')==='self-hosted')><i></i>Verified self-hosting</span></label>
+                    </div>
+                </div>
+
                 <div class="filter-actions-mobile"><a href="{{ route('tools.index') }}">Reset</a><button type="submit">Show Results</button></div>
             </form>
         </aside>
@@ -308,7 +318,7 @@
             @if($activeFilters || request()->filled('q'))
             <div class="active-filter-row">
                 <span>Active filters:</span>
-                @foreach(['category'=>'Category','pricing'=>'Pricing','rating'=>'Rating','company'=>'Company','platform'=>'Platform','feature'=>'Capability'] as $key=>$label)
+                @foreach(['category'=>'Category','pricing'=>'Pricing','rating'=>'Rating','company'=>'Company','platform'=>'Platform','feature'=>'Capability','verified_tech'=>'Verified technical'] as $key=>$label)
                     @if(request()->filled($key))
                         <a href="{{ route('tools.index', request()->except($key,'page')) }}">{{ $label }}: <strong>{{ request($key) }}</strong><i data-lucide="x"></i></a>
                     @endif
@@ -330,8 +340,10 @@
                                 ->filter()->unique()->take(4)->values();
                             $quickUseCases = $tool->useCaseTerms->pluck('name')
                                 ->filter()->unique()->take(4)->values();
-                            $quickPlatforms = collect($tool->platforms ?? [])
-                                ->filter()->unique()->take(4)->values();
+                            $quickPlatforms = $tool->platformTerms->pluck('name')->filter()->unique()->take(4)->values();
+                            if ($quickPlatforms->isEmpty()) {
+                                $quickPlatforms = collect($tool->platforms ?? [])->filter()->unique()->take(4)->values();
+                            }
                             $quickBenchmarks = $tool->benchmarkResults
                                 ->filter(fn ($result) => $result->benchmark)
                                 ->unique('benchmark_id')
@@ -358,15 +370,7 @@
                             data-tool-benchmarks="{{ $quickBenchmarks->toJson() }}">
                             <div class="tool-card-media" @if($cover) style="--tool-cover:url('{{ $cover }}')" @endif>
                                 <div class="tool-media-shade"></div>
-                                @if(($tool->trend_current_score ?? 0) > 0 && ($tool->trend_previous_score ?? 0) > 0 && $tool->trend_change !== null)
-                                    @php
-                                        $trendChange = (float) $tool->trend_change;
-                                        $trendPercent = number_format(abs($trendChange), 0).'%';
-                                    @endphp
-                                    <span class="tool-rank-badge" title="{{ $tool->trend_details }}">
-                                        <i data-lucide="{{ $trendChange < 0 ? 'trending-down' : 'trending-up' }}"></i>{{ $trendPercent }}
-                                    </span>
-                                @endif
+                                <span class="tool-rank-badge"><i data-lucide="trending-up"></i>{{ $tool->popularity }}% popular</span>
                                 <button type="button" class="save-tool-btn" data-save-item data-save-type="tool" data-save-id="{{ $tool->id }}" aria-label="Save {{ $tool->name }}" aria-pressed="false"><i data-lucide="bookmark"></i></button>
                             </div>
                             <div class="tool-card-body">

@@ -38,6 +38,13 @@
             <option value="tool" @selected(request('type') === 'tool')>AI Tools</option>
         </select>
 
+        <select class="select" name="benchmark_class">
+            <option value="">All semantic classes</option>
+            @foreach($benchmarkClasses as $value => $label)
+                <option value="{{ $value }}" @selected(request('benchmark_class') === $value)>{{ $label }}</option>
+            @endforeach
+        </select>
+
         <select class="select" name="verified">
             <option value="">All verification states</option>
             <option value="1" @selected(request('verified') === '1')>Verified</option>
@@ -46,7 +53,7 @@
 
         <button class="btn btn-secondary" type="submit"><i data-lucide="filter"></i>Filter</button>
 
-        @if(request()->anyFilled(['benchmark','type','verified']))
+        @if(request()->anyFilled(['benchmark','type','benchmark_class','verified']))
             <a class="btn btn-ghost" href="{{ route('admin.benchmarks.results') }}"><i data-lucide="rotate-ccw"></i>Reset</a>
         @endif
     </form>
@@ -65,6 +72,7 @@
                             <th>Tested</th>
                             <th>Entity</th>
                             <th>Benchmark</th>
+                            <th>Class</th>
                             <th>Score</th>
                             <th>Source</th>
                             <th>Verification</th>
@@ -90,6 +98,7 @@
                                     </div>
                                 </td>
                                 <td>{{ $result->benchmark?->name ?? '—' }}</td>
+                                <td><span class="cb-muted">{{ $result->benchmark?->benchmark_class_label ?? 'Unclassified' }}</span></td>
                                 <td><span class="cb-score-pill">{{ rtrim(rtrim(number_format((float)$result->score,2,'.',''),'0'),'.') }}</span></td>
                                 <td>
                                     @if($result->source_url)

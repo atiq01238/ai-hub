@@ -6,9 +6,12 @@ use App\Models\AppNotification;
 use App\Models\NotificationRule;
 use App\Models\PricingHistory;
 use App\Models\PricingPlan;
+use App\Services\Tools\ToolCommercialProfileService;
 
 class PricingPlanObserver
 {
+    public function __construct(private readonly ToolCommercialProfileService $commercialProfile) {}
+
     public function created(PricingPlan $plan): void
     {
         PricingHistory::create([
@@ -21,17 +24,23 @@ class PricingPlanObserver
             'new_price' => $plan->monthly_price,
             'change_type' => 'new_plan',
         ]);
+
+        $this->refreshCommercialProfile($plan);
     }
 
     public function updated(PricingPlan $plan): void
     {
-        foreach (['monthly_price', 'yearly_price', 'api_price_label'] as $metric) {
+        foreach (['monthly_price', 'yearly_price', 'api_price_label', 'billing_type'] as $metric) {
             if (! $plan->wasChanged($metric)) {
                 continue;
             }
 
             $old = $plan->getOriginal($metric);
             $new = $plan->{$metric};
+            if ($metric === 'billing_type') {
+                continue;
+            }
+
             $numeric = in_array($metric, ['monthly_price', 'yearly_price'], true);
 
             PricingHistory::create([
@@ -47,6 +56,10 @@ class PricingPlanObserver
 
             $this->notify($plan, $metric, $old, $new);
         }
+
+        if ($plan->wasChanged(['monthly_price', 'yearly_price', 'api_price_label', 'billing_type', 'plan_name'])) {
+            $this->refreshCommercialProfile($plan);
+        }
     }
 
     public function deleted(PricingPlan $plan): void
@@ -61,6 +74,15 @@ class PricingPlanObserver
             'new_price' => null,
             'change_type' => 'removed_plan',
         ]);
+
+        $tool = $plan->tool;
+        if ($tool) $this->commercialProfile->refresh($tool);
+    }
+
+    private function refreshCommercialProfile(PricingPlan $plan): void
+    {
+        $tool = $plan->tool;
+        if ($tool) $this->commercialProfile->refresh($tool);
     }
 
     private function changeType(mixed $old, mixed $new, bool $numeric): string

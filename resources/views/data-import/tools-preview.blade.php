@@ -10,7 +10,7 @@
 <div class="import-page">
     <x-page-header
         title="Preview AI Tool Import"
-        subtitle="Review company/category mapping and duplicates before saving."
+        subtitle="Review company/category mapping, canonical platforms, source evidence and duplicates before saving."
         :breadcrumb="['AI Management', 'Data Import', 'Tools Preview']"
     >
         <x-slot:actions>
@@ -67,6 +67,8 @@
                         <th>Capabilities</th>
                         <th>Use Cases</th>
                         <th>Tags</th>
+                        <th>Platforms</th>
+                        <th>Source</th>
                         <th>Status</th>
                         <th>Result</th>
                     </tr>
@@ -91,6 +93,8 @@
                             <td>{{ !empty($row['provided']['capabilities']) ? count($row['capabilities']) . ' mapped' : 'Preserve' }}</td>
                             <td>{{ !empty($row['provided']['use_cases']) ? count($row['use_cases']) . ' mapped' : 'Preserve' }}</td>
                             <td>{{ !empty($row['provided']['tags']) ? count($row['tags']) . ' mapped' : 'Preserve' }}</td>
+                            <td>{{ !empty($row['provided']['platforms']) ? implode(', ', $row['platforms']) : 'Preserve' }}</td>
+                            <td>@if(!empty($row['source_url']))<small>{{ Str::limit($row['source_url'], 42) }} · {{ ucfirst($row['source_verification_status'] ?: 'pending') }}</small>@else—@endif</td>
                             <td>{{ $row['status'] !== '' ? ucfirst($row['status']) : 'Preserve' }}</td>
                             <td>@include('data-import.partials.state', ['row' => $row])</td>
                         </tr>

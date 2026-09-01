@@ -5,6 +5,7 @@
         'type',
         'category',
         'verified',
+        'class',
     ]);
 
     $benchmarksSeoTitle = 'AI Benchmarks and Leaderboards | AI Orbit';
@@ -85,10 +86,11 @@
     <form class="intel-toolbar" method="get" action="{{ route('benchmarks.index') }}">
         <div class="intel-tabs" aria-label="Benchmark type">
             @foreach(['all'=>'All results','models'=>'AI Models','tools'=>'AI Tools'] as $value=>$label)
-                <a class="{{ $type===$value ? 'active' : '' }}" href="{{ route('benchmarks.index', array_filter(['type'=>$value,'category'=>$category,'verified'=>$verifiedOnly?1:0])) }}">{{ $label }}</a>
+                <a class="{{ $type===$value ? 'active' : '' }}" href="{{ route('benchmarks.index', array_filter(['type'=>$value,'category'=>$category,'class'=>$benchmarkClass,'verified'=>$verifiedOnly?1:0], fn($v)=>$v!==''&&$v!==null)) }}">{{ $label }}</a>
             @endforeach
         </div>
         <div class="intel-filter-fields">
+            <label><span>Semantic class</span><select name="class" onchange="this.form.submit()"><option value="">All classes</option>@foreach($benchmarkClasses as $value=>$label)<option value="{{ $value }}" @selected($benchmarkClass===$value)>{{ $label }}</option>@endforeach</select></label>
             <label><span>Category</span><select name="category" onchange="this.form.submit()"><option value="">All categories</option>@foreach($categories as $item)<option value="{{ $item }}" @selected($category===$item)>{{ $item }}</option>@endforeach</select></label>
             <label class="verify-toggle"><input type="hidden" name="verified" value="0"><input type="checkbox" name="verified" value="1" @checked($verifiedOnly) onchange="this.form.submit()"><span><i data-lucide="badge-check"></i> Verified only</span></label>
             <input type="hidden" name="type" value="{{ $type }}">
@@ -98,7 +100,7 @@
     @if($modelLeaderboard->isNotEmpty() && in_array($type,['all','models']))
     <section class="intel-section leaderboard-section">
         <div class="intel-section-head">
-            <div><span class="intel-kicker"><i data-lucide="trophy"></i> Composite leaderboard</span><h2>Top AI Models</h2><p>Weighted score across available benchmark results. More benchmark coverage increases confidence, not the score itself.</p></div>
+            <div><span class="intel-kicker"><i data-lucide="trophy"></i> {{ $leaderboardClassLabel }} composite</span><h2>Top AI Models</h2><p>Weighted score using only {{ strtolower($leaderboardClassLabel) }} benchmarks. Incompatible benchmark classes are never mixed.</p></div>
             <a href="{{ route('methodology') }}#models">Benchmark Methodology <i data-lucide="arrow-up-right"></i></a>
         </div>
         <div class="podium-grid">
@@ -116,7 +118,7 @@
             @endforeach
         </div>
         @if($modelLeaderboard->count()>3)
-        <div class="ranking-table-wrap"><table class="ranking-table"><thead><tr><th>Rank</th><th>Model</th><th>Provider</th><th>Coverage</th><th>Verified</th><th>Composite</th></tr></thead><tbody>
+        <div class="ranking-table-wrap"><table class="ranking-table"><thead><tr><th>Rank</th><th>Model</th><th>Provider</th><th>Coverage</th><th>Verified</th><th>{{ $leaderboardClassLabel }} composite</th></tr></thead><tbody>
             @foreach($modelLeaderboard->slice(3,7) as $index=>$row)
                 @php($model=$row['entity'])
                 <tr><td><b>#{{ $index+4 }}</b></td><td><a class="rank-entity" href="{{ route('models.show',$model) }}"><img src="{{ $model->logo_url }}" alt=""><span>{{ $model->name }}<small>{{ $model->version ?: 'Current' }}</small></span></a></td><td>{{ $model->company?->name ?? '—' }}</td><td>{{ $row['result_count'] }} tests</td><td><span class="verified-pill"><i data-lucide="check"></i>{{ $row['verified_count'] }}</span></td><td><strong>{{ number_format((float)$row['score'],1) }}</strong></td></tr>
@@ -128,7 +130,7 @@
 
     @if($toolLeaderboard->isNotEmpty() && in_array($type,['all','tools']))
     <section class="intel-section tool-rank-section">
-        <div class="intel-section-head"><div><span class="intel-kicker"><i data-lucide="bot"></i> Product evaluation</span><h2>Top AI Tools</h2><p>Structured quality, usability and value results available in the benchmark dataset.</p></div><a href="{{ route('tools.index') }}">AI Tools directory <i data-lucide="arrow-right"></i></a></div>
+        <div class="intel-section-head"><div><span class="intel-kicker"><i data-lucide="bot"></i> {{ $leaderboardClassLabel }}</span><h2>Top AI Tools</h2><p>This leaderboard combines only {{ strtolower($leaderboardClassLabel) }} results; review ratings and technical tests are kept separate.</p></div><a href="{{ route('tools.index') }}">AI Tools directory <i data-lucide="arrow-right"></i></a></div>
         <div class="compact-rank-grid">
             @foreach($toolLeaderboard->take(8) as $rank=>$row)
                 @php($tool=$row['entity'])
@@ -147,7 +149,7 @@
                 @foreach($benchmarks as $row)
                     @php($benchmark=$row['benchmark'])
                     <article class="benchmark-card">
-                        <div class="benchmark-card-head"><div><small>{{ $benchmark->category }}</small><h3><a href="{{ route('benchmarks.show',$benchmark) }}">{{ $benchmark->name }}</a></h3></div><span>{{ $benchmark->higher_is_better ? 'Higher is better' : 'Lower is better' }}</span></div>
+                        <div class="benchmark-card-head"><div><small>{{ $benchmark->benchmark_class_label }} · {{ $benchmark->category }}</small><h3><a href="{{ route('benchmarks.show',$benchmark) }}">{{ $benchmark->name }}</a></h3></div><span>{{ $benchmark->higher_is_better ? 'Higher is better' : 'Lower is better' }}</span></div>
                         <p>{{ $benchmark->description ?: 'Structured performance benchmark tracked by AI Orbit.' }}</p>
                         <div class="mini-ranking">
                             @foreach($row['results']->take(5) as $rank=>$result)
@@ -155,7 +157,7 @@
                                 <div><b>#{{ $rank+1 }}</b><span>{{ $entity?->name ?? 'Unknown' }}<small>{{ class_basename($result->benchmarkable_type) === 'AiModel' ? 'AI Model' : 'AI Tool' }} @if($result->verified) · Verified @endif</small></span><strong>{{ number_format((float)$result->score,1) }}</strong></div>
                             @endforeach
                         </div>
-                        <footer><span>Max score {{ number_format((float)$benchmark->max_score,0) }}</span><span>Weight {{ number_format((float)$benchmark->weight,2) }}×</span><a href="{{ route('benchmarks.discussion',$benchmark) }}"><i data-lucide="messages-square"></i> Discussion</a></footer>
+                        <footer><span>{{ $benchmark->benchmark_class_label }}</span><span>Max score {{ number_format((float)$benchmark->max_score,0) }}</span><span>Weight {{ number_format((float)$benchmark->weight,2) }}×</span><a href="{{ route('benchmarks.discussion',$benchmark) }}"><i data-lucide="messages-square"></i> Discussion</a></footer>
                     </article>
                 @endforeach
             </div>

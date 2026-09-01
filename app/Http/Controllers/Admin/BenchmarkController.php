@@ -11,15 +11,16 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use App\Services\BenchmarkScoringService;
+use App\Services\BenchmarkSemanticsService;
 
 class BenchmarkController extends Controller
 {
     private array $defaults = [
-        ['name'=>'MMLU Pro','category'=>'Knowledge & Reasoning','weight'=>1.20],
-        ['name'=>'HumanEval','category'=>'Coding','weight'=>1.15],
-        ['name'=>'GPQA Diamond','category'=>'Reasoning','weight'=>1.20],
-        ['name'=>'MATH','category'=>'Mathematics','weight'=>1.00],
-        ['name'=>'SWE-bench','category'=>'Software Engineering','weight'=>1.25],
+        ['name'=>'MMLU Pro','category'=>'Knowledge & Reasoning','weight'=>1.20,'benchmark_class'=>Benchmark::CLASS_TECHNICAL],
+        ['name'=>'HumanEval','category'=>'Coding','weight'=>1.15,'benchmark_class'=>Benchmark::CLASS_TECHNICAL],
+        ['name'=>'GPQA Diamond','category'=>'Reasoning','weight'=>1.20,'benchmark_class'=>Benchmark::CLASS_TECHNICAL],
+        ['name'=>'MATH','category'=>'Mathematics','weight'=>1.00,'benchmark_class'=>Benchmark::CLASS_TECHNICAL],
+        ['name'=>'SWE-bench','category'=>'Software Engineering','weight'=>1.25,'benchmark_class'=>Benchmark::CLASS_TECHNICAL],
     ];
 
     public function index(Request $request)
@@ -44,14 +45,16 @@ class BenchmarkController extends Controller
             'models'=>AiModel::with('company')->orderBy('name')->get(),
             'tools'=>Tool::with('company')->orderBy('name')->get(),
             'benchmarks'=>Benchmark::where('is_active',true)->orderBy('name')->pluck('name')->all(),
+            'benchmarkDefinitions'=>Benchmark::where('is_active',true)->orderBy('name')->get(['name','benchmark_class']),
+            'benchmarkClasses'=>collect(Benchmark::CLASSES)->mapWithKeys(fn ($class) => [$class => Benchmark::classLabel($class)])->all(),
         ]);
     }
 
-    public function store(Request $request, BenchmarkScoringService $scoring)
+    public function store(Request $request, BenchmarkScoringService $scoring, BenchmarkSemanticsService $semantics)
     {
         $data = $request->validate([
             'type'=>['required','in:model,tool'], 'item_id'=>['required','integer'],
-            'benchmark_name'=>['required','string','max:100'], 'score'=>['required','numeric'],
+            'benchmark_name'=>['required','string','max:100'], 'benchmark_class'=>['required','in:'.implode(',',Benchmark::CLASSES)], 'score'=>['required','numeric'],
             'tested_at'=>['nullable','date'], 'source_name'=>['nullable','string','max:150'],
             'source_url'=>['nullable','url','max:500'], 'notes'=>['nullable','string','max:2000'], 'source_type'=>['nullable','in:official,benchmark_org,research_paper,independent,ai_hub,community'], 'model_version'=>['nullable','string','max:150'],
             'verified'=>['nullable','boolean'],
@@ -59,8 +62,25 @@ class BenchmarkController extends Controller
         $item = $data['type'] === 'tool' ? Tool::findOrFail($data['item_id']) : AiModel::findOrFail($data['item_id']);
         $benchmark = Benchmark::firstOrCreate(
             ['name'=>$data['benchmark_name']],
-            ['slug'=>$this->uniqueBenchmarkSlug($data['benchmark_name']),'category'=>'Custom','weight'=>1,'max_score'=>100,'higher_is_better'=>true,'is_active'=>true]
+            [
+                'slug'=>$this->uniqueBenchmarkSlug($data['benchmark_name']),
+                'category'=>'Custom',
+                'benchmark_class'=>$semantics->normalize($data['benchmark_class']),
+                'weight'=>1,
+                'max_score'=>100,
+                'higher_is_better'=>true,
+                'is_active'=>true,
+            ]
         );
+        $requestedClass = $semantics->normalize($data['benchmark_class']);
+        $currentClass = $benchmark->benchmark_class ?: Benchmark::CLASS_UNCLASSIFIED;
+        if ($currentClass === Benchmark::CLASS_UNCLASSIFIED) {
+            $benchmark->update(['benchmark_class' => $requestedClass]);
+        } elseif ($currentClass !== $requestedClass) {
+            return back()->withInput()->withErrors([
+                'benchmark_class' => 'This benchmark is already classified as '.Benchmark::classLabel($currentClass).'. Reclassify it through the Phase 2 benchmark classification workflow instead of changing semantics while adding a result.',
+            ]);
+        }
 
         BenchmarkResult::create([
             'benchmark_id'=>$benchmark->id,
@@ -90,9 +110,11 @@ class BenchmarkController extends Controller
         if ($request->query('verified') === '0') $query->where('verified',false);
         if ($request->query('type') === 'model') $query->where('benchmarkable_type',AiModel::class);
         if ($request->query('type') === 'tool') $query->where('benchmarkable_type',Tool::class);
+        if ($request->filled('benchmark_class')) $query->whereHas('benchmark', fn ($q) => $q->where('benchmark_class',$request->query('benchmark_class')));
         $results = $query->paginate(25)->withQueryString();
         $benchmarks = Benchmark::orderBy('name')->get();
-        return view('benchmarks.results', compact('results','benchmarks'));
+        $benchmarkClasses = collect(Benchmark::CLASSES)->mapWithKeys(fn ($class) => [$class => Benchmark::classLabel($class)])->all();
+        return view('benchmarks.results', compact('results','benchmarks','benchmarkClasses'));
     }
 
     public function destroyResult(int $resultId, BenchmarkScoringService $scoring)
@@ -110,27 +132,11 @@ class BenchmarkController extends Controller
             : AiModel::with('company')->whereNotNull('benchmarks')->get();
     }
 
-    private function weightedComposite($item): float
-    {
-        $latest = BenchmarkResult::with('benchmark')
-            ->where('benchmarkable_type',$item::class)->where('benchmarkable_id',$item->id)
-            ->orderByDesc('tested_at')->orderByDesc('id')->get()->unique('benchmark_id');
-        if ($latest->isEmpty()) return 0;
-        $weighted = 0; $weights = 0;
-        foreach ($latest as $result) {
-            $weight = max((float) ($result->benchmark->weight ?? 1), 0.01);
-            $max = max((float) ($result->benchmark->max_score ?? 100), 0.01);
-            $normalized = min(100, max(0, ((float) $result->score / $max) * 100));
-            $weighted += $normalized * $weight; $weights += $weight;
-        }
-        return round($weighted / $weights, 1);
-    }
-
     private function ensureDefaults(): void
     {
         foreach ($this->defaults as $row) {
             Benchmark::firstOrCreate(['name'=>$row['name']], [
-                'slug'=>Str::slug($row['name']),'category'=>$row['category'],'weight'=>$row['weight'],
+                'slug'=>Str::slug($row['name']),'category'=>$row['category'],'benchmark_class'=>$row['benchmark_class'] ?? Benchmark::CLASS_TECHNICAL,'weight'=>$row['weight'],
                 'max_score'=>100,'higher_is_better'=>true,'is_active'=>true,
             ]);
         }

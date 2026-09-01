@@ -19,7 +19,10 @@ class PricingPlan extends Model
 
     public function getFreshnessAttribute(): string
     {
-        $verified = $this->last_verified_at ?: $this->sources()->max('last_checked_at');
+        $sourceCheckedAt = $this->relationLoaded('sources')
+            ? $this->sources->pluck('last_checked_at')->filter()->sortDesc()->first()
+            : $this->sources()->max('last_checked_at');
+        $verified = $this->last_verified_at ?: $sourceCheckedAt;
         if (! $verified) return 'unverified';
         $date = $verified instanceof \Carbon\CarbonInterface ? $verified : \Carbon\Carbon::parse($verified);
         if ($date->gte(now()->subDays(14))) return 'fresh';
