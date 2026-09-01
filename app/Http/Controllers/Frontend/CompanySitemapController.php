@@ -12,10 +12,23 @@ class CompanySitemapController extends Controller
     {
         $companies = Company::query()
             ->whereIn('status', ['active', 'acquired'])
+            // Keep empty/thin placeholder profiles out of the sitemap until they
+            // have either public coverage or enough first-party profile data.
+            ->where(function ($query) {
+                $query->whereHas('tools', fn ($q) => $q->where('status', 'published'))
+                    ->orWhereHas('models', fn ($q) => $q->whereIn('status', ['active', 'preview']))
+                    ->orWhereHas('newsItems', fn ($q) => $q->where('status', 'published')->whereNull('duplicate_of_id'))
+                    ->orWhereHas('articles', fn ($q) => $q->where('status', 'published')->where('approval_status', 'approved'))
+                    ->orWhere(function ($profile) {
+                        $profile->whereNotNull('website')
+                            ->whereNotNull('description')
+                            ->whereRaw('CHAR_LENGTH(TRIM(description)) >= 160');
+                    });
+            })
             ->withMax(['tools as tools_updated_at' => fn ($q) => $q->where('status', 'published')], 'updated_at')
             ->withMax(['models as models_updated_at' => fn ($q) => $q->whereIn('status', ['active', 'preview'])], 'updated_at')
             ->withMax(['newsItems as news_updated_at' => fn ($q) => $q->where('status', 'published')->whereNull('duplicate_of_id')], 'updated_at')
-            ->withMax(['articles as articles_updated_at' => fn ($q) => $q->where('status', 'published')], 'updated_at')
+            ->withMax(['articles as articles_updated_at' => fn ($q) => $q->where('status', 'published')->where('approval_status', 'approved')], 'updated_at')
             ->orderBy('id')
             ->get()
             ->map(function ($company) {

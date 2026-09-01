@@ -280,18 +280,31 @@ class EntitySeoService
 
     public function model(AiModel $model): array
     {
+        $model->loadMissing(['company', 'featureTerms']);
+
         $company = $model->company?->name ?? 'its provider';
-        $caps = collect($model->capabilities ?? [])->filter()->take(5)->values();
+        $legacyCaps = collect($model->capabilities ?? [])->filter()->values();
+        $taxonomyCaps = $model->featureTerms->pluck('name')->filter()->values();
+        $caps = ($taxonomyCaps->isNotEmpty() ? $taxonomyCaps : $legacyCaps)->unique()->take(5)->values();
+
         $title = $model->name.' AI Model: Specs, Pricing, Benchmarks & Capabilities';
         $parts = ['Explore '.$model->name.' by '.$company];
+        if ($model->version) $parts[] = 'version '.$model->version;
         if ($model->context_window) $parts[] = 'context window '.$model->context_window;
         if ($caps->isNotEmpty()) $parts[] = 'capabilities including '.$caps->take(3)->join(', ');
-        $parts[] = 'API pricing, benchmark results, related models and provider information';
+        if ($model->benchmark_score !== null) $parts[] = 'benchmark profile and verified performance data';
+        if ($model->input_price_per_million !== null || $model->output_price_per_million !== null) $parts[] = 'API token pricing';
+        $parts[] = 'related models and provider information';
         $description = $this->normalizeText(Str::limit(implode('. ', $parts).'.', 158, ''));
         $title = $this->normalizeText($title);
 
+        $overviewAnswer = $this->normalizeText($model->overview ?: $model->capability_notes);
+        if ($overviewAnswer === '') {
+            $overviewAnswer = $model->name.' is an AI model from '.$company.'.';
+        }
+
         $faq = [
-            ['q' => 'What is '.$model->name.'?', 'a' => Str::limit($this->normalizeText($model->capability_notes ?: $model->name.' is an AI model from '.$company.'.'), 360)],
+            ['q' => 'What is '.$model->name.'?', 'a' => Str::limit($overviewAnswer, 360)],
             ['q' => 'Who created '.$model->name.'?', 'a' => $model->company ? $model->name.' is provided by '.$model->company->name.'.' : 'The provider is not currently listed in AI Orbit.'],
             ['q' => 'What can '.$model->name.' do?', 'a' => $caps->isNotEmpty() ? 'Its listed capabilities include '.$caps->join(', ').'.' : 'Capability details are shown on this model profile when verified data is available.'],
             ['q' => 'What is the context window of '.$model->name.'?', 'a' => $model->context_window ? 'AI Orbit currently lists the context window as '.$model->context_window.'.' : 'A verified context-window value is not currently listed.'],

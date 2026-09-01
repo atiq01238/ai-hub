@@ -89,7 +89,7 @@
     <div class="company-layout"><div class="company-overlay" data-company-overlay></div>
         <aside class="company-filters" data-company-filters><div class="company-filter-mobile"><strong>Filter companies</strong><button type="button" data-company-filter-close><i data-lucide="x"></i></button></div><form method="GET" action="{{ route('companies.index') }}">@if(request('q'))<input type="hidden" name="q" value="{{ request('q') }}">@endif
             <div class="company-filter-head"><strong><i data-lucide="sliders-horizontal"></i> Filters</strong><a href="{{ route('companies.index') }}">Reset</a></div>
-            <div class="company-filter-group"><h3>Status</h3>@foreach(['active'=>'Active','acquired'=>'Acquired','inactive'=>'Inactive'] as $v=>$l)<label><span><input type="radio" name="status" value="{{ $v }}" @checked(request('status')===$v)>{{ $l }}</span></label>@endforeach</div>
+            <div class="company-filter-group"><h3>Status</h3>@foreach(['active'=>'Active','acquired'=>'Acquired'] as $v=>$l)<label><span><input type="radio" name="status" value="{{ $v }}" @checked(request('status')===$v)>{{ $l }}</span></label>@endforeach</div>
             <div class="company-filter-group"><h3>Founded</h3>@foreach(['before2000'=>'Before 2000','2000s'=>'2000–2009','2010s'=>'2010–2019','2020s'=>'2020–2029'] as $v=>$l)<label><span><input type="radio" name="era" value="{{ $v }}" @checked(request('era')===$v)>{{ $l }}</span></label>@endforeach</div>
             <button class="company-apply">Apply filters</button>
         </form></aside>

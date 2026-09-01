@@ -18,12 +18,16 @@ class CompanyController extends Controller
     {
         $filters = $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
-            'status' => ['nullable', 'in:active,acquired,inactive'],
+            'status' => ['nullable', 'in:active,acquired'],
             'era' => ['nullable', 'in:before2000,2000s,2010s,2020s'],
             'sort' => ['nullable', 'in:featured,tools,models,newest,name'],
         ]);
 
         $query = Company::query()
+            // Only expose company profiles that are public on the detail route.
+            // Previously the default directory also listed `inactive` companies,
+            // but their detail route returned 404, creating internal crawl dead ends.
+            ->whereIn('status', ['active', 'acquired'])
             ->withCount([
                 'tools as published_tools_count' => fn ($q) => $q->where('status', 'published'),
                 'models as active_models_count' => fn ($q) => $q->whereIn('status', ['active', 'preview']),

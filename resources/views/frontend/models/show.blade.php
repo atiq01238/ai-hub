@@ -1,6 +1,8 @@
 @extends('frontend.layouts.app')
 @section('title', html_entity_decode($seo['title'], ENT_QUOTES | ENT_HTML5, 'UTF-8') . ' | AI Orbit')
 @section('meta_description', html_entity_decode($seo['description'], ENT_QUOTES | ENT_HTML5, 'UTF-8'))
+@section('canonical', route('models.show', $model))
+@section('robots', 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1')
 @section('og_type', 'article')
 @section('og_image', $model->logo_url)
 @push('head')
