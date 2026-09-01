@@ -11,6 +11,7 @@ use App\Services\Frontend\QuickFeedbackService;
 use App\Services\ComparisonIntelligenceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class ComparisonController extends Controller
@@ -51,12 +52,20 @@ class ComparisonController extends Controller
         $comparisons = $query->paginate(9)->withQueryString();
         $comparisons->getCollection()->each(function (Comparison $comparison) {
             try {
-                $comparison->setRelation('resolved_items', $comparison->items());
+                $comparison->setRelation('resolved_items', $comparison->publicItems());
             } catch (\Throwable $e) {
                 report($e);
                 $comparison->setRelation('resolved_items', collect());
             }
         });
+
+        // Do not expose internal links to saved comparisons that cannot resolve
+        // at least two current catalog entities; their detail route is a 404.
+        $comparisons->setCollection(
+            $comparisons->getCollection()
+                ->filter(fn (Comparison $comparison) => $comparison->getRelation('resolved_items')->count() >= 2)
+                ->values()
+        );
 
         $featured = Comparison::query()
             ->where('status', 'published')
@@ -65,12 +74,16 @@ class ComparisonController extends Controller
             ->get();
         $featured->each(function (Comparison $comparison) {
             try {
-                $comparison->setRelation('resolved_items', $comparison->items());
+                $comparison->setRelation('resolved_items', $comparison->publicItems());
             } catch (\Throwable $e) {
                 report($e);
                 $comparison->setRelation('resolved_items', collect());
             }
         });
+
+        $featured = $featured
+            ->filter(fn (Comparison $comparison) => $comparison->getRelation('resolved_items')->count() >= 2)
+            ->values();
 
         $stats = [
             'published' => Comparison::where('status', 'published')->count(),
@@ -160,11 +173,16 @@ class ComparisonController extends Controller
     {
         abort_unless($comparison->status === 'published', 404);
 
-        $comparison->increment('views');
-        $comparison->refresh();
+        // Views are analytics, not editorial content. Updating the model with
+        // Eloquent's increment() can advance updated_at, which would make sitemap
+        // lastmod look fresh on every visit. Increment directly instead.
+        DB::table($comparison->getTable())
+            ->where($comparison->getKeyName(), $comparison->getKey())
+            ->increment('views');
+        $comparison->views = (int) $comparison->views + 1;
 
         try {
-            $items = $comparison->items();
+            $items = $comparison->publicItems();
         } catch (\Throwable $e) {
             report($e);
             $items = collect();
@@ -206,12 +224,16 @@ class ComparisonController extends Controller
 
         $relatedComparisons->each(function (Comparison $item) {
             try {
-                $item->setRelation('resolved_items', $item->items());
+                $item->setRelation('resolved_items', $item->publicItems());
             } catch (\Throwable $e) {
                 report($e);
                 $item->setRelation('resolved_items', collect());
             }
         });
+
+        $relatedComparisons = $relatedComparisons
+            ->filter(fn (Comparison $item) => $item->getRelation('resolved_items')->count() >= 2)
+            ->values();
 
         return view('frontend.comparisons.show', compact(
             'comparison', 'comparisonType', 'items', 'winner', 'title',

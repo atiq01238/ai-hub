@@ -83,6 +83,23 @@ class Comparison extends Model
     }
 
     /**
+     * Resolve only catalog entities that are eligible for public detail pages.
+     * Admin screens can keep using items() when they need to inspect draft data.
+     */
+    public function publicItems(): Collection
+    {
+        return $this->items()
+            ->filter(function ($item) {
+                if ($this->comparable_type === 'tool') {
+                    return $item instanceof Tool && $item->status === 'published';
+                }
+
+                return $item instanceof AiModel && in_array($item->status, ['active', 'preview'], true);
+            })
+            ->values();
+    }
+
+    /**
      * Preserve saved comparison URLs after title/order cleanup.
      * Exact stored slugs win. Fallback aliases are derived only from the saved
      * title or the currently resolved pair, so unrelated comparisons cannot bind.

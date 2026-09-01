@@ -2,6 +2,8 @@
 
 @section('title', html_entity_decode($seo['title'], ENT_QUOTES | ENT_HTML5, 'UTF-8') . ' | AI Orbit')
 @section('meta_description', html_entity_decode($seo['description'], ENT_QUOTES | ENT_HTML5, 'UTF-8'))
+@section('canonical', route('tools.show', $tool))
+@section('robots', 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1')
 @push('head')
 @foreach($seoSchemas as $schema)
     @php

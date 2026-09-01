@@ -36,24 +36,62 @@ class SeoSitemapController extends Controller
         ]);
 
         $body = view('frontend.sitemaps.index', compact('sitemaps'))->render();
-        return response($body, 200)->header('Content-Type', 'application/xml; charset=UTF-8');
+        return $this->xmlResponse($body);
     }
 
     public function tools(): Response
     {
-        $items = Tool::query()->where('status','published')->select(['slug','updated_at'])->orderBy('id')->get();
-        return $this->xml($items, fn($item)=>route('tools.show',$item));
+        $items = Tool::query()
+            ->where('status', 'published')
+            ->select(['id', 'slug', 'updated_at'])
+            ->withMax('pricingPlans', 'updated_at')
+            ->withMax(['reviews as public_reviews_updated_at' => fn ($query) => $query->where('status', 'published')], 'updated_at')
+            ->withMax(['benchmarkResults as verified_benchmarks_updated_at' => fn ($query) => $query->where('verified', true)->where('status', 'verified')], 'updated_at')
+            ->orderBy('id')
+            ->get()
+            ->each(function (Tool $tool) {
+                $tool->updated_at = $this->latestTimestamp([
+                    $tool->updated_at,
+                    $tool->pricing_plans_max_updated_at,
+                    $tool->public_reviews_updated_at,
+                    $tool->verified_benchmarks_updated_at,
+                ]);
+            });
+
+        return $this->xml($items, fn ($item) => route('tools.show', $item));
     }
 
     public function models(): Response
     {
-        $items = AiModel::query()->whereIn('status',['active','preview'])->select(['slug','updated_at'])->orderBy('id')->get();
-        return $this->xml($items, fn($item)=>route('models.show',$item));
+        $items = AiModel::query()
+            ->whereIn('status', ['active', 'preview'])
+            ->select(['id', 'slug', 'updated_at'])
+            ->withMax(['reviews as public_reviews_updated_at' => fn ($query) => $query->where('status', 'published')], 'updated_at')
+            ->withMax(['benchmarkResults as verified_benchmarks_updated_at' => fn ($query) => $query->where('verified', true)->where('status', 'verified')], 'updated_at')
+            ->orderBy('id')
+            ->get()
+            ->each(function (AiModel $model) {
+                $model->updated_at = $this->latestTimestamp([
+                    $model->updated_at,
+                    $model->public_reviews_updated_at,
+                    $model->verified_benchmarks_updated_at,
+                ]);
+            });
+
+        return $this->xml($items, fn ($item) => route('models.show', $item));
     }
 
     public function news(): Response
     {
-        $items=NewsItem::query()->where('status','published')->whereNull('duplicate_of_id')->select(['slug','updated_at'])->orderByDesc('published_at')->get();
+        $items = NewsItem::query()
+            ->where('status', 'published')
+            ->whereNull('duplicate_of_id')
+            ->where(function ($query) {
+                $query->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate');
+            })
+            ->select(['slug', 'updated_at'])
+            ->orderByDesc('published_at')
+            ->get();
         return $this->xml($items, fn($item)=>route('news.show',$item));
     }
 
@@ -68,6 +106,14 @@ class SeoSitemapController extends Controller
     {
         $items = Review::query()
             ->published()
+            ->where(function ($query) {
+                $query->where('review_type', 'editorial')
+                    ->orWhere(function ($community) {
+                        $community->where('review_type', 'user')
+                            ->whereNotNull('body')
+                            ->whereRaw("TRIM(body) <> ''");
+                    });
+            })
             ->where(function ($query) {
                 $query->whereHas('tool', fn ($tool) => $tool->where('status', 'published'))
                     ->orWhereHas('model', fn ($model) => $model->whereIn('status', ['active', 'preview']));
@@ -89,14 +135,10 @@ class SeoSitemapController extends Controller
             ->orderBy('id')
             ->get()
             ->each(function (Tool $tool) {
-                if (! $tool->pricing_plans_max_updated_at) {
-                    return;
-                }
-
-                $pricingUpdatedAt = Carbon::parse($tool->pricing_plans_max_updated_at);
-                if (! $tool->updated_at || $pricingUpdatedAt->gt($tool->updated_at)) {
-                    $tool->updated_at = $pricingUpdatedAt;
-                }
+                $tool->updated_at = $this->latestTimestamp([
+                    $tool->updated_at,
+                    $tool->pricing_plans_max_updated_at,
+                ]);
             });
 
         return $this->xml($items, fn ($item) => route('pricing.show', $item));
@@ -107,9 +149,24 @@ class SeoSitemapController extends Controller
         $items = Comparison::query()
             ->where('status', 'published')
             ->whereNotNull('slug')
-            ->select(['slug', 'updated_at'])
+            ->select(['id', 'title', 'slug', 'comparable_type', 'item_ids', 'updated_at', 'last_verified_at'])
             ->orderByDesc('updated_at')
-            ->get();
+            ->get()
+            ->each(function (Comparison $comparison) {
+                $comparison->updated_at = $this->latestTimestamp([
+                    $comparison->updated_at,
+                    $comparison->last_verified_at,
+                ]);
+            })
+            ->filter(function (Comparison $comparison) {
+                try {
+                    return $comparison->publicItems()->count() >= 2;
+                } catch (\Throwable $e) {
+                    report($e);
+                    return false;
+                }
+            })
+            ->values();
 
         return $this->xml($items, fn ($item) => route('comparisons.show', $item));
     }
@@ -118,10 +175,17 @@ class SeoSitemapController extends Controller
     {
         $items = Benchmark::query()
             ->where('is_active', true)
-            ->whereHas('results')
-            ->select(['slug', 'updated_at'])
+            ->whereHas('results', fn ($query) => $query->where('verified', true)->where('status', 'verified'))
+            ->select(['id', 'slug', 'updated_at'])
+            ->withMax(['results as verified_results_updated_at' => fn ($query) => $query->where('verified', true)->where('status', 'verified')], 'updated_at')
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->each(function (Benchmark $benchmark) {
+                $benchmark->updated_at = $this->latestTimestamp([
+                    $benchmark->updated_at,
+                    $benchmark->verified_results_updated_at,
+                ]);
+            });
 
         return $this->xml($items, fn ($item) => route('benchmarks.show', $item));
     }
@@ -142,7 +206,7 @@ class SeoSitemapController extends Controller
         ]);
 
         $body = view('frontend.sitemaps.urls', compact('items'))->render();
-        return response($body, 200)->header('Content-Type', 'application/xml; charset=UTF-8');
+        return $this->xmlResponse($body);
     }
 
     public function testLab(): Response
@@ -192,12 +256,31 @@ class SeoSitemapController extends Controller
             ]));
 
         $body = view('frontend.sitemaps.urls', compact('items'))->render();
-        return response($body, 200)->header('Content-Type', 'application/xml; charset=UTF-8');
+        return $this->xmlResponse($body);
     }
 
     private function xml($items, callable $url): Response
     {
-        $body = view('frontend.sitemaps.entities', compact('items','url'))->render();
-        return response($body, 200)->header('Content-Type','application/xml; charset=UTF-8');
+        $body = view('frontend.sitemaps.entities', compact('items', 'url'))->render();
+
+        return $this->xmlResponse($body);
+    }
+
+    private function latestTimestamp(array $values): ?Carbon
+    {
+        return collect($values)
+            ->filter()
+            ->map(fn ($value) => $value instanceof Carbon ? $value : Carbon::parse($value))
+            ->sortDesc()
+            ->first();
+    }
+
+    private function xmlResponse(string $body): Response
+    {
+        return response($body, 200)
+            ->header('Content-Type', 'application/xml; charset=UTF-8')
+            // Short public caching lowers repeat sitemap rendering/database load
+            // without allowing the file to become stale for long.
+            ->header('Cache-Control', 'public, max-age=900, s-maxage=900');
     }
 }

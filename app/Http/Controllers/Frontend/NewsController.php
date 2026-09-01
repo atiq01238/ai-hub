@@ -148,12 +148,14 @@ class NewsController extends Controller
         abort_if($news->duplicate_of_id || $news->duplicate_status === 'duplicate', 404);
 
         $news->load(['company', 'newsSource', 'relatedToolTerms.company', 'relatedModelTerms.company']);
-        app(\App\Services\NewsIntelligenceService::class)->refresh($news);
 
         $relatedNews = NewsItem::query()
             ->with(['company', 'newsSource'])
             ->where('status', 'published')
             ->whereNull('duplicate_of_id')
+            ->where(function (Builder $query) {
+                $query->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate');
+            })
             ->whereKeyNot($news->id)
             ->where(function (Builder $query) use ($news) {
                 if ($news->company_id) {
@@ -169,7 +171,12 @@ class NewsController extends Controller
 
         if ($relatedNews->count() < 4) {
             $extra = NewsItem::query()->with('company')
-                ->where('status', 'published')->whereNull('duplicate_of_id')->whereKeyNot($news->id)
+                ->where('status', 'published')
+                ->whereNull('duplicate_of_id')
+                ->where(function (Builder $query) {
+                    $query->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate');
+                })
+                ->whereKeyNot($news->id)
                 ->whereNotIn('id', $relatedNews->pluck('id'))
                 ->orderByDesc('published_at')->take(4 - $relatedNews->count())->get();
             $relatedNews = $relatedNews->concat($extra);
@@ -185,11 +192,21 @@ class NewsController extends Controller
                 ->orderByDesc('benchmark_score')->take(3)->get();
         }
 
-        $previous = NewsItem::query()->where('status', 'published')->whereNull('duplicate_of_id')
+        $previous = NewsItem::query()
+            ->where('status', 'published')
+            ->whereNull('duplicate_of_id')
+            ->where(function (Builder $query) {
+                $query->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate');
+            })
             ->where('published_at', '<', $news->published_at ?? $news->created_at)
             ->orderByDesc('published_at')->first(['id', 'headline', 'slug', 'published_at']);
 
-        $next = NewsItem::query()->where('status', 'published')->whereNull('duplicate_of_id')
+        $next = NewsItem::query()
+            ->where('status', 'published')
+            ->whereNull('duplicate_of_id')
+            ->where(function (Builder $query) {
+                $query->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate');
+            })
             ->where('published_at', '>', $news->published_at ?? $news->created_at)
             ->orderBy('published_at')->first(['id', 'headline', 'slug', 'published_at']);
 

@@ -31,7 +31,7 @@ class CompanyController extends Controller
             ->withCount([
                 'tools as published_tools_count' => fn ($q) => $q->where('status', 'published'),
                 'models as active_models_count' => fn ($q) => $q->whereIn('status', ['active', 'preview']),
-                'newsItems as published_news_count' => fn ($q) => $q->where('status', 'published')->whereNull('duplicate_of_id'),
+                'newsItems as published_news_count' => fn ($q) => $q->where('status', 'published')->whereNull('duplicate_of_id')->where(fn ($news) => $news->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate')),
             ]);
 
         if ($q = trim($filters['q'] ?? '')) {
@@ -68,7 +68,7 @@ class CompanyController extends Controller
             'companies' => Company::where('status', 'active')->count(),
             'tools' => Tool::where('status', 'published')->count(),
             'models' => AiModel::whereIn('status', ['active', 'preview'])->count(),
-            'news' => NewsItem::where('status', 'published')->whereNull('duplicate_of_id')->count(),
+            'news' => NewsItem::where('status', 'published')->whereNull('duplicate_of_id')->where(fn ($news) => $news->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate'))->count(),
         ];
 
         $leaders = Company::query()
@@ -92,7 +92,7 @@ class CompanyController extends Controller
         $company->loadCount([
             'tools as published_tools_count' => fn ($q) => $q->where('status', 'published'),
             'models as active_models_count' => fn ($q) => $q->whereIn('status', ['active', 'preview']),
-            'newsItems as published_news_count' => fn ($q) => $q->where('status', 'published')->whereNull('duplicate_of_id'),
+            'newsItems as published_news_count' => fn ($q) => $q->where('status', 'published')->whereNull('duplicate_of_id')->where(fn ($news) => $news->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate')),
         ]);
 
         $tools = $company->tools()->with('category')->where('status', 'published')
@@ -101,7 +101,10 @@ class CompanyController extends Controller
         $models = $company->models()->with('tool')->whereIn('status', ['active', 'preview'])
             ->orderByDesc('benchmark_score')->orderByDesc('release_date')->take(6)->get();
 
-        $news = $company->newsItems()->where('status', 'published')->whereNull('duplicate_of_id')
+        $news = $company->newsItems()
+            ->where('status', 'published')
+            ->whereNull('duplicate_of_id')
+            ->where(fn ($query) => $query->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate'))
             ->latest('published_at')->take(6)->get();
 
         $articles = $company->articles()

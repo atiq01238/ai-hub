@@ -13,6 +13,7 @@
 ))
 
 @section('canonical', route('articles.show', $article))
+@section('robots', 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1')
 @section('og_type', 'article')
 @section('og_image', $article->featured_image_url ?: asset(config('brand.assets.og_default')))
 
