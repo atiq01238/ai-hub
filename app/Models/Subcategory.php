@@ -34,4 +34,17 @@ class Subcategory extends Model
     {
         return $query->where('is_active', true);
     }
+
+    public function scopeSeoIndexable($query)
+    {
+        return $query
+            ->active()
+            ->where('is_indexable', true)
+            ->whereHas('category', fn ($q) => $q
+                ->product()
+                ->active()
+                ->where('is_indexable', true))
+            ->whereHas('tools', fn ($q) => $q->where('status', 'published'));
+    }
 }
+

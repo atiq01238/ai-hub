@@ -141,11 +141,9 @@
 
 @section(
     'robots',
-    $termHasExtraQuery
+    ($termHasExtraQuery || !$seoEligible)
         ? 'noindex,follow'
-        : (($tools->total() + $models->count()) > 0
-            ? 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'
-            : 'noindex,follow')
+        : 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'
 )
 
 @push('head')

@@ -63,23 +63,11 @@ class AuditSeoIndexing extends Command
             ->where('is_active', true)
             ->whereHas('results', fn ($query) => $query->where('verified', true)->where('status', 'verified'));
 
-        $taxonomyCount = Category::product()->active()->where('is_indexable', true)
-                ->whereHas('tools', fn ($q) => $q->where('status', 'published'))->count()
-            + Subcategory::active()->where('is_indexable', true)
-                ->whereHas('category', fn ($q) => $q->product()->active())
-                ->whereHas('tools', fn ($q) => $q->where('status', 'published'))->count()
-            + Feature::active()->where('is_indexable', true)
-                ->where(function ($q) {
-                    $q->whereHas('tools', fn ($tools) => $tools->where('status', 'published'))
-                        ->orWhereHas('models', fn ($models) => $models->whereIn('status', ['active', 'preview']));
-                })->count()
-            + UseCase::active()->where('is_indexable', true)
-                ->where(function ($q) {
-                    $q->whereHas('tools', fn ($tools) => $tools->where('status', 'published'))
-                        ->orWhereHas('models', fn ($models) => $models->whereIn('status', ['active', 'preview']));
-                })->count()
-            + Category::content()->active()->where('is_indexable', true)
-                ->whereHas('articles', fn ($q) => $q->where('status', 'published')->where('approval_status', 'approved'))->count();
+        $taxonomyCount = Category::query()->seoProductIndexable()->count()
+            + Subcategory::query()->seoIndexable()->count()
+            + Feature::query()->seoIndexable()->count()
+            + UseCase::query()->seoIndexable()->count()
+            + Category::query()->seoContentIndexable()->count();
 
         $rows = [
             ['Companies', (clone $companyQuery)->count()],
@@ -117,12 +105,44 @@ class AuditSeoIndexing extends Command
                 $query->whereNull('body')->orWhereRaw("TRIM(body) = ''");
             })->count();
 
+        $emptyProductCategories = Category::query()
+            ->product()->active()->where('is_indexable', true)
+            ->whereDoesntHave('tools', fn ($q) => $q->where('status', 'published'))
+            ->count();
+
+        $emptySubcategories = Subcategory::query()
+            ->active()->where('is_indexable', true)
+            ->whereDoesntHave('tools', fn ($q) => $q->where('status', 'published'))
+            ->count();
+
+        $emptyFeaturesAndUseCases = Feature::query()
+            ->active()->where('is_indexable', true)
+            ->whereDoesntHave('tools', fn ($q) => $q->where('status', 'published'))
+            ->whereDoesntHave('models', fn ($q) => $q->whereIn('status', ['active', 'preview']))
+            ->count()
+            + UseCase::query()
+                ->active()->where('is_indexable', true)
+                ->whereDoesntHave('tools', fn ($q) => $q->where('status', 'published'))
+                ->whereDoesntHave('models', fn ($q) => $q->whereIn('status', ['active', 'preview']))
+                ->count();
+
+        $emptyContentTopics = Category::query()
+            ->content()->active()->where('is_indexable', true)
+            ->whereDoesntHave('articles', fn ($q) => $q
+                ->where('status', 'published')
+                ->where('approval_status', 'approved'))
+            ->count();
+
         $warnings = collect([
             ['Company profiles withheld as thin/placeholder', $thinCompanies],
             ['Published comparisons resolving fewer than 2 items', $invalidComparisons],
             ['Active benchmarks without verified public results', $unverifiedBenchmarks],
             ['Published duplicate news excluded from crawl paths', $duplicateNews],
             ['Published blank community reviews excluded', $blankCommunityReviews],
+            ['Empty product categories excluded by taxonomy quality gate', $emptyProductCategories],
+            ['Empty subcategories excluded by taxonomy quality gate', $emptySubcategories],
+            ['Empty features/use cases excluded by taxonomy quality gate', $emptyFeaturesAndUseCases],
+            ['Empty editorial topics excluded by taxonomy quality gate', $emptyContentTopics],
         ])->filter(fn ($row) => $row[1] > 0)->values();
 
         if ($warnings->isEmpty()) {

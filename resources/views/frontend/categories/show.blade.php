@@ -101,11 +101,9 @@
 
 @section(
     'robots',
-    (!$category->is_indexable || $categoryHasFilters)
+    (!$seoEligible || $categoryHasFilters)
         ? 'noindex,follow'
-        : (($stats['tools'] + $stats['models'] + $stats['articles'] + $stats['news']) > 0
-            ? 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'
-            : 'noindex,follow')
+        : 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'
 )
 
 @push('head')

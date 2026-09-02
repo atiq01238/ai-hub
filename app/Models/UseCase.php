@@ -36,4 +36,16 @@ class UseCase extends Model
     {
         return $query->where('is_active', true);
     }
+
+    public function scopeSeoIndexable($query)
+    {
+        return $query
+            ->active()
+            ->where('is_indexable', true)
+            ->where(function ($q) {
+                $q->whereHas('tools', fn ($tools) => $tools->where('status', 'published'))
+                    ->orWhereHas('models', fn ($models) => $models->whereIn('status', ['active', 'preview']));
+            });
+    }
 }
+

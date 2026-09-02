@@ -49,4 +49,25 @@ class Category extends Model
     {
         return $query->where('is_active', true);
     }
+
+    public function scopeSeoProductIndexable($query)
+    {
+        return $query
+            ->product()
+            ->active()
+            ->where('is_indexable', true)
+            ->whereHas('tools', fn ($q) => $q->where('status', 'published'));
+    }
+
+    public function scopeSeoContentIndexable($query)
+    {
+        return $query
+            ->content()
+            ->active()
+            ->where('is_indexable', true)
+            ->whereHas('articles', fn ($q) => $q
+                ->where('status', 'published')
+                ->where('approval_status', 'approved'));
+    }
 }
+

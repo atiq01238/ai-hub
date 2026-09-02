@@ -21,11 +21,11 @@ class AuditSeoCrawlPriority extends Command
 {
     protected $signature = 'seo:audit-crawl-priority {--details : Show sample records for remaining crawl/indexing gaps}';
 
-    protected $description = 'Audit canonical discovery paths, homepage authority and crawl-priority risks for AI Orbit.';
+    protected $description = 'Audit canonical discovery, homepage authority, taxonomy quality gates and crawl-priority risks for AI Orbit.';
 
     public function handle(): int
     {
-        $this->info('AI Orbit Phase 4 SEO crawl-priority audit');
+        $this->info('AI Orbit Phase 5 SEO crawl-priority & taxonomy-quality audit');
 
         $toolQuery = Tool::query()->where('status', 'published');
         $modelQuery = AiModel::query()->whereIn('status', ['active', 'preview']);
@@ -35,23 +35,9 @@ class AuditSeoCrawlPriority extends Command
         $modelCount = (clone $modelQuery)->count();
         $companyCount = (clone $companyQuery)->count();
 
-        $categoryHubQuery = Category::query()
-            ->product()->active()->where('is_indexable', true)
-            ->whereHas('tools', fn ($q) => $q->where('status', 'published'));
-
-        $featureHubQuery = Feature::query()
-            ->active()->where('is_indexable', true)
-            ->where(function ($q) {
-                $q->whereHas('tools', fn ($tools) => $tools->where('status', 'published'))
-                    ->orWhereHas('models', fn ($models) => $models->whereIn('status', ['active', 'preview']));
-            });
-
-        $useCaseHubQuery = UseCase::query()
-            ->active()->where('is_indexable', true)
-            ->where(function ($q) {
-                $q->whereHas('tools', fn ($tools) => $tools->where('status', 'published'))
-                    ->orWhereHas('models', fn ($models) => $models->whereIn('status', ['active', 'preview']));
-            });
+        $categoryHubQuery = Category::query()->seoProductIndexable();
+        $featureHubQuery = Feature::query()->seoIndexable();
+        $useCaseHubQuery = UseCase::query()->seoIndexable();
 
         $this->table(
             ['Canonical directory', 'Eligible URLs', '12/page directory depth'],
@@ -67,10 +53,7 @@ class AuditSeoCrawlPriority extends Command
 
         $toolsWithCanonicalCategory = Tool::query()
             ->where('status', 'published')
-            ->whereHas('category', fn ($q) => $q
-                ->where('type', 'product')
-                ->where('is_active', true)
-                ->where('is_indexable', true))
+            ->whereHas('category', fn ($q) => $q->seoProductIndexable())
             ->count();
 
         $toolsWithIndexableCompany = Tool::query()
@@ -86,8 +69,8 @@ class AuditSeoCrawlPriority extends Command
         $modelsWithCanonicalTaxonomy = AiModel::query()
             ->whereIn('status', ['active', 'preview'])
             ->where(function ($query) {
-                $query->whereHas('featureTerms', fn ($q) => $q->where('is_active', true)->where('is_indexable', true))
-                    ->orWhereHas('useCaseTerms', fn ($q) => $q->where('is_active', true)->where('is_indexable', true));
+                $query->whereHas('featureTerms', fn ($q) => $q->seoIndexable())
+                    ->orWhereHas('useCaseTerms', fn ($q) => $q->seoIndexable());
             })
             ->count();
 
@@ -133,9 +116,9 @@ class AuditSeoCrawlPriority extends Command
             ['Published tools without indexable company profile', max(0, $toolCount - $toolsWithIndexableCompany)],
             ['Public models without indexable company profile', max(0, $modelCount - $modelsWithIndexableCompany)],
             ['Public models without indexable taxonomy hub', max(0, $modelCount - $modelsWithCanonicalTaxonomy)],
-            ['Indexable product categories with zero published tools', Category::query()->product()->active()->where('is_indexable', true)->whereDoesntHave('tools', fn ($q) => $q->where('status', 'published'))->count()],
-            ['Indexable subcategories with zero published tools', Subcategory::query()->active()->where('is_indexable', true)->whereDoesntHave('tools', fn ($q) => $q->where('status', 'published'))->count()],
-            ['Indexable features/use cases with zero public entities', $this->emptyTaxonomyCount()],
+            ['Product-category records withheld by empty-content quality gate', Category::query()->product()->active()->where('is_indexable', true)->whereDoesntHave('tools', fn ($q) => $q->where('status', 'published'))->count()],
+            ['Subcategory records withheld by empty-content quality gate', Subcategory::query()->active()->where('is_indexable', true)->whereDoesntHave('tools', fn ($q) => $q->where('status', 'published'))->count()],
+            ['Feature/use-case records withheld by empty-content quality gate', $this->emptyTaxonomyCount()],
             ['Published duplicate news excluded from discovery', NewsItem::query()->where('status', 'published')->where(fn ($q) => $q->whereNotNull('duplicate_of_id')->orWhere('duplicate_status', 'duplicate'))->count()],
             ['Published articles not approved for public discovery', Article::query()->where('status', 'published')->where('approval_status', '!=', 'approved')->count()],
             ['Published blank community reviews excluded', Review::query()->published()->where('review_type', 'user')->where(fn ($q) => $q->whereNull('body')->orWhereRaw("TRIM(body) = ''"))->count()],
@@ -168,7 +151,7 @@ class AuditSeoCrawlPriority extends Command
         }
 
         $this->newLine();
-        $this->info('Phase 4 audit complete. This command is read-only and does not modify database records.');
+        $this->info('Phase 5 audit complete. Empty taxonomy records may stay in the database, but are withheld from canonical discovery until they have public content.');
 
         return self::SUCCESS;
     }
@@ -194,16 +177,19 @@ class AuditSeoCrawlPriority extends Command
             ->orderByDesc('tools_count')
             ->orderByDesc('models_count')
             ->take(8)
+            ->pluck('id')
+            ->unique()
             ->count();
 
         $categoryCount = Category::query()
-            ->product()->active()->where('is_indexable', true)
+            ->seoProductIndexable()
             ->withCount(['tools' => fn ($q) => $q->where('status', 'published')])
-            ->having('tools_count', '>', 0)
             ->orderByDesc('tools_count')
             ->orderBy('sort_order')
             ->orderBy('name')
             ->take(8)
+            ->pluck('id')
+            ->unique()
             ->count();
 
         $validComparisons = $this->validComparisons();
@@ -264,8 +250,8 @@ class AuditSeoCrawlPriority extends Command
 
         $modelGaps = AiModel::query()
             ->whereIn('status', ['active', 'preview'])
-            ->whereDoesntHave('featureTerms', fn ($q) => $q->where('is_active', true)->where('is_indexable', true))
-            ->whereDoesntHave('useCaseTerms', fn ($q) => $q->where('is_active', true)->where('is_indexable', true))
+            ->whereDoesntHave('featureTerms', fn ($q) => $q->seoIndexable())
+            ->whereDoesntHave('useCaseTerms', fn ($q) => $q->seoIndexable())
             ->orderBy('name')
             ->take(25)
             ->get(['id', 'name', 'slug']);
@@ -348,26 +334,31 @@ class AuditSeoCrawlPriority extends Command
     {
         $urls = collect();
 
-        Category::query()->product()->active()->where('is_indexable', true)
-            ->whereHas('tools', fn ($q) => $q->where('status', 'published'))
-            ->get()->each(fn (Category $category) => $urls->push(route('categories.show', $category)));
+        Category::query()
+            ->seoProductIndexable()
+            ->get()
+            ->each(fn (Category $category) => $urls->push(route('categories.show', $category)));
 
-        Subcategory::query()->active()->where('is_indexable', true)
-            ->whereHas('category', fn ($q) => $q->product()->active())
-            ->whereHas('tools', fn ($q) => $q->where('status', 'published'))
-            ->with('category')->get()->each(fn (Subcategory $subcategory) => $urls->push(route('categories.subcategories.show', [$subcategory->category, $subcategory])));
+        Subcategory::query()
+            ->seoIndexable()
+            ->with('category')
+            ->get()
+            ->each(fn (Subcategory $subcategory) => $urls->push(route('categories.subcategories.show', [$subcategory->category, $subcategory])));
 
-        Feature::query()->active()->where('is_indexable', true)
-            ->where(fn ($q) => $q->whereHas('tools', fn ($tools) => $tools->where('status', 'published'))->orWhereHas('models', fn ($models) => $models->whereIn('status', ['active', 'preview'])))
-            ->get()->each(fn (Feature $feature) => $urls->push(route('features.show', $feature)));
+        Feature::query()
+            ->seoIndexable()
+            ->get()
+            ->each(fn (Feature $feature) => $urls->push(route('features.show', $feature)));
 
-        UseCase::query()->active()->where('is_indexable', true)
-            ->where(fn ($q) => $q->whereHas('tools', fn ($tools) => $tools->where('status', 'published'))->orWhereHas('models', fn ($models) => $models->whereIn('status', ['active', 'preview'])))
-            ->get()->each(fn (UseCase $useCase) => $urls->push(route('use-cases.show', $useCase)));
+        UseCase::query()
+            ->seoIndexable()
+            ->get()
+            ->each(fn (UseCase $useCase) => $urls->push(route('use-cases.show', $useCase)));
 
-        Category::query()->content()->active()->where('is_indexable', true)
-            ->whereHas('articles', fn ($q) => $q->where('status', 'published')->where('approval_status', 'approved'))
-            ->get()->each(fn (Category $topic) => $urls->push(route('topics.show', $topic)));
+        Category::query()
+            ->seoContentIndexable()
+            ->get()
+            ->each(fn (Category $topic) => $urls->push(route('topics.show', $topic)));
 
         return $urls->unique()->values();
     }
@@ -389,10 +380,11 @@ class AuditSeoCrawlPriority extends Command
         $articleQuery = Article::query()->where('status', 'published')->where('approval_status', 'approved');
 
         $taxonomy = collect()
-            ->merge(Category::query()->active()->where('is_indexable', true)->get(['meta_title', 'meta_description']))
-            ->merge(Subcategory::query()->active()->where('is_indexable', true)->get(['meta_title', 'meta_description']))
-            ->merge(Feature::query()->active()->where('is_indexable', true)->get(['meta_title', 'meta_description']))
-            ->merge(UseCase::query()->active()->where('is_indexable', true)->get(['meta_title', 'meta_description']));
+            ->merge(Category::query()->seoProductIndexable()->get(['meta_title', 'meta_description']))
+            ->merge(Category::query()->seoContentIndexable()->get(['meta_title', 'meta_description']))
+            ->merge(Subcategory::query()->seoIndexable()->get(['meta_title', 'meta_description']))
+            ->merge(Feature::query()->seoIndexable()->get(['meta_title', 'meta_description']))
+            ->merge(UseCase::query()->seoIndexable()->get(['meta_title', 'meta_description']));
 
         return [
             'tool_titles' => $this->duplicateValues((clone $toolQuery)->pluck('seo_title')),

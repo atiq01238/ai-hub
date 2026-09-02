@@ -5,7 +5,9 @@ namespace App\Console\Commands;
 use App\Models\AiModel;
 use App\Models\Company;
 use App\Models\Comparison;
+use App\Models\Feature;
 use App\Models\Tool;
+use App\Models\UseCase;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 
@@ -41,14 +43,22 @@ class AuditSeoContentGraph extends Command
 
         [$validComparisons, $modelComparisonIds, $toolComparisonIds] = $this->comparisonCoverage();
         $seoCompanyIds = $companies->pluck('id')->map(fn ($id) => (int) $id);
+        $seoFeatureIds = Feature::query()->seoIndexable()->pluck('id')->map(fn ($id) => (int) $id);
+        $seoUseCaseIds = UseCase::query()->seoIndexable()->pluck('id')->map(fn ($id) => (int) $id);
 
         $coverage = [
             ['Model → indexable company', $models->filter(fn ($model) => $model->company_id && $seoCompanyIds->contains((int) $model->company_id))->count(), $models->count()],
             ['Model → associated public tool', $models->filter(fn ($model) => $model->tool && $model->tool->status === 'published')->count(), $models->count()],
-            ['Model → taxonomy feature/use case', $models->filter(fn ($model) => $model->featureTerms->isNotEmpty() || $model->useCaseTerms->isNotEmpty())->count(), $models->count()],
+            ['Model → indexable taxonomy feature/use case', $models->filter(function ($model) use ($seoFeatureIds, $seoUseCaseIds) {
+                return $model->featureTerms->pluck('id')->map(fn ($id) => (int) $id)->intersect($seoFeatureIds)->isNotEmpty()
+                    || $model->useCaseTerms->pluck('id')->map(fn ($id) => (int) $id)->intersect($seoUseCaseIds)->isNotEmpty();
+            })->count(), $models->count()],
             ['Model → published comparison', $models->filter(fn ($model) => $modelComparisonIds->contains((int) $model->id))->count(), $models->count()],
             ['Tool → indexable company', $tools->filter(fn ($tool) => $tool->company_id && $seoCompanyIds->contains((int) $tool->company_id))->count(), $tools->count()],
-            ['Tool → canonical category', $tools->filter(fn ($tool) => $tool->category && $tool->category->is_active)->count(), $tools->count()],
+            ['Tool → canonical category', $tools->filter(fn ($tool) => $tool->category
+                && $tool->category->is_active
+                && $tool->category->is_indexable
+                && $tool->category->type === 'product')->count(), $tools->count()],
             ['Tool → public model', $tools->filter(fn ($tool) => $tool->models->contains(fn ($model) => in_array($model->status, ['active', 'preview'], true)))->count(), $tools->count()],
             ['Tool → published comparison', $tools->filter(fn ($tool) => $toolComparisonIds->contains((int) $tool->id))->count(), $tools->count()],
             ['Company → public tool/model', $companies->filter(fn ($company) => ((int) $company->public_tools_count + (int) $company->public_models_count) > 0)->count(), $companies->count()],
@@ -78,7 +88,10 @@ class AuditSeoContentGraph extends Command
         $riskRows = [
             ['Public models with very sparse profile signals', $sparseModels->count()],
             ['Public models without an indexable provider page', $models->reject(fn ($model) => $model->company_id && $seoCompanyIds->contains((int) $model->company_id))->count()],
-            ['Published tools without an active category hub', $tools->reject(fn ($tool) => $tool->category && $tool->category->is_active)->count()],
+            ['Published tools without an indexable category hub', $tools->reject(fn ($tool) => $tool->category
+                && $tool->category->is_active
+                && $tool->category->is_indexable
+                && $tool->category->type === 'product')->count()],
             ['Published tools without an indexable provider page', $tools->reject(fn ($tool) => $tool->company_id && $seoCompanyIds->contains((int) $tool->company_id))->count()],
             ['Indexable companies with no public tool/model relation', $companies->filter(fn ($company) => ((int) $company->public_tools_count + (int) $company->public_models_count) === 0)->count()],
             ['Thin/placeholder companies withheld from discovery', $withheldCompanies],
@@ -89,7 +102,7 @@ class AuditSeoContentGraph extends Command
         $this->table(['Content/indexing check', 'Count'], $riskRows);
 
         $this->newLine();
-        $this->line('Phase 3 audit complete. This command only reads catalog data and does not modify records.');
+        $this->line('Content graph audit complete. Taxonomy coverage uses the same Phase 5 SEO eligibility gates as public discovery.');
 
         return self::SUCCESS;
     }
