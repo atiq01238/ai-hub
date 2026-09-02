@@ -186,33 +186,44 @@
 </section>
 
 @if(!$toolsHasFilters && ($categoryHubs->isNotEmpty() || $featureHubs->isNotEmpty()))
-<section class="tools-page-container seo-discovery-hubs" aria-label="Canonical AI discovery hubs">
-    <div class="seo-hub-group">
-        <div class="seo-hub-copy">
-            <span><i data-lucide="network"></i> Explore canonical category hubs</span>
-            <p>Browse dedicated category pages with tools, related models, guides and current intelligence.</p>
+<section class="tools-page-container seo-discovery-hubs" aria-label="Explore AI categories and capabilities">
+    @if($categoryHubs->isNotEmpty())
+    <article class="seo-discovery-card seo-discovery-card--categories">
+        <div class="seo-discovery-card-top">
+            <div class="seo-discovery-icon" aria-hidden="true"><i data-lucide="layout-grid"></i></div>
+            <div class="seo-discovery-title">
+                <span>Discover by workflow</span>
+                <h2>Explore AI Categories</h2>
+            </div>
+            <a class="seo-discovery-all" href="{{ route('categories.index') }}">View all <i data-lucide="arrow-right"></i></a>
         </div>
-        <div class="seo-hub-links">
+        <p class="seo-discovery-description">Jump into dedicated category pages for focused tools, models and useful AI intelligence.</p>
+        <div class="seo-discovery-chips" aria-label="AI tool category links">
             @foreach($categoryHubs as $categoryHub)
-                <a href="{{ route('categories.show', $categoryHub) }}">{{ $categoryHub->name }} AI tools</a>
+                <a href="{{ route('categories.show', $categoryHub) }}"><i data-lucide="folder-kanban"></i><span>{{ $categoryHub->name }}</span></a>
             @endforeach
-            <a class="seo-hub-more" href="{{ route('categories.index') }}">All AI categories <i data-lucide="arrow-right"></i></a>
         </div>
-    </div>
+    </article>
+    @endif
 
     @if($featureHubs->isNotEmpty())
-    <div class="seo-hub-group">
-        <div class="seo-hub-copy">
-            <span><i data-lucide="sparkles"></i> Browse by capability</span>
-            <p>Use normalized capability pages instead of temporary filter URLs when exploring a topic.</p>
+    <article class="seo-discovery-card seo-discovery-card--capabilities">
+        <div class="seo-discovery-card-top">
+            <div class="seo-discovery-icon" aria-hidden="true"><i data-lucide="sparkles"></i></div>
+            <div class="seo-discovery-title">
+                <span>Discover by strength</span>
+                <h2>Browse by Capability</h2>
+            </div>
+            <a class="seo-discovery-all" href="{{ route('features.index') }}">View all <i data-lucide="arrow-right"></i></a>
         </div>
-        <div class="seo-hub-links">
+        <p class="seo-discovery-description">Find AI products by what they do best, from coding and reasoning to collaboration and creative work.</p>
+        <div class="seo-discovery-chips" aria-label="AI capability links">
             @foreach($featureHubs as $featureHub)
-                <a href="{{ route('features.show', $featureHub) }}">{{ $featureHub->name }} AI tools</a>
+                <a href="{{ route('features.show', $featureHub) }}"><i data-lucide="zap"></i><span>{{ $featureHub->name }}</span></a>
             @endforeach
-            <a class="seo-hub-more" href="{{ route('features.index') }}">All AI features <i data-lucide="arrow-right"></i></a>
         </div>
-    </div>
+    </article>
+    @endif
 </section>
 @endif
 

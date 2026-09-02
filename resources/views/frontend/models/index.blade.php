@@ -76,7 +76,7 @@
     JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
 ) !!}</script>
 @endpush
-@push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/models.css') }}?v=20260901-seo4">@endpush
+@push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/models.css') }}?v=20260902-discovery-ui">@endpush
 @section('content')
 <section class="model-hero model-hero-wave">
 <div class="model-wave-art" aria-hidden="true"></div><div class="model-wave-shade" aria-hidden="true"></div>
@@ -131,38 +131,44 @@
 @endif
 
 @if(!$modelsHasFilters && ($providerHubs->isNotEmpty() || $featureHubs->isNotEmpty()))
-<section class="model-canonical-hubs" aria-label="AI model provider and capability hubs">
-    <div class="model-wrap">
-        @if($providerHubs->isNotEmpty())
-        <div class="model-hub-group">
-            <div class="model-hub-copy">
-                <span><i data-lucide="building-2"></i> Explore AI model providers</span>
-                <p>Open canonical company profiles to move between each provider, its models, tools and related intelligence.</p>
+<section class="model-wrap model-discovery-hubs" aria-label="Explore AI model providers and capabilities">
+    @if($providerHubs->isNotEmpty())
+    <article class="model-discovery-card model-discovery-card--providers">
+        <div class="model-discovery-card-top">
+            <div class="model-discovery-icon" aria-hidden="true"><i data-lucide="building-2"></i></div>
+            <div class="model-discovery-title">
+                <span>Discover by provider</span>
+                <h2>Explore Model Providers</h2>
             </div>
-            <div class="model-hub-links">
-                @foreach($providerHubs as $providerHub)
-                    <a href="{{ route('companies.show', $providerHub) }}">{{ $providerHub->name }} AI models</a>
-                @endforeach
-                <a class="model-hub-more" href="{{ route('companies.index') }}">All AI companies <i data-lucide="arrow-right"></i></a>
-            </div>
+            <a class="model-discovery-all" href="{{ route('companies.index') }}">View all <i data-lucide="arrow-right"></i></a>
         </div>
-        @endif
+        <p class="model-discovery-description">Browse leading AI companies and jump directly to their models, tools and related intelligence.</p>
+        <div class="model-discovery-chips" aria-label="AI model provider links">
+            @foreach($providerHubs as $providerHub)
+                <a href="{{ route('companies.show', $providerHub) }}"><i data-lucide="building"></i><span>{{ $providerHub->name }}</span></a>
+            @endforeach
+        </div>
+    </article>
+    @endif
 
-        @if($featureHubs->isNotEmpty())
-        <div class="model-hub-group">
-            <div class="model-hub-copy">
-                <span><i data-lucide="sparkles"></i> Browse model capabilities</span>
-                <p>Discover models through indexable capability hubs with normalized taxonomy relationships.</p>
+    @if($featureHubs->isNotEmpty())
+    <article class="model-discovery-card model-discovery-card--capabilities">
+        <div class="model-discovery-card-top">
+            <div class="model-discovery-icon" aria-hidden="true"><i data-lucide="sparkles"></i></div>
+            <div class="model-discovery-title">
+                <span>Discover by strength</span>
+                <h2>Browse Model Capabilities</h2>
             </div>
-            <div class="model-hub-links">
-                @foreach($featureHubs as $featureHub)
-                    <a href="{{ route('features.show', $featureHub) }}">{{ $featureHub->name }} AI models</a>
-                @endforeach
-                <a class="model-hub-more" href="{{ route('features.index') }}">All AI features <i data-lucide="arrow-right"></i></a>
-            </div>
+            <a class="model-discovery-all" href="{{ route('features.index') }}">View all <i data-lucide="arrow-right"></i></a>
         </div>
-        @endif
-    </div>
+        <p class="model-discovery-description">Find models by what they do best, from reasoning and coding to vision, audio and agent workflows.</p>
+        <div class="model-discovery-chips" aria-label="AI model capability links">
+            @foreach($featureHubs as $featureHub)
+                <a href="{{ route('features.show', $featureHub) }}"><i data-lucide="zap"></i><span>{{ $featureHub->name }}</span></a>
+            @endforeach
+        </div>
+    </article>
+    @endif
 </section>
 @endif
 
