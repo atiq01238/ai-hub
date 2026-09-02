@@ -463,7 +463,7 @@
             <div class="detail-section-head"><div><span>Alternatives</span><h2>Evidence-based similar tools</h2><p>Ranked by use-case, capability, pricing, platform, taxonomy and compatible benchmark overlap—not popularity alone.</p></div><i data-lucide="shuffle"></i></div>
             <div class="alternative-grid">
                 @foreach($relatedTools as $related)
-                <a href="{{ route('tools.show', $related) }}" class="alternative-card"><img src="{{ $related->logo_url }}" alt="{{ $related->name }} logo"><div><h3>{{ $related->name }}</h3><p>{{ $related->category?->name ?: 'AI Tool' }} • {{ $related->company?->name ?: 'Independent' }}</p><span><i data-lucide="scan-search"></i><b>{{ number_format((float)$related->alternative_match_score,0) }}% match</b> @if(!empty($related->alternative_match_reasons)){{ implode(' · ', $related->alternative_match_reasons) }}@endif</span></div><i data-lucide="arrow-up-right"></i></a>
+                <a href="{{ route('tools.show', $related) }}" class="alternative-card"><img src="{{ $related->logo_url }}" alt="{{ $related->name }} logo"><div><h3>{{ $related->name }}</h3><p>{{ $related->category?->name ?: 'AI Tool' }} • {{ $related->company?->name ?: 'Independent' }}</p><span><i data-lucide="scan-search"></i><b>{{ number_format((float)$related->alternative_match_score,0) }}% match</b>@if(!empty($related->alternative_match_reasons))<small class="alternative-reasons">{{ implode(' · ', $related->alternative_match_reasons) }}</small>@endif</span></div><i data-lucide="arrow-up-right"></i></a>
                 @endforeach
             </div>
         </section>
@@ -486,7 +486,7 @@
             </dl>
         </section>
 
-        <section class="sidebar-card">
+        <section class="sidebar-card confidence-card">
             <div class="sidebar-title"><span>AI Orbit data confidence</span><i data-lucide="shield-check"></i></div>
             <dl>
                 <div><dt>Confidence</dt><dd><strong>{{ $dataConfidence['score'] }}/100</strong> · {{ $dataConfidence['label'] }}</dd></div>

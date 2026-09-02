@@ -213,6 +213,7 @@
             <a class="seo-hub-more" href="{{ route('features.index') }}">All AI features <i data-lucide="arrow-right"></i></a>
         </div>
     </div>
+    @endif
 </section>
 @endif
 
