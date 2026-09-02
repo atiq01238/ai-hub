@@ -21,7 +21,9 @@ class HomeController extends Controller
     {
         $categories = Category::query()
             ->product()->active()
+            ->where('is_indexable', true)
             ->withCount(['tools' => fn ($q) => $q->where('status', 'published')])
+            ->having('tools_count', '>', 0)
             ->orderByDesc('tools_count')
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -49,6 +51,7 @@ class HomeController extends Controller
         $latestNews = NewsItem::query()
             ->with('company')
             ->where('status', 'published')
+            ->whereNull('duplicate_of_id')
             ->where(function ($q) {
                 $q->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate');
             })
@@ -59,12 +62,18 @@ class HomeController extends Controller
         $comparisons = Comparison::query()
             ->where('status', 'published')
             ->orderByDesc('views')
-            ->take(4)
             ->get()
-            ->map(function (Comparison $comparison) {
-                $comparison->resolved_items = $comparison->items();
-                return $comparison;
-            });
+            ->filter(function (Comparison $comparison) {
+                try {
+                    $comparison->resolved_items = $comparison->publicItems();
+                    return $comparison->resolved_items->count() >= 2;
+                } catch (\Throwable $e) {
+                    report($e);
+                    return false;
+                }
+            })
+            ->take(4)
+            ->values();
 
         $featuredModels = AiModel::query()
             ->with(['company', 'tool'])
@@ -99,6 +108,14 @@ class HomeController extends Controller
             ->with(['tool.company', 'model.company', 'user'])
             ->published()
             ->where(function ($query) {
+                $query->where('review_type', 'editorial')
+                    ->orWhere(function ($community) {
+                        $community->where('review_type', 'user')
+                            ->whereNotNull('body')
+                            ->whereRaw("TRIM(body) <> ''");
+                    });
+            })
+            ->where(function ($query) {
                 $query->whereHas('tool', fn ($tool) => $tool->where('status', 'published'))
                     ->orWhereHas('model', fn ($model) => $model->whereIn('status', ['active', 'preview']));
             })
@@ -110,11 +127,13 @@ class HomeController extends Controller
         $featuredArticles = Article::query()
             ->with(['author', 'company'])
             ->where('status', 'published')
+            ->where('approval_status', 'approved')
             ->orderByDesc('published_at')
             ->take(4)
             ->get();
 
         $topCompanies = Company::query()
+            ->seoIndexable()
             ->withCount([
                 'tools' => fn ($q) => $q->where('status', 'published'),
                 'models' => fn ($q) => $q->where('status', 'active'),
@@ -137,6 +156,8 @@ class HomeController extends Controller
 
         $newsCategoryCounts = NewsItem::query()
             ->where('status', 'published')
+            ->whereNull('duplicate_of_id')
+            ->where(fn ($query) => $query->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate'))
             ->selectRaw('category, COUNT(*) as total')
             ->whereNotNull('category')
             ->groupBy('category')

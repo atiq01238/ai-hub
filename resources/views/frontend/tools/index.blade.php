@@ -81,7 +81,7 @@
 ) !!}</script>
 @endpush
 @push('styles')
-<link rel="stylesheet" href="{{ asset('css/frontend/tools.css') }}?v=20260829-quickcompare2">
+<link rel="stylesheet" href="{{ asset('css/frontend/tools.css') }}?v=20260901-seo4">
 @endpush
 
 @section('content')
@@ -184,6 +184,37 @@
         @endforeach
     </div>
 </section>
+
+@if(!$toolsHasFilters && ($categoryHubs->isNotEmpty() || $featureHubs->isNotEmpty()))
+<section class="tools-page-container seo-discovery-hubs" aria-label="Canonical AI discovery hubs">
+    <div class="seo-hub-group">
+        <div class="seo-hub-copy">
+            <span><i data-lucide="network"></i> Explore canonical category hubs</span>
+            <p>Browse dedicated category pages with tools, related models, guides and current intelligence.</p>
+        </div>
+        <div class="seo-hub-links">
+            @foreach($categoryHubs as $categoryHub)
+                <a href="{{ route('categories.show', $categoryHub) }}">{{ $categoryHub->name }} AI tools</a>
+            @endforeach
+            <a class="seo-hub-more" href="{{ route('categories.index') }}">All AI categories <i data-lucide="arrow-right"></i></a>
+        </div>
+    </div>
+
+    @if($featureHubs->isNotEmpty())
+    <div class="seo-hub-group">
+        <div class="seo-hub-copy">
+            <span><i data-lucide="sparkles"></i> Browse by capability</span>
+            <p>Use normalized capability pages instead of temporary filter URLs when exploring a topic.</p>
+        </div>
+        <div class="seo-hub-links">
+            @foreach($featureHubs as $featureHub)
+                <a href="{{ route('features.show', $featureHub) }}">{{ $featureHub->name }} AI tools</a>
+            @endforeach
+            <a class="seo-hub-more" href="{{ route('features.index') }}">All AI features <i data-lucide="arrow-right"></i></a>
+        </div>
+    </div>
+</section>
+@endif
 
 @if(!request()->hasAny(['q','category','pricing','rating','company','platform','feature']) && $featuredTools->isNotEmpty())
 <section class="tools-page-container featured-strip-section">
@@ -376,7 +407,7 @@
                             <div class="tool-card-body">
                                 <div class="tool-card-identity">
                                     <img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo" loading="lazy">
-                                    <div><h3>{{ $tool->name }}</h3><p>{{ $tool->company?->name ?? 'Independent' }} <span>•</span> {{ $tool->category?->name ?? 'AI Tool' }}</p></div>
+                                    <div><h3><a class="entity-name-link" href="{{ route('tools.show', $tool) }}">{{ $tool->name }}</a></h3><p>{{ $tool->company?->name ?? 'Independent' }} <span>•</span> {{ $tool->category?->name ?? 'AI Tool' }}</p></div>
                                     <div class="tool-rating"><i data-lucide="star"></i><strong>{{ number_format((float)$tool->rating,1) }}</strong><small>/5</small></div>
                                 </div>
 
@@ -392,7 +423,7 @@
                                 </div>
 
                                 <div class="tool-card-actions">
-                                    <a class="tool-primary-action" href="{{ route('tools.show', $tool) }}">View details <i data-lucide="arrow-right"></i></a>
+                                    <a class="tool-primary-action" href="{{ route('tools.show', $tool) }}">{{ \Illuminate\Support\Str::limit($tool->name, 28) }} details <i data-lucide="arrow-right"></i></a>
                                     <button class="compare-tool-btn" type="button" data-compare-tool><i data-lucide="scale"></i><span>Compare</span></button>
                                 </div>
                             </div>

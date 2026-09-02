@@ -94,14 +94,14 @@
                     <article class="tool-card" data-category="{{ $tool->category?->slug }}" data-search="{{ strtolower($tool->name.' '.$tool->short_description.' '.($tool->company?->name ?? '')) }}">
                         <div class="tool-card-top">
                             <img loading="lazy" decoding="async" class="tool-logo" src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo">
-                            <div class="tool-title"><h3>{{ $tool->name }}</h3><span>{{ $tool->subcategory ?: $tool->category?->name }}</span></div>
+                            <div class="tool-title"><h3><a class="home-entity-link" href="{{ route('tools.show', $tool) }}">{{ $tool->name }}</a></h3><span>{{ $tool->subcategory ?: $tool->category?->name }}</span></div>
                             <div class="tool-rating"><span>★ {{ number_format((float)$tool->rating,1) }}/5</span></div>
                         </div>
                         <div class="tool-card-meta-line">
                             <span class="badge">{{ implode(' + ', array_slice($tool->pricing_models ?? [],0,2)) ?: 'Explore' }}</span>
                         </div>
                         <p>{{ $tool->short_description }}</p>
-                        <div class="card-actions"><a class="primary-btn" href="{{ route('tools.show', $tool) }}">View Tool</a><a class="secondary-btn" href="{{ route('comparisons.builder', ['type' => 'tool', 'item' => $tool->id]) }}">Compare</a></div>
+                        <div class="card-actions"><a class="primary-btn" href="{{ route('tools.show', $tool) }}">{{ \Illuminate\Support\Str::limit($tool->name, 24) }} details</a><a class="secondary-btn" href="{{ route('comparisons.builder', ['type' => 'tool', 'item' => $tool->id]) }}">Compare</a></div>
                     </article>
                     @endforeach
                 </div>
@@ -140,7 +140,7 @@
                                 @endforeach
                             </div>
                             <p class="compare-copy">{{ $comparisonSlot === 0 ? 'Which AI product is better for your workflow?' : 'See how two popular AI choices compare side by side.' }}</p>
-                            <a class="primary-pill" href="{{ route('comparisons.show', $comparison) }}">View Comparison</a>
+                            <a class="primary-pill" href="{{ route('comparisons.show', $comparison) }}">{{ \Illuminate\Support\Str::limit($comparison->title ?: 'Open AI comparison', 46) }}</a>
                             <div class="compare-chips">
                                 @if($comparisonSlot === 0)<span>Features</span><span>Pricing</span><span>Benchmarks</span><span>Fit</span>
                                 @else<span>Popular</span><span>Head-to-head</span><span>Performance</span><span>Value</span>@endif

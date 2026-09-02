@@ -29,7 +29,12 @@
 @section('title', $companySeoTitle)
 @section('meta_description', $companySeoDescription)
 @section('canonical', $seo['canonical'])
-@section('robots', 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1')
+@section(
+    'robots',
+    $isSeoIndexable
+        ? 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'
+        : 'noindex,follow'
+)
 @section('og_type', 'profile')
 @section('og_image', $seo['logo'])
 

@@ -17,6 +17,8 @@ class CategoryController extends Controller
     {
         $categories = Category::query()
             ->product()->active()
+            ->where('is_indexable', true)
+            ->whereHas('tools', fn ($q) => $q->where('status', 'published'))
             ->withCount(['tools' => fn ($q) => $q->where('status', 'published')])
             ->with(['subcategories' => fn ($q) => $q->active()->orderBy('sort_order')])
             ->orderBy('sort_order')->orderBy('name')
@@ -83,10 +85,14 @@ class CategoryController extends Controller
         $news = $newsBase->with('company')->orderByDesc('published_at')->take(6)->get();
 
         $relatedCategories = Category::query()->product()->active()
+            ->where('is_indexable', true)
+            ->whereHas('tools', fn ($q) => $q->where('status', 'published'))
             ->withCount(['tools' => fn ($q) => $q->where('status', 'published')])
             ->where('id', '!=', $category->id)->orderByDesc('tools_count')->take(6)->get();
 
         $subcategories = $category->subcategories()->active()
+            ->where('is_indexable', true)
+            ->whereHas('tools', fn ($q) => $q->where('status', 'published'))
             ->withCount(['tools' => fn ($q) => $q->where('status', 'published')])
             ->orderBy('sort_order')->orderBy('name')->get();
 
@@ -112,7 +118,10 @@ class CategoryController extends Controller
             ->whereHas('tool', fn ($q) => $q->where('subcategory_id',$subcategory->id))
             ->orderByDesc('benchmark_score')->take(10)->get();
 
-        $relatedSubcategories = $category->subcategories()->active()->where('id','!=',$subcategory->id)
+        $relatedSubcategories = $category->subcategories()->active()
+            ->where('is_indexable', true)
+            ->whereHas('tools', fn ($q) => $q->where('status', 'published'))
+            ->where('id','!=',$subcategory->id)
             ->withCount(['tools'=>fn($q)=>$q->where('status','published')])->orderByDesc('tools_count')->take(8)->get();
 
         return view('frontend.categories.subcategory', compact('category','subcategory','tools','models','relatedSubcategories','sort'));
@@ -131,6 +140,7 @@ class CategoryController extends Controller
     {
         $keywords = collect([$category->name])->merge($category->subcategories()->active()->pluck('name'))->take(8)->all();
         return NewsItem::query()->where('status','published')
+            ->whereNull('duplicate_of_id')
             ->where(fn($q)=>$q->whereNull('duplicate_status')->orWhere('duplicate_status','!=','duplicate'))
             ->where(function ($q) use ($keywords) {
                 foreach ($keywords as $keyword) {

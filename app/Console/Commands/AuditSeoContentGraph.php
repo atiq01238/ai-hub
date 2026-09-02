@@ -30,21 +30,24 @@ class AuditSeoContentGraph extends Command
             ->get();
 
         $companies = Company::query()
+            ->seoIndexable()
             ->withCount([
                 'tools as public_tools_count' => fn ($query) => $query->where('status', 'published'),
                 'models as public_models_count' => fn ($query) => $query->whereIn('status', ['active', 'preview']),
             ])
-            ->whereIn('status', ['active', 'acquired'])
             ->get();
 
+        $withheldCompanies = Company::query()->public()->count() - $companies->count();
+
         [$validComparisons, $modelComparisonIds, $toolComparisonIds] = $this->comparisonCoverage();
+        $seoCompanyIds = $companies->pluck('id')->map(fn ($id) => (int) $id);
 
         $coverage = [
-            ['Model → public company', $models->filter(fn ($model) => $model->company && in_array($model->company->status, ['active', 'acquired'], true))->count(), $models->count()],
+            ['Model → indexable company', $models->filter(fn ($model) => $model->company_id && $seoCompanyIds->contains((int) $model->company_id))->count(), $models->count()],
             ['Model → associated public tool', $models->filter(fn ($model) => $model->tool && $model->tool->status === 'published')->count(), $models->count()],
             ['Model → taxonomy feature/use case', $models->filter(fn ($model) => $model->featureTerms->isNotEmpty() || $model->useCaseTerms->isNotEmpty())->count(), $models->count()],
             ['Model → published comparison', $models->filter(fn ($model) => $modelComparisonIds->contains((int) $model->id))->count(), $models->count()],
-            ['Tool → public company', $tools->filter(fn ($tool) => $tool->company && in_array($tool->company->status, ['active', 'acquired'], true))->count(), $tools->count()],
+            ['Tool → indexable company', $tools->filter(fn ($tool) => $tool->company_id && $seoCompanyIds->contains((int) $tool->company_id))->count(), $tools->count()],
             ['Tool → canonical category', $tools->filter(fn ($tool) => $tool->category && $tool->category->is_active)->count(), $tools->count()],
             ['Tool → public model', $tools->filter(fn ($tool) => $tool->models->contains(fn ($model) => in_array($model->status, ['active', 'preview'], true)))->count(), $tools->count()],
             ['Tool → published comparison', $tools->filter(fn ($tool) => $toolComparisonIds->contains((int) $tool->id))->count(), $tools->count()],
@@ -74,10 +77,11 @@ class AuditSeoContentGraph extends Command
 
         $riskRows = [
             ['Public models with very sparse profile signals', $sparseModels->count()],
-            ['Public models without a public provider page', $models->reject(fn ($model) => $model->company && in_array($model->company->status, ['active', 'acquired'], true))->count()],
+            ['Public models without an indexable provider page', $models->reject(fn ($model) => $model->company_id && $seoCompanyIds->contains((int) $model->company_id))->count()],
             ['Published tools without an active category hub', $tools->reject(fn ($tool) => $tool->category && $tool->category->is_active)->count()],
-            ['Published tools without a public provider page', $tools->reject(fn ($tool) => $tool->company && in_array($tool->company->status, ['active', 'acquired'], true))->count()],
-            ['Public companies with no public tool/model relation', $companies->filter(fn ($company) => ((int) $company->public_tools_count + (int) $company->public_models_count) === 0)->count()],
+            ['Published tools without an indexable provider page', $tools->reject(fn ($tool) => $tool->company_id && $seoCompanyIds->contains((int) $tool->company_id))->count()],
+            ['Indexable companies with no public tool/model relation', $companies->filter(fn ($company) => ((int) $company->public_tools_count + (int) $company->public_models_count) === 0)->count()],
+            ['Thin/placeholder companies withheld from discovery', $withheldCompanies],
             ['Published comparisons resolving 2+ public items', $validComparisons->count()],
         ];
 

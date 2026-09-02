@@ -34,7 +34,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
     @if(request()->routeIs('home'))
-        <link rel="stylesheet" href="{{ asset('css/frontend/home-performance.css') }}?v=20260828-trendnav1">
+        <link rel="stylesheet" href="{{ asset('css/frontend/home-performance.css') }}?v=20260901-seo4">
     @else
         <link rel="stylesheet" href="{{ asset('css/frontend/app.css') }}?v=20260828-trendnav1">
         <link rel="stylesheet" href="{{ asset('css/frontend/community.css') }}">

@@ -76,7 +76,7 @@
     JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
 ) !!}</script>
 @endpush
-@push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/models.css') }}">@endpush
+@push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/models.css') }}?v=20260901-seo4">@endpush
 @section('content')
 <section class="model-hero model-hero-wave">
 <div class="model-wave-art" aria-hidden="true"></div><div class="model-wave-shade" aria-hidden="true"></div>
@@ -126,6 +126,42 @@
                 </a>
             @endforeach
         </div>
+    </div>
+</section>
+@endif
+
+@if(!$modelsHasFilters && ($providerHubs->isNotEmpty() || $featureHubs->isNotEmpty()))
+<section class="model-canonical-hubs" aria-label="AI model provider and capability hubs">
+    <div class="model-wrap">
+        @if($providerHubs->isNotEmpty())
+        <div class="model-hub-group">
+            <div class="model-hub-copy">
+                <span><i data-lucide="building-2"></i> Explore AI model providers</span>
+                <p>Open canonical company profiles to move between each provider, its models, tools and related intelligence.</p>
+            </div>
+            <div class="model-hub-links">
+                @foreach($providerHubs as $providerHub)
+                    <a href="{{ route('companies.show', $providerHub) }}">{{ $providerHub->name }} AI models</a>
+                @endforeach
+                <a class="model-hub-more" href="{{ route('companies.index') }}">All AI companies <i data-lucide="arrow-right"></i></a>
+            </div>
+        </div>
+        @endif
+
+        @if($featureHubs->isNotEmpty())
+        <div class="model-hub-group">
+            <div class="model-hub-copy">
+                <span><i data-lucide="sparkles"></i> Browse model capabilities</span>
+                <p>Discover models through indexable capability hubs with normalized taxonomy relationships.</p>
+            </div>
+            <div class="model-hub-links">
+                @foreach($featureHubs as $featureHub)
+                    <a href="{{ route('features.show', $featureHub) }}">{{ $featureHub->name }} AI models</a>
+                @endforeach
+                <a class="model-hub-more" href="{{ route('features.index') }}">All AI features <i data-lucide="arrow-right"></i></a>
+            </div>
+        </div>
+        @endif
     </div>
 </section>
 @endif
@@ -262,7 +298,7 @@
                                     <img src="{{ $model->logo_url }}" alt="{{ $model->name }} logo" loading="lazy">
                                     <div class="model-card-title">
                                         <span>{{ $model->company?->name ?? 'Independent' }}</span>
-                                        <h3>{{ $model->name }}</h3>
+                                        <h3><a class="entity-name-link" href="{{ route('models.show', $model) }}">{{ $model->name }}</a></h3>
                                         <p>{{ $model->version ? 'Version '.$model->version : 'AI foundation model' }}</p>
                                     </div>
                                     <button type="button" class="save-item-btn compact" data-save-item data-save-type="model" data-save-id="{{ $model->id }}" aria-label="Save {{ $model->name }}" aria-pressed="false"><i data-lucide="bookmark"></i></button>
@@ -296,7 +332,7 @@
 
                                 <div class="model-directory-card-foot">
                                     <span><i data-lucide="calendar-days"></i>{{ $model->release_date?->format('M Y') ?? 'Release N/A' }}</span>
-                                    <a href="{{ route('models.show',$model) }}">View details <i data-lucide="arrow-right"></i></a>
+                                    <a href="{{ route('models.show',$model) }}">{{ \Illuminate\Support\Str::limit($model->name, 28) }} profile <i data-lucide="arrow-right"></i></a>
                                 </div>
                             </article>
                         @endforeach

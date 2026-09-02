@@ -36,6 +36,35 @@ class Company extends Model
         return $this->hasMany(Article::class);
     }
 
+    public function scopePublic($query)
+    {
+        return $query->whereIn('status', ['active', 'acquired']);
+    }
+
+    public function scopeSeoIndexable($query)
+    {
+        return $query
+            ->public()
+            ->where(function ($query) {
+                $query->whereHas('tools', fn ($q) => $q->where('status', 'published'))
+                    ->orWhereHas('models', fn ($q) => $q->whereIn('status', ['active', 'preview']))
+                    ->orWhereHas('newsItems', fn ($q) => $q
+                        ->where('status', 'published')
+                        ->whereNull('duplicate_of_id')
+                        ->where(fn ($news) => $news
+                            ->whereNull('duplicate_status')
+                            ->orWhere('duplicate_status', '!=', 'duplicate')))
+                    ->orWhereHas('articles', fn ($q) => $q
+                        ->where('status', 'published')
+                        ->where('approval_status', 'approved'))
+                    ->orWhere(function ($profile) {
+                        $profile->whereNotNull('website')
+                            ->whereNotNull('description')
+                            ->whereRaw('CHAR_LENGTH(TRIM(description)) >= 160');
+                    });
+            });
+    }
+
     public function getLogoUrlAttribute(): string
     {
         return MediaUrl::resolve($this->logo_path, 'favicon.ico') ?: MediaUrl::placeholder();

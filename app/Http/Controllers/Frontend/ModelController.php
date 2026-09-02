@@ -64,9 +64,14 @@ class ModelController extends Controller
         };
 
         $models = $query->paginate(12)->withQueryString();
-        $companies = Company::query()->withCount(['models' => fn ($q) => $q->whereIn('status',['active','preview'])])
-            ->whereHas('models', fn ($q) => $q->whereIn('status',['active','preview']))->orderByDesc('models_count')->get();
+        $companies = Company::query()
+            ->seoIndexable()
+            ->withCount(['models' => fn ($q) => $q->whereIn('status',['active','preview'])])
+            ->whereHas('models', fn ($q) => $q->whereIn('status',['active','preview']))
+            ->orderByDesc('models_count')
+            ->get();
         $capabilities = Feature::active()
+            ->where('is_indexable', true)
             ->whereHas('models', fn (Builder $q) => $q->whereIn('status', ['active','preview']))
             ->withCount(['models' => fn (Builder $q) => $q->whereIn('status', ['active','preview'])])
             ->orderByDesc('models_count')->orderBy('name')->get();
@@ -77,8 +82,10 @@ class ModelController extends Controller
             'latest' => AiModel::whereIn('status',['active','preview'])->whereNotNull('release_date')->orderByDesc('release_date')->value('release_date'),
         ];
         $leaders = AiModel::with('company')->whereIn('status',['active','preview'])->whereNotNull('benchmark_score')->orderByDesc('benchmark_score')->take(5)->get();
+        $providerHubs = $companies->take(8)->values();
+        $featureHubs = $capabilities->take(8)->values();
 
-        return view('frontend.models.index', compact('models','companies','capabilities','stats','leaders'));
+        return view('frontend.models.index', compact('models','companies','capabilities','stats','leaders','providerHubs','featureHubs'));
     }
 
     public function show(AiModel $model, EntitySeoService $seoService, QuickFeedbackService $feedback, BenchmarkScoringService $benchmarkScoring, InternalLinkingService $internalLinks, ModelContentService $contentService)

@@ -1397,3 +1397,5 @@ a{overflow-wrap:anywhere}
   .mobile-nav > a.mobile-signup-link{background:linear-gradient(135deg,#5b46f6,#812be8)!important;border-color:#765cff!important;color:#fff!important;font-weight:800!important}
   .mobile-nav > a.mobile-signup-link svg{color:#fff}
 }
+/* 2026-09-01 — SEO Phase 4 descriptive entity anchors */
+.home-entity-link{color:inherit;text-decoration:none}.home-entity-link:hover{color:#fff}

@@ -24,22 +24,7 @@ class AuditSeoIndexing extends Command
 
     public function handle(): int
     {
-        $companyQuery = Company::query()
-            ->whereIn('status', ['active', 'acquired'])
-            ->where(function ($query) {
-                $query->whereHas('tools', fn ($q) => $q->where('status', 'published'))
-                    ->orWhereHas('models', fn ($q) => $q->whereIn('status', ['active', 'preview']))
-                    ->orWhereHas('newsItems', fn ($q) => $q
-                        ->where('status', 'published')
-                        ->whereNull('duplicate_of_id')
-                        ->where(fn ($news) => $news->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate')))
-                    ->orWhereHas('articles', fn ($q) => $q->where('status', 'published')->where('approval_status', 'approved'))
-                    ->orWhere(function ($profile) {
-                        $profile->whereNotNull('website')
-                            ->whereNotNull('description')
-                            ->whereRaw('CHAR_LENGTH(TRIM(description)) >= 160');
-                    });
-            });
+        $companyQuery = Company::query()->seoIndexable();
 
         $newsQuery = NewsItem::query()
             ->where('status', 'published')
@@ -114,7 +99,7 @@ class AuditSeoIndexing extends Command
         $this->table(['Sitemap group', 'Eligible URLs'], $rows);
         $this->line('Estimated sitemap URL total (before cross-sitemap deduplication): '.collect($rows)->sum(fn ($row) => $row[1]));
 
-        $thinCompanies = Company::query()->whereIn('status', ['active', 'acquired'])->count() - (clone $companyQuery)->count();
+        $thinCompanies = Company::query()->public()->count() - (clone $companyQuery)->count();
         $invalidComparisons = $comparisonRows->count() - $validComparisons->count();
         $unverifiedBenchmarks = Benchmark::query()
             ->where('is_active', true)

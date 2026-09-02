@@ -15,6 +15,10 @@ class TaxonomyDiscoveryController extends Controller
     public function features()
     {
         $items = Feature::active()->where('is_indexable', true)
+            ->where(function ($q) {
+                $q->whereHas('tools', fn ($tools) => $tools->where('status', 'published'))
+                    ->orWhereHas('models', fn ($models) => $models->whereIn('status', ['active', 'preview']));
+            })
             ->withCount([
                 'tools' => fn ($q) => $q->where('status','published'),
                 'models' => fn ($q) => $q->whereIn('status',['active','preview']),
@@ -33,6 +37,10 @@ class TaxonomyDiscoveryController extends Controller
     public function useCases()
     {
         $items = UseCase::active()->where('is_indexable', true)
+            ->where(function ($q) {
+                $q->whereHas('tools', fn ($tools) => $tools->where('status', 'published'))
+                    ->orWhereHas('models', fn ($models) => $models->whereIn('status', ['active', 'preview']));
+            })
             ->withCount([
                 'tools' => fn ($q) => $q->where('status','published'),
                 'models' => fn ($q) => $q->whereIn('status',['active','preview']),

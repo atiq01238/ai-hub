@@ -112,6 +112,16 @@ class ToolController extends Controller
             ->take(4)
             ->get();
 
+        $categoryHubs = $categories
+            ->filter(fn ($category) => (bool) $category->is_indexable)
+            ->take(10)
+            ->values();
+
+        $featureHubs = $features
+            ->filter(fn ($feature) => (bool) $feature->is_indexable)
+            ->take(8)
+            ->values();
+
         return view('frontend.tools.index', compact(
             'tools',
             'categories',
@@ -120,6 +130,8 @@ class ToolController extends Controller
             'stats',
             'featuredTools',
             'platformFilters',
+            'categoryHubs',
+            'featureHubs',
         ));
     }
 

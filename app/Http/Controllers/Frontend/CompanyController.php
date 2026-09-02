@@ -26,10 +26,10 @@ class CompanyController extends Controller
         ]);
 
         $query = Company::query()
-            // Only expose company profiles that are public on the detail route.
-            // Previously the default directory also listed `inactive` companies,
-            // but their detail route returned 404, creating internal crawl dead ends.
-            ->whereIn('status', ['active', 'acquired'])
+            // Keep the canonical company directory aligned with the company sitemap.
+            // Thin placeholder profiles remain accessible by direct URL, but are not
+            // promoted through crawlable discovery surfaces until they have enough value.
+            ->seoIndexable()
             ->withCount([
                 'tools as published_tools_count' => fn ($q) => $q->where('status', 'published'),
                 'models as active_models_count' => fn ($q) => $q->whereIn('status', ['active', 'preview']),
@@ -67,13 +67,14 @@ class CompanyController extends Controller
         $companies = $query->paginate(12)->withQueryString();
 
         $stats = [
-            'companies' => Company::where('status', 'active')->count(),
+            'companies' => Company::query()->seoIndexable()->count(),
             'tools' => Tool::where('status', 'published')->count(),
             'models' => AiModel::whereIn('status', ['active', 'preview'])->count(),
             'news' => NewsItem::where('status', 'published')->whereNull('duplicate_of_id')->where(fn ($news) => $news->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate'))->count(),
         ];
 
         $leaders = Company::query()
+            ->seoIndexable()
             ->withCount([
                 'tools as published_tools_count' => fn ($q) => $q->where('status', 'published'),
                 'models as active_models_count' => fn ($q) => $q->whereIn('status', ['active', 'preview']),
@@ -90,6 +91,11 @@ class CompanyController extends Controller
     public function show(Company $company, CompanySeoService $seoService, CompanyContentService $contentService, InternalLinkingService $internalLinks)
     {
         abort_unless($company->status !== 'inactive', 404);
+
+        $isSeoIndexable = Company::query()
+            ->seoIndexable()
+            ->whereKey($company->id)
+            ->exists();
 
         $company->loadCount([
             'tools as published_tools_count' => fn ($q) => $q->where('status', 'published'),
@@ -134,6 +140,7 @@ class CompanyController extends Controller
         $relatedComparisons = $internalLinks->comparisonsForCompany($company, 6);
 
         $relatedCompanies = Company::query()
+            ->seoIndexable()
             ->withCount([
                 'tools as published_tools_count' => fn ($q) => $q->where('status', 'published'),
                 'models as active_models_count' => fn ($q) => $q->whereIn('status', ['active', 'preview']),
@@ -177,7 +184,7 @@ class CompanyController extends Controller
         );
 
         return view('frontend.companies.show', compact(
-            'company', 'tools', 'models', 'news', 'articles', 'relatedCompanies', 'relatedComparisons', 'focusCategories', 'lastUpdated', 'seo', 'contentSeo'
+            'company', 'tools', 'models', 'news', 'articles', 'relatedCompanies', 'relatedComparisons', 'focusCategories', 'lastUpdated', 'seo', 'contentSeo', 'isSeoIndexable'
         ));
     }
 }
