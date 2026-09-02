@@ -21,7 +21,7 @@
 @endpush
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('css/frontend/tools-show.css') }}?v=20260902-confidence-ui1">
+<link rel="stylesheet" href="{{ asset('css/frontend/tools-show.css') }}?v=20260901-technical-ui1">
 @endpush
 
 @section('content')
@@ -57,11 +57,6 @@
         $technicalProfile->security_summary || $technicalProfile->sso_status !== 'unknown' || !empty($technicalProfile->security_certifications) ||
         !empty($technicalProfile->compliance_certifications) || !empty($technicalProfile->data_residency)
     );
-    $confidenceScore = max(0, min(100, (int) ($dataConfidence['score'] ?? 0)));
-    $confidenceTone = $confidenceScore >= 75 ? 'high' : ($confidenceScore >= 45 ? 'medium' : 'low');
-    $confidenceLabel = trim((string) ($dataConfidence['label'] ?? 'Low')) ?: 'Low';
-    $confidenceFreshness = Str::headline((string) ($dataConfidence['freshness'] ?? 'unverified'));
-    $confidenceLastVerified = $dataConfidence['last_verified_at']?->format('M j, Y') ?? 'Not yet verified';
 @endphp
 
 <section class="tool-detail-hero tool-detail-hero-network">
@@ -491,49 +486,16 @@
             </dl>
         </section>
 
-        <section class="sidebar-card confidence-card confidence-card--{{ $confidenceTone }}" aria-label="AI Orbit data confidence">
-            <div class="confidence-card-head">
-                <div class="confidence-card-heading">
-                    <span class="confidence-shield" aria-hidden="true"><i data-lucide="shield-check"></i></span>
-                    <div>
-                        <span class="confidence-kicker">AI Orbit</span>
-                        <h3>Data confidence</h3>
-                    </div>
-                </div>
-                <span class="confidence-status">{{ $confidenceLabel }}</span>
-            </div>
-
-            <div class="confidence-score-block">
-                <div class="confidence-gauge" style="--confidence-score: {{ $confidenceScore }}" role="img" aria-label="Confidence score {{ $confidenceScore }} out of 100">
-                    <span><strong>{{ $confidenceScore }}</strong><small>/100</small></span>
-                </div>
-                <div class="confidence-score-copy">
-                    <small>Profile confidence</small>
-                    <strong>{{ $confidenceLabel }}</strong>
-                    <div class="confidence-progress" aria-hidden="true"><span style="width: {{ $confidenceScore }}%"></span></div>
-                </div>
-            </div>
-
-            <div class="confidence-proof-grid">
-                <div class="confidence-proof">
-                    <span class="confidence-proof-icon"><i data-lucide="link-2"></i></span>
-                    <div><small>Verified sources</small><strong>{{ $dataConfidence['verified_sources'] }}<em>/{{ $dataConfidence['total_sources'] }}</em></strong></div>
-                </div>
-                <div class="confidence-proof">
-                    <span class="confidence-proof-icon"><i data-lucide="badge-check"></i></span>
-                    <div><small>Verified claims</small><strong>{{ $dataConfidence['verified_claims'] }}<em>/{{ $dataConfidence['known_claims'] }}</em></strong></div>
-                </div>
-            </div>
-
-            <div class="confidence-meta">
-                <div><span><i data-lucide="refresh-cw"></i>Freshness</span><strong>{{ $confidenceFreshness }}</strong></div>
-                <div><span><i data-lucide="calendar-check-2"></i>Last verified</span><strong>{{ $confidenceLastVerified }}</strong></div>
-            </div>
-
-            <div class="confidence-note">
-                <i data-lucide="info"></i>
-                <p>Measures profile evidence and completeness, not product quality.</p>
-            </div>
+        <section class="sidebar-card">
+            <div class="sidebar-title"><span>AI Orbit data confidence</span><i data-lucide="shield-check"></i></div>
+            <dl>
+                <div><dt>Confidence</dt><dd><strong>{{ $dataConfidence['score'] }}/100</strong> · {{ $dataConfidence['label'] }}</dd></div>
+                <div><dt>Freshness</dt><dd>{{ Str::headline($dataConfidence['freshness']) }}</dd></div>
+                <div><dt>Verified sources</dt><dd>{{ $dataConfidence['verified_sources'] }}/{{ $dataConfidence['total_sources'] }}</dd></div>
+                <div><dt>Verified claims</dt><dd>{{ $dataConfidence['verified_claims'] }}/{{ $dataConfidence['known_claims'] }}</dd></div>
+                <div><dt>Last verified</dt><dd>{{ $dataConfidence['last_verified_at']?->format('M j, Y') ?? 'Not yet verified' }}</dd></div>
+            </dl>
+            <p>This score measures profile evidence and completeness, not product quality.</p>
         </section>
 
         @if($tool->company)

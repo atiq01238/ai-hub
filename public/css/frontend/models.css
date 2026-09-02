@@ -145,37 +145,20 @@
 .model-provider-link{color:#b9b1ff;font-weight:750}.model-provider-link:hover{color:#fff;text-decoration:underline}.detail-badges span{display:inline-flex;align-items:center;gap:4px}.detail-badges span svg{width:12px;height:12px}.model-intelligence-copy p{margin:0}.model-intelligence-copy p+p{margin-top:10px}.model-knowledge-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:18px}.model-knowledge-facts>div{padding:11px 12px;border:1px solid #222b3e;border-radius:9px;background:#0b111b}.model-knowledge-facts span,.model-knowledge-facts strong{display:block}.model-knowledge-facts span{color:#647087;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em}.model-knowledge-facts strong{margin-top:4px;color:#d1d7e1;font-size:12px}.spec-table a{color:#9a90ff}.spec-table a:hover{color:#fff;text-decoration:underline}.model-comparison-links{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:18px}.model-comparison-links>a{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 14px;border:1px solid #232c3f;border-radius:9px;background:#0b111b}.model-comparison-links>a>span{display:grid;grid-template-columns:24px minmax(0,1fr);column-gap:8px;min-width:0}.model-comparison-links>a>span>svg{grid-row:1/3;width:17px;color:#8d82ff}.model-comparison-links strong,.model-comparison-links small{display:block;min-width:0}.model-comparison-links strong{color:#d0d6e0;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.model-comparison-links small{margin-top:3px;color:#637087;font-size:10.5px}.model-comparison-links>a>svg{width:14px;color:#776bf0;flex:0 0 auto}.side-news>a{display:block;color:inherit}.side-news>a:hover strong{color:#fff}.provider-card a+a{margin-top:7px}
 @media(max-width:650px){.model-knowledge-facts,.model-comparison-links{grid-template-columns:1fr}.model-intelligence-copy p{font-size:12.5px}.model-comparison-links strong{white-space:normal}}
 
-.entity-name-link{color:inherit;text-decoration:none}.entity-name-link:hover{color:#fff}
-
-
 /* =========================================================
-   2026-09-02 — Model discovery hubs UI polish
-   Keeps provider/feature links crawlable while presenting
-   them as compact, user-facing discovery cards.
+   2026-09-01 — SEO Phase 4 canonical discovery hubs
+   Crawlable provider/capability paths without filter-only URLs.
    ========================================================= */
-.model-discovery-hubs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px;margin-bottom:22px}
-.model-discovery-card{position:relative;overflow:hidden;min-width:0;padding:15px 16px 14px;border:1px solid #202c4a;border-radius:14px;background:linear-gradient(145deg,rgba(15,23,47,.96),rgba(9,15,31,.96));box-shadow:0 10px 28px rgba(0,0,0,.12);transition:border-color .18s,transform .18s,box-shadow .18s}
-.model-discovery-card:before{content:"";position:absolute;width:170px;height:170px;border-radius:50%;right:-90px;top:-105px;pointer-events:none;opacity:.32}
-.model-discovery-card--providers:before{background:radial-gradient(circle,rgba(91,94,255,.48),transparent 68%)}
-.model-discovery-card--capabilities:before{background:radial-gradient(circle,rgba(34,188,222,.34),transparent 68%)}
-.model-discovery-card:hover{transform:translateY(-1px);border-color:#33416b;box-shadow:0 14px 34px rgba(0,0,0,.16)}
-.model-discovery-card-top{position:relative;z-index:1;display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center}
-.model-discovery-icon{display:grid;place-items:center;width:34px;height:34px;border:1px solid #313d66;border-radius:10px;background:linear-gradient(145deg,#182344,#111a34);color:#9287ff;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
-.model-discovery-card--capabilities .model-discovery-icon{color:#65d7f5}
-.model-discovery-icon svg{width:15px;height:15px}
-.model-discovery-title{min-width:0}
-.model-discovery-title>span{display:block;margin-bottom:2px;color:#667696;font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
-.model-discovery-title h2{margin:0;color:#eef2ff;font-size:13.5px;line-height:1.2;letter-spacing:-.1px}
-.model-discovery-all{position:relative;z-index:1;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;color:#919fbd;font-size:10.5px;font-weight:750;transition:color .18s}
-.model-discovery-all:hover{color:#c6c4ff}
-.model-discovery-all svg{width:11px;height:11px}
-.model-discovery-description{position:relative;z-index:1;margin:9px 0 11px;color:#7584a4;font-size:10.5px;line-height:1.5}
-.model-discovery-chips{position:relative;z-index:1;display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start}
-.model-discovery-chips a{display:inline-flex;align-items:center;gap:5px;max-width:100%;min-height:27px;padding:5px 8px;border:1px solid #263354;border-radius:8px;background:rgba(14,23,44,.8);color:#9eabc6;font-size:10px;font-weight:700;line-height:1.2;transition:border-color .16s,background .16s,color .16s,transform .16s}
-.model-discovery-chips a:hover{transform:translateY(-1px);border-color:#514fc0;background:#171c3b;color:#f1f3ff}
-.model-discovery-card--capabilities .model-discovery-chips a:hover{border-color:#2e7898;background:#10293a}
-.model-discovery-chips a svg{flex:0 0 auto;width:10px;height:10px;color:#7776db}
-.model-discovery-card--capabilities .model-discovery-chips a svg{color:#4fb8d6}
-.model-discovery-chips a span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-@media(max-width:980px){.model-discovery-hubs{grid-template-columns:1fr}.model-discovery-description{max-width:680px}}
-@media(max-width:560px){.model-discovery-hubs{gap:9px;margin-bottom:16px}.model-discovery-card{padding:13px}.model-discovery-card-top{grid-template-columns:32px minmax(0,1fr) auto;gap:8px}.model-discovery-icon{width:32px;height:32px}.model-discovery-title h2{font-size:12.5px}.model-discovery-description{margin:8px 0 10px;font-size:10px}.model-discovery-chips{gap:5px}.model-discovery-chips a{min-height:26px;padding:5px 7px;font-size:9.5px}}
+.model-canonical-hubs{padding:14px 0 2px}
+.model-canonical-hubs .model-wrap{display:grid;gap:10px}
+.model-hub-group{display:grid;grid-template-columns:minmax(220px,.72fr) minmax(0,1.28fr);gap:18px;align-items:start;padding:14px 16px;border:1px solid #202d4d;border-radius:14px;background:linear-gradient(145deg,rgba(15,23,48,.92),rgba(10,16,34,.9))}
+.model-hub-copy span{display:flex;align-items:center;gap:7px;color:#dce5ff;font-size:11px;font-weight:850;letter-spacing:.03em;text-transform:uppercase}
+.model-hub-copy span svg{width:14px;height:14px;color:#8177ff}
+.model-hub-copy p{margin:5px 0 0;color:#7583a2;font-size:10.5px;line-height:1.5}
+.model-hub-links{display:flex;flex-wrap:wrap;gap:7px;justify-content:flex-end}
+.model-hub-links a{display:inline-flex;align-items:center;gap:5px;min-height:30px;padding:6px 9px;border:1px solid #29365a;border-radius:9px;background:#10182c;color:#9faac5;font-size:10.5px;font-weight:700;transition:.18s}
+.model-hub-links a:hover{border-color:#554fc9;background:#171b3d;color:#fff;transform:translateY(-1px)}
+.model-hub-links a.model-hub-more{border-color:#4e4ac2;color:#b9b4ff}
+.model-hub-links a svg{width:12px;height:12px}
+@media(max-width:760px){.model-hub-group{grid-template-columns:1fr;gap:10px}.model-hub-links{justify-content:flex-start}.model-hub-copy p{font-size:10px}}
+.entity-name-link{color:inherit;text-decoration:none}.entity-name-link:hover{color:#fff}
