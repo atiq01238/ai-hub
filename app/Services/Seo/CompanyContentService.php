@@ -7,7 +7,7 @@ use Illuminate\Support\Collection;
 
 class CompanyContentService
 {
-    public function build(Company $company, Collection $tools, Collection $models, Collection $news, Collection $articles): array
+    public function build(Company $company, Collection $tools, Collection $models, Collection $news, Collection $articles, ?Collection $relatedComparisons = null): array
     {
         $toolNames = $tools->pluck('name')->filter()->values();
         $modelNames = $models->pluck('name')->filter()->values();
@@ -16,6 +16,7 @@ class CompanyContentService
         $toolCount = (int) ($company->published_tools_count ?? $tools->count());
         $modelCount = (int) ($company->active_models_count ?? $models->count());
         $newsCount = (int) ($company->published_news_count ?? $news->count());
+        $relatedComparisons = $relatedComparisons ?: collect();
 
         $intro = trim(strip_tags((string) $company->description));
         if ($intro === '') {
@@ -38,6 +39,10 @@ class CompanyContentService
             $toolSummary = $company->name.' product coverage includes '.$this->naturalList($toolNames->take(5)->all())
                 .($toolCount > 5 ? ', with additional products available in the AI tools directory.' : '.');
         }
+
+        $comparisonSummary = $relatedComparisons->isNotEmpty()
+            ? 'Published AI Orbit comparisons featuring '.$company->name.' include '.$this->naturalList($relatedComparisons->pluck('title')->take(3)->all()).'.'
+            : null;
 
         $latestSignal = $news->first();
         $latestNewsSummary = $latestSignal
@@ -72,6 +77,13 @@ class CompanyContentService
             ];
         }
 
+        if ($relatedComparisons->isNotEmpty()) {
+            $faq[] = [
+                'question' => 'Can I compare '.$company->name.' AI models or tools on AI Orbit?',
+                'answer' => $comparisonSummary.' Open a linked comparison to review the currently available side-by-side evidence.',
+            ];
+        }
+
         if ($company->founded_year) {
             $faq[] = [
                 'question' => 'When was '.$company->name.' founded?',
@@ -91,6 +103,7 @@ class CompanyContentService
             'tool_summary' => $toolSummary,
             'focus_summary' => $focusSummary,
             'latest_news_summary' => $latestNewsSummary,
+            'comparison_summary' => $comparisonSummary,
             'categories' => $categories,
             'model_names' => $modelNames->take(6),
             'tool_names' => $toolNames->take(6),

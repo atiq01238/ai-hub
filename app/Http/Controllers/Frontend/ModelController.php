@@ -10,6 +10,8 @@ use App\Models\NewsItem;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use App\Services\Seo\EntitySeoService;
+use App\Services\Seo\InternalLinkingService;
+use App\Services\Seo\ModelContentService;
 use App\Services\Taxonomy\TaxonomyNormalizer;
 use App\Services\Frontend\QuickFeedbackService;
 use App\Services\BenchmarkScoringService;
@@ -79,10 +81,10 @@ class ModelController extends Controller
         return view('frontend.models.index', compact('models','companies','capabilities','stats','leaders'));
     }
 
-    public function show(AiModel $model, EntitySeoService $seoService, QuickFeedbackService $feedback, BenchmarkScoringService $benchmarkScoring)
+    public function show(AiModel $model, EntitySeoService $seoService, QuickFeedbackService $feedback, BenchmarkScoringService $benchmarkScoring, InternalLinkingService $internalLinks, ModelContentService $contentService)
     {
         abort_unless(in_array($model->status, ['active','preview'], true), 404);
-        $model->load(['company','tool','featureTerms','useCaseTerms','tagTerms','pricingSources','benchmarkResults' => fn ($q) => $q->with('benchmark')->where('verified',true)->latest('tested_at')]);
+        $model->load(['company','tool.category','featureTerms','useCaseTerms','tagTerms','pricingSources','benchmarkResults' => fn ($q) => $q->with('benchmark')->where('verified',true)->where('status','verified')->latest('tested_at')]);
 
         $relatedModels = AiModel::with(['company','tool'])->whereIn('status',['active','preview'])->whereKeyNot($model->id)
             ->when($model->company_id, fn (Builder $q) => $q->where('company_id',$model->company_id))
@@ -93,10 +95,22 @@ class ModelController extends Controller
         }
 
         $latestNews = NewsItem::with('company')->where('status','published')->whereNull('duplicate_of_id')
+            ->where(fn (Builder $q) => $q->whereNull('duplicate_status')->orWhere('duplicate_status','!=','duplicate'))
             ->where(function (Builder $q) use ($model) {
                 if ($model->company_id) $q->where('company_id',$model->company_id); else $q->whereRaw('1=0');
                 $q->orWhere('headline','like','%'.$model->name.'%')->orWhere('summary','like','%'.$model->name.'%');
             })->latest('published_at')->take(4)->get();
+
+        $relatedComparisons = $internalLinks->comparisonsForModel($model, 4);
+
+        $lastUpdated = collect([
+            $model->updated_at,
+            $model->benchmarkResults->pluck('verified_at')->filter()->sortDesc()->first(),
+            $model->benchmarkResults->pluck('tested_at')->filter()->sortDesc()->first(),
+            $model->pricingSources->pluck('last_checked_at')->filter()->sortDesc()->first(),
+        ])->filter()->sortDesc()->first();
+
+        $contentSeo = $contentService->build($model, $relatedModels, $latestNews, $relatedComparisons);
 
         $benchmarks = collect($model->benchmarks ?? [])->map(fn ($score,$name) => ['name'=>$name,'score'=>(float)$score]);
         $capabilities = collect($model->capabilities ?? [])->filter()->values();
@@ -110,6 +124,6 @@ class ModelController extends Controller
         $seo = $seoService->model($model);
         $seoSchemas = $seoService->schemas('model', $model, $seo);
 
-        return view('frontend.models.show', compact('model','relatedModels','latestNews','benchmarks','capabilities','labResults','labStats','quickRating','benchmarkPrimaryClass','benchmarkClassComposites','seo','seoSchemas'));
+        return view('frontend.models.show', compact('model','relatedModels','relatedComparisons','latestNews','lastUpdated','contentSeo','benchmarks','capabilities','labResults','labStats','quickRating','benchmarkPrimaryClass','benchmarkClassComposites','seo','seoSchemas'));
     }
 }

@@ -125,6 +125,7 @@
         <a href="#models">AI Models</a>
         <a href="#news">Latest News</a>
         @if($articles->count())<a href="#articles">Articles</a>@endif
+        @if($relatedComparisons->isNotEmpty())<a href="#comparisons">Comparisons</a>@endif
         @if($contentSeo['faq']->count())<a href="#faq">FAQ</a>@endif
     </div>
 </nav>
@@ -150,6 +151,9 @@
                             <p>{{ $contentSeo['portfolio_summary'] }}</p>
                             @if($contentSeo['focus_summary'])
                                 <p>{{ $contentSeo['focus_summary'] }}</p>
+                            @endif
+                            @if($contentSeo['comparison_summary'])
+                                <p>{{ $contentSeo['comparison_summary'] }}</p>
                             @endif
                         </div>
 
@@ -186,10 +190,10 @@
                             </div>
                         @endif
 
-                        @if($contentSeo['categories']->count())
+                        @if($focusCategories->isNotEmpty())
                             <div class="company-focus-tags" aria-label="{{ $company->name }} AI focus areas">
-                                @foreach($contentSeo['categories'] as $category)
-                                    <a href="{{ route('tools.index', ['category' => \Illuminate\Support\Str::slug($category)]) }}">{{ $category }}</a>
+                                @foreach($focusCategories as $category)
+                                    <a href="{{ route('categories.show', $category) }}">{{ $category->name }}</a>
                                 @endforeach
                             </div>
                         @endif
@@ -277,6 +281,28 @@
                                         <small>{{ $article->category ?: 'AI Research' }} @if($article->published_at)· {{ $article->published_at->format('M j, Y') }}@endif</small>
                                         <strong>{{ $article->title }}</strong>
                                         <span>{{ \Illuminate\Support\Str::limit($article->summary ?: strip_tags($article->content), 115) }}</span>
+                                    </div>
+                                    <i data-lucide="arrow-up-right"></i>
+                                </a>
+                            @endforeach
+                        </div>
+                    </section>
+                @endif
+
+                @if($relatedComparisons->isNotEmpty())
+                    <section class="company-block" id="comparisons">
+                        <div class="company-block-head">
+                            <div><span class="company-kicker">SIDE-BY-SIDE RESEARCH</span><h2>{{ $company->name }} Comparisons</h2></div>
+                            <a href="{{ route('comparisons.index') }}">Browse comparisons <i data-lucide="arrow-right"></i></a>
+                        </div>
+                        <p class="company-comparison-intro">Published comparisons connect {{ $company->name }} products or models with other catalog entries using the evidence currently available on AI Orbit.</p>
+                        <div class="company-comparison-grid">
+                            @foreach($relatedComparisons as $comparison)
+                                <a href="{{ route('comparisons.show', $comparison) }}">
+                                    <div>
+                                        <small>{{ ucfirst($comparison->comparable_type) }} comparison</small>
+                                        <strong>{{ $comparison->title }}</strong>
+                                        <span>{{ $comparison->last_verified_at ? 'Verified '.$comparison->last_verified_at->format('M j, Y') : 'Published comparison' }}</span>
                                     </div>
                                     <i data-lucide="arrow-up-right"></i>
                                 </a>

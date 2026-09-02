@@ -68,7 +68,7 @@
         <nav class="tool-breadcrumb" aria-label="Breadcrumb">
             <a href="{{ route('home') }}">Home</a><i data-lucide="chevron-right"></i>
             <a href="{{ route('tools.index') }}">AI Tools</a><i data-lucide="chevron-right"></i>
-            @if($tool->category)<a href="{{ route('tools.index', ['category'=>$tool->category->slug]) }}">{{ $tool->category->name }}</a><i data-lucide="chevron-right"></i>@endif
+            @if($tool->category)<a href="{{ route('categories.show', $tool->category) }}">{{ $tool->category->name }}</a><i data-lucide="chevron-right"></i>@endif
             <span>{{ $tool->name }}</span>
         </nav>
 
@@ -85,7 +85,7 @@
                         @if($tool->launch_date)<span class="launch-pill">Since {{ $tool->launch_date->format('Y') }}</span>@endif
                     </div>
                     <h1>{{ $tool->name }}</h1>
-                    <p class="tool-company-line">by @if($tool->company)<strong>{{ $tool->company->name }}</strong>@else<strong>Independent</strong>@endif @if($tool->subcategoryTerm)<span>•</span>{{ $tool->subcategoryTerm->name }}@elseif($tool->subcategory)<span>•</span>{{ $tool->subcategory }}@endif</p>
+                    <p class="tool-company-line">by @if($tool->company && in_array($tool->company->status, ['active','acquired'], true))<a href="{{ route('companies.show',$tool->company) }}"><strong>{{ $tool->company->name }}</strong></a>@elseif($tool->company)<strong>{{ $tool->company->name }}</strong>@else<strong>Independent</strong>@endif @if($tool->subcategoryTerm)<span>•</span>{{ $tool->subcategoryTerm->name }}@elseif($tool->subcategory)<span>•</span>{{ $tool->subcategory }}@endif</p>
                     <p class="tool-hero-description">{{ $tool->short_description ?: Str::limit(strip_tags($tool->description), 220) }}</p>
                 </div>
             </div>
@@ -98,7 +98,7 @@
                 <span><i data-lucide="badge-dollar-sign"></i><small>Pricing</small><b>{{ $priceLabel }}</b></span>
                 <span><i data-lucide="shield-check"></i><small>Data confidence</small><b>{{ $dataConfidence['score'] }}/100</b></span>
                 <span><i data-lucide="monitor-smartphone"></i><small>Platforms</small><b>{{ $platforms->take(2)->join(' + ') ?: 'Web' }}</b></span>
-                @if($tool->company)<span><i data-lucide="building-2"></i><small>Company</small><b>{{ $tool->company->name }}</b></span>@endif
+                @if($tool->company)<span><i data-lucide="building-2"></i><small>Company</small><b>@if(in_array($tool->company->status, ['active','acquired'], true))<a href="{{ route('companies.show',$tool->company) }}">{{ $tool->company->name }}</a>@else{{ $tool->company->name }}@endif</b></span>@endif
             </div>
             <div class="tool-hero-actions">
                 <button type="button" class="detail-secondary-btn" data-save-item data-save-type="tool" data-save-id="{{ $tool->id }}" aria-pressed="false"><i data-lucide="bookmark"></i><span data-save-label data-default-label="Save">Save</span></button>
@@ -132,6 +132,7 @@
             @elseif($publishedReviews->where('review_type','user')->isNotEmpty())
                 <a href="#community-reviews">Reviews</a>
             @endif
+            @if($relatedComparisons->isNotEmpty())<a href="#comparisons">Comparisons</a>@endif
             @if($relatedTools->isNotEmpty())<a href="#alternatives">Alternatives</a>@endif
         </div>
     </div>
@@ -443,6 +444,20 @@
         </section>
         @endif
 
+        @if($relatedComparisons->isNotEmpty())
+        <section class="detail-panel" id="comparisons">
+            <div class="detail-section-head"><div><span>Comparisons</span><h2>{{ $tool->name }} side-by-side comparisons</h2><p>Published comparisons connect this tool with other current catalog products.</p></div><i data-lucide="scale"></i></div>
+            <div class="tool-comparison-grid">
+                @foreach($relatedComparisons as $comparison)
+                    <a href="{{ route('comparisons.show',$comparison) }}">
+                        <span><i data-lucide="scale"></i><b>{{ $comparison->title }}</b><small>{{ $comparison->last_verified_at ? 'Verified '.$comparison->last_verified_at->format('M j, Y') : 'Published comparison' }}</small></span>
+                        <i data-lucide="arrow-up-right"></i>
+                    </a>
+                @endforeach
+            </div>
+        </section>
+        @endif
+
         @if($relatedTools->isNotEmpty())
         <section class="detail-panel" id="alternatives">
             <div class="detail-section-head"><div><span>Alternatives</span><h2>Evidence-based similar tools</h2><p>Ranked by use-case, capability, pricing, platform, taxonomy and compatible benchmark overlap—not popularity alone.</p></div><i data-lucide="shuffle"></i></div>
@@ -486,23 +501,24 @@
         @if($tool->company)
         <section class="sidebar-card company-card-detail">
             <div class="sidebar-title"><span>Company</span><i data-lucide="building-2"></i></div>
-            <div class="company-detail-row">@if($tool->company->logo_path)<img src="{{ $tool->company->logo_url }}" alt="{{ $tool->company->name }} logo">@else<div class="company-letter">{{ strtoupper(substr($tool->company->name,0,1)) }}</div>@endif<div><h3>{{ $tool->company->name }}</h3>@if($tool->company->founded_year)<span>Founded {{ $tool->company->founded_year }}</span>@endif</div></div>
+            <div class="company-detail-row">@if($tool->company->logo_path)<img src="{{ $tool->company->logo_url }}" alt="{{ $tool->company->name }} logo">@else<div class="company-letter">{{ strtoupper(substr($tool->company->name,0,1)) }}</div>@endif<div><h3>@if(in_array($tool->company->status, ['active','acquired'], true))<a href="{{ route('companies.show',$tool->company) }}">{{ $tool->company->name }}</a>@else{{ $tool->company->name }}@endif</h3>@if($tool->company->founded_year)<span>Founded {{ $tool->company->founded_year }}</span>@endif</div></div>
             @if($tool->company->description)<p>{{ Str::limit($tool->company->description,160) }}</p>@endif
-            <div class="company-mini-stats"><span><b>{{ $tool->company->tools()->where('status','published')->count() }}</b>Tools</span><span><b>{{ $tool->company->models()->whereIn('status',['active','preview'])->count() }}</b>Models</span></div>
+            <div class="company-mini-stats"><span><b>{{ $tool->company->published_tools_count ?? 0 }}</b>Tools</span><span><b>{{ $tool->company->active_models_count ?? 0 }}</b>Models</span></div>
+            @if(in_array($tool->company->status, ['active','acquired'], true))<a class="sidebar-entity-link" href="{{ route('companies.show',$tool->company) }}">Explore {{ $tool->company->name }} profile <i data-lucide="arrow-right"></i></a>@endif
         </section>
         @endif
 
         @if($tool->models->isNotEmpty())
         <section class="sidebar-card">
             <div class="sidebar-title"><span>Related models</span><i data-lucide="cpu"></i></div>
-            <div class="related-model-list">@foreach($tool->models->take(4) as $model)<div><img src="{{ $model->logo_url }}" alt="{{ $model->name }}"><span><b>{{ $model->name }}</b><small>@if($model->context_window){{ $model->context_window }} context @else{{ $model->version ?: 'AI model' }}@endif</small></span>@if($model->benchmark_score)<em>{{ number_format((float)$model->benchmark_score,1) }}</em>@endif</div>@endforeach</div>
+            <div class="related-model-list">@foreach($tool->models->take(4) as $model)<a href="{{ route('models.show',$model) }}"><img src="{{ $model->logo_url }}" alt="{{ $model->name }} AI model logo"><span><b>{{ $model->name }}</b><small>@if($model->context_window){{ $model->context_window }} context @else{{ $model->version ?: 'AI model' }}@endif</small></span>@if($model->benchmark_score)<em>{{ number_format((float)$model->benchmark_score,1) }}</em>@endif</a>@endforeach</div>
         </section>
         @endif
 
         @if($latestNews->isNotEmpty())
         <section class="sidebar-card">
             <div class="sidebar-title"><span>Latest news</span><i data-lucide="radio"></i></div>
-            <div class="tool-news-list">@foreach($latestNews as $news)<article>@if($news->image_path)<img src="{{ $news->image_url }}" alt="">@endif<div><span>{{ $news->category ?: 'AI News' }} @if($news->published_at)• {{ $news->published_at->diffForHumans() }}@endif</span><h3>{{ Str::limit($news->headline,75) }}</h3></div></article>@endforeach</div>
+            <div class="tool-news-list">@foreach($latestNews as $news)<a href="{{ route('news.show',$news) }}"><article>@if($news->image_path)<img src="{{ $news->image_url }}" alt="{{ $news->headline }}">@endif<div><span>{{ $news->category ?: 'AI News' }} @if($news->published_at)• {{ $news->published_at->diffForHumans() }}@endif</span><h3>{{ Str::limit($news->headline,75) }}</h3></div></article></a>@endforeach</div>
         </section>
         @endif
     </aside>

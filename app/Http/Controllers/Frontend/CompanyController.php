@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Frontend;
 
 use App\Http\Controllers\Controller;
 use App\Models\AiModel;
+use App\Models\Category;
 use App\Models\Company;
 use App\Models\NewsItem;
 use App\Models\Tool;
 use App\Services\Seo\CompanySeoService;
 use App\Services\Seo\CompanyContentService;
+use App\Services\Seo\InternalLinkingService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
@@ -85,7 +87,7 @@ class CompanyController extends Controller
         return view('frontend.companies.index', compact('companies', 'stats', 'leaders'));
     }
 
-    public function show(Company $company, CompanySeoService $seoService, CompanyContentService $contentService)
+    public function show(Company $company, CompanySeoService $seoService, CompanyContentService $contentService, InternalLinkingService $internalLinks)
     {
         abort_unless($company->status !== 'inactive', 404);
 
@@ -120,6 +122,17 @@ class CompanyController extends Controller
             ->distinct()
             ->pluck('category_id');
 
+        $focusCategories = Category::query()
+            ->product()
+            ->active()
+            ->whereIn('id', $categoryIds)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->take(5)
+            ->get();
+
+        $relatedComparisons = $internalLinks->comparisonsForCompany($company, 6);
+
         $relatedCompanies = Company::query()
             ->withCount([
                 'tools as published_tools_count' => fn ($q) => $q->where('status', 'published'),
@@ -153,7 +166,7 @@ class CompanyController extends Controller
             $articles->max('updated_at'),
         ])->filter()->sortDesc()->first();
 
-        $contentSeo = $contentService->build($company, $tools, $models, $news, $articles);
+        $contentSeo = $contentService->build($company, $tools, $models, $news, $articles, $relatedComparisons);
 
         $seo = $seoService->build(
             $company,
@@ -164,7 +177,7 @@ class CompanyController extends Controller
         );
 
         return view('frontend.companies.show', compact(
-            'company', 'tools', 'models', 'news', 'articles', 'relatedCompanies', 'lastUpdated', 'seo', 'contentSeo'
+            'company', 'tools', 'models', 'news', 'articles', 'relatedCompanies', 'relatedComparisons', 'focusCategories', 'lastUpdated', 'seo', 'contentSeo'
         ));
     }
 }

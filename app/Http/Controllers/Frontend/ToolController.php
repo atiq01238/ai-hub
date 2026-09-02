@@ -15,6 +15,7 @@ use App\Models\Tool;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use App\Services\Seo\EntitySeoService;
+use App\Services\Seo\InternalLinkingService;
 use App\Services\Frontend\QuickFeedbackService;
 use App\Services\Tools\ToolCommercialProfileService;
 use App\Services\Tools\ToolAlternativeScoringService;
@@ -122,7 +123,7 @@ class ToolController extends Controller
         ));
     }
 
-    public function show(Tool $tool, EntitySeoService $seoService, QuickFeedbackService $feedback, BenchmarkScoringService $benchmarkScoring, ToolAlternativeScoringService $alternatives, ToolDataConfidenceService $confidence)
+    public function show(Tool $tool, EntitySeoService $seoService, QuickFeedbackService $feedback, BenchmarkScoringService $benchmarkScoring, ToolAlternativeScoringService $alternatives, ToolDataConfidenceService $confidence, InternalLinkingService $internalLinks)
     {
         abort_unless($tool->status === 'published', 404);
 
@@ -153,6 +154,13 @@ class ToolController extends Controller
                 ->latest('tested_at')
                 ->latest('id'),
         ]);
+
+        if ($tool->company) {
+            $tool->company->loadCount([
+                'tools as published_tools_count' => fn ($query) => $query->where('status', 'published'),
+                'models as active_models_count' => fn ($query) => $query->whereIn('status', ['active', 'preview']),
+            ]);
+        }
 
         $benchmarkResults = $tool->benchmarkResults
             ->filter(fn ($result) => $result->benchmark)
@@ -223,11 +231,13 @@ class ToolController extends Controller
         $priceLabel = $this->commercialProfile->summaryLabel($tool, $pricingPlans);
 
         $relatedTools = $alternatives->alternatives($tool, 4);
+        $relatedComparisons = $internalLinks->comparisonsForTool($tool, 4);
 
         $latestNews = NewsItem::query()
             ->with('company')
             ->where('status', 'published')
             ->whereNull('duplicate_of_id')
+            ->where(fn (Builder $query) => $query->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate'))
             ->where(function (Builder $query) use ($tool) {
                 if ($tool->company_id) {
                     $query->where('company_id', $tool->company_id);
@@ -277,6 +287,7 @@ class ToolController extends Controller
             'tool',
             'pricingPlans',
             'relatedTools',
+            'relatedComparisons',
             'latestNews',
             'editorReview',
             'editorialReviews',

@@ -280,14 +280,15 @@ class EntitySeoService
 
     public function model(AiModel $model): array
     {
-        $model->loadMissing(['company', 'featureTerms']);
+        $model->loadMissing(['company', 'tool.category', 'featureTerms', 'useCaseTerms', 'pricingSources', 'benchmarkResults.benchmark']);
 
         $company = $model->company?->name ?? 'its provider';
         $legacyCaps = collect($model->capabilities ?? [])->filter()->values();
         $taxonomyCaps = $model->featureTerms->pluck('name')->filter()->values();
         $caps = ($taxonomyCaps->isNotEmpty() ? $taxonomyCaps : $legacyCaps)->unique()->take(5)->values();
 
-        $title = $model->name.' AI Model: Specs, Pricing, Benchmarks & Capabilities';
+        $titleBase = $model->name.($model->company ? ' by '.$company : '').' — Specs, Pricing & Benchmarks';
+        $title = Str::limit($titleBase, 66, '');
         $parts = ['Explore '.$model->name.' by '.$company];
         if ($model->version) $parts[] = 'version '.$model->version;
         if ($model->context_window) $parts[] = 'context window '.$model->context_window;
@@ -303,14 +304,23 @@ class EntitySeoService
             $overviewAnswer = $model->name.' is an AI model from '.$company.'.';
         }
 
+        $useCases = $model->useCaseTerms->pluck('name')->filter()->unique()->take(5)->values();
+        $pricingParts = collect([
+            $model->input_price_per_million !== null ? '$'.number_format((float) $model->input_price_per_million, 2).' per 1M input tokens' : null,
+            $model->output_price_per_million !== null ? '$'.number_format((float) $model->output_price_per_million, 2).' per 1M output tokens' : null,
+        ])->filter()->values();
+
         $faq = [
             ['q' => 'What is '.$model->name.'?', 'a' => Str::limit($overviewAnswer, 360)],
             ['q' => 'Who created '.$model->name.'?', 'a' => $model->company ? $model->name.' is provided by '.$model->company->name.'.' : 'The provider is not currently listed in AI Orbit.'],
             ['q' => 'What can '.$model->name.' do?', 'a' => $caps->isNotEmpty() ? 'Its listed capabilities include '.$caps->join(', ').'.' : 'Capability details are shown on this model profile when verified data is available.'],
+            ['q' => 'What is '.$model->name.' useful for?', 'a' => $useCases->isNotEmpty() ? 'AI Orbit currently maps '.$model->name.' to use cases including '.$useCases->join(', ', ' and ').'.' : 'Structured use-case mappings have not yet been added to this profile.'],
             ['q' => 'What is the context window of '.$model->name.'?', 'a' => $model->context_window ? 'AI Orbit currently lists the context window as '.$model->context_window.'.' : 'A verified context-window value is not currently listed.'],
-            ['q' => 'How much does '.$model->name.' cost?', 'a' => ($model->input_price_per_million !== null || $model->output_price_per_million !== null)
-                ? 'The profile lists token pricing where available. Current values should be checked against the provider before production use.'
-                : 'Verified token pricing is not currently listed on this profile; check the provider for current rates.'],
+            ['q' => 'How much does '.$model->name.' cost?', 'a' => $pricingParts->isNotEmpty()
+                ? 'AI Orbit currently lists '.$pricingParts->join(' and ').'. Provider pricing can change, so check the linked official pricing source before production use.'
+                : ($model->pricingSources->isNotEmpty()
+                    ? 'AI Orbit monitors official pricing sources for this model, but a current token price is not displayed. Check the provider source for the latest rates.'
+                    : 'Verified token pricing is not currently listed on this profile; check the provider for current rates.')],
         ];
 
         return compact('title','description','faq','caps');
@@ -318,58 +328,143 @@ class EntitySeoService
 
     public function schemas(string $kind, object $entity, array $seo): array
     {
-        $url = $kind === 'tool' ? route('tools.show',$entity) : route('models.show',$entity);
-        $breadcrumb = [
-            '@type'=>'BreadcrumbList',
-            'itemListElement'=>[
-                ['@type'=>'ListItem','position'=>1,'name'=>'Home','item'=>route('home')],
-                ['@type'=>'ListItem','position'=>2,'name'=>$kind === 'tool' ? 'AI Tools' : 'AI Models','item'=>$kind === 'tool' ? route('tools.index') : route('models.index')],
-                ['@type'=>'ListItem','position'=>3,'name'=>$entity->name,'item'=>$url],
+        $url = $kind === 'tool' ? route('tools.show', $entity) : route('models.show', $entity);
+
+        $breadcrumbItems = [
+            ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => route('home')],
+            [
+                '@type' => 'ListItem',
+                'position' => 2,
+                'name' => $kind === 'tool' ? 'AI Tools' : 'AI Models',
+                'item' => $kind === 'tool' ? route('tools.index') : route('models.index'),
             ],
         ];
+
+        if ($kind === 'tool') {
+            $entity->loadMissing(['company', 'category', 'subcategoryTerm']);
+
+            if ($entity->category && $entity->category->is_active) {
+                $breadcrumbItems[] = [
+                    '@type' => 'ListItem',
+                    'position' => count($breadcrumbItems) + 1,
+                    'name' => $entity->category->name,
+                    'item' => route('categories.show', $entity->category),
+                ];
+            }
+
+            if ($entity->subcategoryTerm && $entity->subcategoryTerm->is_active && $entity->category) {
+                $breadcrumbItems[] = [
+                    '@type' => 'ListItem',
+                    'position' => count($breadcrumbItems) + 1,
+                    'name' => $entity->subcategoryTerm->name,
+                    'item' => route('categories.subcategories.show', [$entity->category, $entity->subcategoryTerm]),
+                ];
+            }
+        } elseif ($entity->company && in_array($entity->company->status, ['active', 'acquired'], true)) {
+            $breadcrumbItems[] = [
+                '@type' => 'ListItem',
+                'position' => count($breadcrumbItems) + 1,
+                'name' => $entity->company->name,
+                'item' => route('companies.show', $entity->company),
+            ];
+        }
+
+        $breadcrumbItems[] = [
+            '@type' => 'ListItem',
+            'position' => count($breadcrumbItems) + 1,
+            'name' => $entity->name,
+            'item' => $url,
+        ];
+
+        $breadcrumb = [
+            '@type' => 'BreadcrumbList',
+            'itemListElement' => $breadcrumbItems,
+        ];
+
         $faq = [
-            '@type'=>'FAQPage',
-            'mainEntity'=>collect($seo['faq'])->map(fn($item)=>[
-                '@type'=>'Question','name'=>$item['q'],
-                'acceptedAnswer'=>['@type'=>'Answer','text'=>$item['a']],
+            '@type' => 'FAQPage',
+            'mainEntity' => collect($seo['faq'])->map(fn ($item) => [
+                '@type' => 'Question',
+                'name' => $item['q'],
+                'acceptedAnswer' => ['@type' => 'Answer', 'text' => $item['a']],
             ])->values()->all(),
         ];
 
         if ($kind === 'tool') {
             $main = [
-                '@type'=>'SoftwareApplication',
-                '@id'=>$url.'#software',
-                'name'=>$entity->name,
-                'url'=>$url,
-                'description'=>$seo['description'],
-                'applicationCategory'=>$entity->category?->name ?: 'Artificial Intelligence',
-                'operatingSystem'=>collect($entity->platforms ?? [])->filter()->join(', ') ?: 'Web',
-                'image'=>$this->absoluteUrl($entity->logo_url),
+                '@type' => 'SoftwareApplication',
+                '@id' => $url.'#software',
+                'name' => $entity->name,
+                'url' => $url,
+                'description' => $seo['description'],
+                'applicationCategory' => $entity->category?->name ?: 'Artificial Intelligence',
+                'operatingSystem' => collect($entity->platforms ?? [])->filter()->join(', ') ?: 'Web',
+                'image' => $this->absoluteUrl($entity->logo_url),
             ];
-            if ($entity->company) $main['author']=['@type'=>'Organization','name'=>$entity->company->name,'url'=>route('companies.show',$entity->company)];
-            if ((float)$entity->rating > 0 && $entity->reviews->count() > 0) $main['aggregateRating']=['@type'=>'AggregateRating','ratingValue'=>(float)$entity->rating,'bestRating'=>5,'ratingCount'=>$entity->reviews->count()];
+
+            if ($entity->company && in_array($entity->company->status, ['active', 'acquired'], true)) {
+                $main['author'] = [
+                    '@type' => 'Organization',
+                    'name' => $entity->company->name,
+                    'url' => route('companies.show', $entity->company),
+                ];
+            }
+
+            if ((float) $entity->rating > 0 && $entity->reviews->count() > 0) {
+                $main['aggregateRating'] = [
+                    '@type' => 'AggregateRating',
+                    'ratingValue' => (float) $entity->rating,
+                    'bestRating' => 5,
+                    'ratingCount' => $entity->reviews->count(),
+                ];
+            }
         } else {
-            $main = [
-                '@type'=>'TechArticle',
-                '@id'=>$url.'#profile',
-                'headline'=>$seo['title'],
-                'name'=>$entity->name,
-                'url'=>$url,
-                'description'=>$seo['description'],
-                'image'=>$this->absoluteUrl($entity->logo_url),
-                'about'=>[
-                    '@type'=>'Thing',
-                    'name'=>$entity->name,
-                    'description'=>$entity->capability_notes ?: $seo['description'],
+            $modelEntity = array_filter([
+                '@type' => 'Thing',
+                '@id' => $url.'#ai-model',
+                'name' => $entity->name,
+                'description' => $entity->capability_notes ?: $seo['description'],
+                'image' => $this->absoluteUrl($entity->logo_url),
+            ], fn ($value) => $value !== null && $value !== '');
+
+            $mentions = [];
+
+            if ($entity->company && in_array($entity->company->status, ['active', 'acquired'], true)) {
+                $mentions[] = [
+                    '@type' => 'Organization',
+                    'name' => $entity->company->name,
+                    'url' => route('companies.show', $entity->company),
+                ];
+            }
+
+            if ($entity->tool && $entity->tool->status === 'published') {
+                $mentions[] = [
+                    '@type' => 'SoftwareApplication',
+                    'name' => $entity->tool->name,
+                    'url' => route('tools.show', $entity->tool),
+                ];
+            }
+
+            $main = array_filter([
+                '@type' => 'WebPage',
+                '@id' => $url.'#webpage',
+                'name' => $seo['title'],
+                'url' => $url,
+                'description' => $seo['description'],
+                'dateModified' => $entity->updated_at?->toAtomString(),
+                'mainEntity' => $modelEntity,
+                'mentions' => $mentions ?: null,
+                'isPartOf' => [
+                    '@type' => 'WebSite',
+                    'name' => 'AI Orbit',
+                    'url' => route('home'),
                 ],
-            ];
-            if ($entity->company) $main['author']=['@type'=>'Organization','name'=>$entity->company->name,'url'=>route('companies.show',$entity->company)];
-            if ($entity->release_date) $main['datePublished']=$entity->release_date->toDateString();
-            $main['dateModified']=$entity->updated_at?->toAtomString();
+            ], fn ($value) => $value !== null && $value !== '');
         }
 
-        return [$main,$breadcrumb,$faq];
+        return [$main, $breadcrumb, $faq];
     }
+
     private function hasVerifiedTechnicalSource(?int $sourceId, $verifiedSources): bool
     {
         return $sourceId !== null && $verifiedSources->has((int) $sourceId);
