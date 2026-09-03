@@ -107,8 +107,18 @@ class ModelContentService
             return 'AI Orbit currently lists '.$this->naturalList($parts).'. Provider pricing can change, so production decisions should be checked against the linked official pricing source.';
         }
 
+        if (filled($model->pricing_basis) || filled($model->pricing_summary)) {
+            $profile = collect([
+                filled($model->pricing_type_label) ? 'AI Orbit classifies the commercial model as '.$model->pricing_type_label.'.' : null,
+                filled($model->pricing_basis) ? 'Verified pricing basis: '.$model->pricing_basis.'.' : null,
+                filled($model->pricing_summary) ? $model->pricing_summary : null,
+            ])->filter()->join(' ');
+
+            return trim($profile).' Provider terms can change, so production decisions should be checked against the linked official source.';
+        }
+
         if ($model->pricingSources->isNotEmpty()) {
-            return 'Official pricing sources are monitored for this model, but a current token price is not displayed in the profile. Check the provider source for the latest commercial terms.';
+            return 'Official pricing sources are monitored for this model, but a current generic token price is not displayed in the profile. Check the provider source for the applicable commercial terms.';
         }
 
         return null;

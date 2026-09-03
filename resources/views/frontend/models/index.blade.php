@@ -76,7 +76,7 @@
     JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
 ) !!}</script>
 @endpush
-@push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/models.css') }}?v=20260901-seo4">@endpush
+@push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/models.css') }}?v=20260903-p56">@endpush
 @section('content')
 <section class="model-hero model-hero-wave">
 <div class="model-wave-art" aria-hidden="true"></div><div class="model-wave-shade" aria-hidden="true"></div>
@@ -322,8 +322,13 @@
 
                                 <div class="model-specs">
                                     <div><i data-lucide="braces"></i><span>Context<strong>{{ $model->context_window ?: '—' }}</strong></span></div>
-                                    <div><i data-lucide="arrow-down-to-line"></i><span>Input / 1M<strong>{{ $model->input_price_per_million !== null ? '$'.number_format((float)$model->input_price_per_million,2) : '—' }}</strong></span></div>
-                                    <div><i data-lucide="arrow-up-from-line"></i><span>Output / 1M<strong>{{ $model->output_price_per_million !== null ? '$'.number_format((float)$model->output_price_per_million,2) : '—' }}</strong></span></div>
+                                    @if($model->hasTokenPricing())
+                                        <div><i data-lucide="arrow-down-to-line"></i><span>Input / 1M<strong>{{ $model->input_price_per_million !== null ? '$'.number_format((float)$model->input_price_per_million,2) : '—' }}</strong></span></div>
+                                        <div><i data-lucide="arrow-up-from-line"></i><span>Output / 1M<strong>{{ $model->output_price_per_million !== null ? '$'.number_format((float)$model->output_price_per_million,2) : '—' }}</strong></span></div>
+                                    @else
+                                        <div><i data-lucide="wallet-cards"></i><span>Pricing<strong class="model-spec-text">{{ $model->pricing_type_label }}</strong></span></div>
+                                        <div><i data-lucide="shield-check"></i><span>Evidence<strong class="model-spec-text">{{ $model->pricing_verification_label }}</strong></span></div>
+                                    @endif
                                 </div>
 
                                 <div class="model-caps">

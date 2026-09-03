@@ -15,6 +15,7 @@ use App\Services\Seo\ModelContentService;
 use App\Services\Taxonomy\TaxonomyNormalizer;
 use App\Services\Frontend\QuickFeedbackService;
 use App\Services\BenchmarkScoringService;
+use App\Services\ModelConfidenceService;
 
 class ModelController extends Controller
 {
@@ -88,10 +89,10 @@ class ModelController extends Controller
         return view('frontend.models.index', compact('models','companies','capabilities','stats','leaders','providerHubs','featureHubs'));
     }
 
-    public function show(AiModel $model, EntitySeoService $seoService, QuickFeedbackService $feedback, BenchmarkScoringService $benchmarkScoring, InternalLinkingService $internalLinks, ModelContentService $contentService)
+    public function show(AiModel $model, EntitySeoService $seoService, QuickFeedbackService $feedback, BenchmarkScoringService $benchmarkScoring, InternalLinkingService $internalLinks, ModelContentService $contentService, ModelConfidenceService $confidenceService)
     {
-        abort_unless(in_array($model->status, ['active','preview'], true), 404);
-        $model->load(['company','tool.category','featureTerms','useCaseTerms','tagTerms','pricingSources','benchmarkResults' => fn ($q) => $q->with('benchmark')->where('verified',true)->where('status','verified')->latest('tested_at')]);
+        abort_unless(in_array($model->status, ['active','preview','deprecated'], true), 404);
+        $model->load(['company','tool.category','featureTerms','useCaseTerms','tagTerms','pricingSources','evidenceSources' => fn ($q) => $q->latest('verified_at'), 'benchmarkResults' => fn ($q) => $q->with('benchmark')->where('verified',true)->where('status','verified')->latest('tested_at')]);
 
         $relatedModels = AiModel::with(['company','tool'])->whereIn('status',['active','preview'])->whereKeyNot($model->id)
             ->when($model->company_id, fn (Builder $q) => $q->where('company_id',$model->company_id))
@@ -115,6 +116,9 @@ class ModelController extends Controller
             $model->benchmarkResults->pluck('verified_at')->filter()->sortDesc()->first(),
             $model->benchmarkResults->pluck('tested_at')->filter()->sortDesc()->first(),
             $model->pricingSources->pluck('last_checked_at')->filter()->sortDesc()->first(),
+            $model->evidenceSources->pluck('verified_at')->filter()->sortDesc()->first(),
+            $model->profile_verified_at,
+            $model->pricing_verified_at,
         ])->filter()->sortDesc()->first();
 
         $contentSeo = $contentService->build($model, $relatedModels, $latestNews, $relatedComparisons);
@@ -127,10 +131,12 @@ class ModelController extends Controller
         $quickRating = $feedback->ratingSummary('model', $model->id, auth()->user());
         $benchmarkPrimaryClass = $benchmarkScoring->primaryCompositeClass($model);
         $benchmarkClassComposites = $benchmarkScoring->classComposites($model);
+        $modelConfidence = $confidenceService->build($model);
+        $evidenceSources = $model->evidenceSources->sortByDesc('verified_at')->values();
 
         $seo = $seoService->model($model);
         $seoSchemas = $seoService->schemas('model', $model, $seo);
 
-        return view('frontend.models.show', compact('model','relatedModels','relatedComparisons','latestNews','lastUpdated','contentSeo','benchmarks','capabilities','labResults','labStats','quickRating','benchmarkPrimaryClass','benchmarkClassComposites','seo','seoSchemas'));
+        return view('frontend.models.show', compact('model','relatedModels','relatedComparisons','latestNews','lastUpdated','contentSeo','benchmarks','capabilities','labResults','labStats','quickRating','benchmarkPrimaryClass','benchmarkClassComposites','modelConfidence','evidenceSources','seo','seoSchemas'));
     }
 }

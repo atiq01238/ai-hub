@@ -190,7 +190,9 @@ class DataImportController extends Controller
             return back()->withErrors(['file' => $e->getMessage()]);
         }
 
-        if (count($rows) > 2000) return back()->withErrors(['file' => 'A single import is limited to 2,000 rows.']);
+        if (count($rows) > 2000) {
+            return back()->withErrors(['file' => 'A single import is limited to 2,000 rows.']);
+        }
 
         $companies = Company::query()->get(['id','name'])->keyBy(fn ($c) => mb_strtolower(trim($c->name)));
         $seen = [];
@@ -200,21 +202,35 @@ class DataImportController extends Controller
             $normalized = $this->normalizeModelRow($row);
             $normalized['capabilities'] = $taxonomy->canonicalFeatureNames($normalized['capabilities']);
             $errors = $this->validateModelRow($normalized);
-            foreach ($taxonomy->unknownFeatureNames($normalized['capabilities']) as $unknown) {
-                $errors[] = 'Unknown Taxonomy v2 capability: '.$unknown;
+
+            if (($normalized['_provided']['capabilities'] ?? false) === true) {
+                foreach ($taxonomy->unknownFeatureNames($normalized['capabilities']) as $unknown) {
+                    $errors[] = 'Unknown Taxonomy v2 capability: '.$unknown;
+                }
             }
+
             $company = $companies->get(mb_strtolower($normalized['company']));
-            if (! $company) $errors[] = 'Missing company in database: '.$normalized['company'];
+            if (! $company) {
+                $errors[] = 'Missing company in database: '.$normalized['company'];
+            }
 
             $key = mb_strtolower($normalized['company'].'|'.$normalized['name'].'|'.$normalized['version']);
-            if (isset($seen[$key])) $errors[] = 'Duplicate model inside this file.';
+            if (isset($seen[$key])) {
+                $errors[] = 'Duplicate model inside this file.';
+            }
             $seen[$key] = true;
 
-            $existing = $company ? AiModel::query()
-                ->where('company_id', $company->id)
-                ->where('name', $normalized['name'])
-                ->when($normalized['version'], fn ($q, $version) => $q->where('version', $version))
-                ->first() : null;
+            $existing = null;
+            if ($company) {
+                [$existing, $matchError] = $this->findExistingModelForImport(
+                    (int) $company->id,
+                    $normalized['name'],
+                    $normalized['version']
+                );
+                if ($matchError) {
+                    $errors[] = $matchError;
+                }
+            }
 
             $preview[] = $normalized + [
                 'company_id' => $company?->id,
@@ -229,8 +245,10 @@ class DataImportController extends Controller
         $directory = storage_path('app/import-previews');
         File::ensureDirectoryExists($directory);
         File::put($directory.'/'.$token.'.json', json_encode([
-            'type' => 'models', 'user_id' => $request->user()->id,
-            'created_at' => now()->toIso8601String(), 'rows' => $preview,
+            'type' => 'models',
+            'user_id' => $request->user()->id,
+            'created_at' => now()->toIso8601String(),
+            'rows' => $preview,
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 
         $stats = [
@@ -255,87 +273,179 @@ class DataImportController extends Controller
         $payload = json_decode(File::get($path), true);
         abort_unless(($payload['user_id'] ?? null) === $request->user()->id && ($payload['type'] ?? null) === 'models', 403);
 
-        $created=$updated=$skipped=$invalid=0;
+        $created = $updated = $skipped = $invalid = 0;
 
-        DB::transaction(function () use ($payload,$data,$taxonomy,&$created,&$updated,&$skipped,&$invalid) {
+        DB::transaction(function () use ($payload, $data, $taxonomy, &$created, &$updated, &$skipped, &$invalid) {
             foreach ($payload['rows'] ?? [] as $row) {
-                if (($row['state'] ?? '') === 'invalid' || !empty($row['errors']) || empty($row['company_id'])) { $invalid++; continue; }
+                if (($row['state'] ?? '') === 'invalid' || ! empty($row['errors']) || empty($row['company_id'])) {
+                    $invalid++;
+                    continue;
+                }
 
-                $modelData = [
-                    'company_id' => $row['company_id'],
-                    'name' => $row['name'],
-                    'version' => $row['version'] ?: null,
-                    'release_date' => $row['release_date'] ?: null,
-                    'context_window' => $row['context_window'] ?: null,
-                    'input_price_per_million' => $row['input_price_per_million'] === null ? null : $row['input_price_per_million'],
-                    'output_price_per_million' => $row['output_price_per_million'] === null ? null : $row['output_price_per_million'],
-                    'capabilities' => $row['capabilities'],
-                    'capability_notes' => $row['capability_notes'] ?: null,
-                    'benchmark_score' => $row['benchmark_score'],
-                    'status' => $row['status'],
-                ];
+                $provided = is_array($row['_provided'] ?? null) ? $row['_provided'] : [];
+                $existing = ! empty($row['existing_id']) ? AiModel::query()->find($row['existing_id']) : null;
 
-                $existing = AiModel::query()->where('company_id',$row['company_id'])->where('name',$row['name'])
-                    ->when($row['version'], fn ($q,$v) => $q->where('version',$v))->first();
+                if ($existing && (
+                    (int) $existing->company_id !== (int) $row['company_id'] ||
+                    $existing->name !== $row['name']
+                )) {
+                    $invalid++;
+                    continue;
+                }
 
                 if ($existing) {
-                    if ($data['existing_action']==='skip') { $skipped++; continue; }
-                    $modelData['slug'] = $existing->slug ?: $this->uniqueModelSlug($row['name'],$row['version'],$existing->id);
+                    if ($data['existing_action'] === 'skip') {
+                        $skipped++;
+                        continue;
+                    }
+
+                    $modelData = [
+                        'company_id' => $row['company_id'],
+                        'name' => $row['name'],
+                        // Preserve the current indexed URL. A model data import must never
+                        // silently regenerate an existing slug after Search Console indexing.
+                        'slug' => $existing->slug ?: $this->uniqueModelSlug($row['name'], $row['version'], $existing->id),
+                    ];
+
+                    $this->putProvidedModelField($modelData, $row, $provided, 'version', fn ($value) => $value ?: null);
+                    $this->putProvidedModelField($modelData, $row, $provided, 'release_date', fn ($value) => $value ?: null);
+                    $this->putProvidedModelField($modelData, $row, $provided, 'context_window', fn ($value) => $value ?: null);
+                    $this->putProvidedModelField($modelData, $row, $provided, 'input_price_per_million');
+                    $this->putProvidedModelField($modelData, $row, $provided, 'output_price_per_million');
+                    $this->putProvidedModelField($modelData, $row, $provided, 'capabilities');
+                    $this->putProvidedModelField($modelData, $row, $provided, 'capability_notes', fn ($value) => $value ?: null);
+                    $this->putProvidedModelField($modelData, $row, $provided, 'benchmark_score');
+                    $this->putProvidedModelField($modelData, $row, $provided, 'status');
+                    $this->putProvidedModelField($modelData, $row, $provided, 'official_source_url', fn ($value) => $value ?: null, 'source_url');
+
                     $existing->update($modelData);
                     $model = $existing;
                     $updated++;
                 } else {
-                    $modelData['slug'] = $this->uniqueModelSlug($row['name'],$row['version']);
+                    $modelData = [
+                        'company_id' => $row['company_id'],
+                        'name' => $row['name'],
+                        'slug' => $this->uniqueModelSlug($row['name'], $row['version']),
+                        'version' => ($provided['version'] ?? false) ? ($row['version'] ?: null) : null,
+                        'release_date' => ($provided['release_date'] ?? false) ? ($row['release_date'] ?: null) : null,
+                        'context_window' => ($provided['context_window'] ?? false) ? ($row['context_window'] ?: null) : null,
+                        'input_price_per_million' => ($provided['input_price_per_million'] ?? false) ? $row['input_price_per_million'] : null,
+                        'output_price_per_million' => ($provided['output_price_per_million'] ?? false) ? $row['output_price_per_million'] : null,
+                        'capabilities' => ($provided['capabilities'] ?? false) ? $row['capabilities'] : [],
+                        'capability_notes' => ($provided['capability_notes'] ?? false) ? ($row['capability_notes'] ?: null) : null,
+                        'benchmark_score' => ($provided['benchmark_score'] ?? false) ? $row['benchmark_score'] : null,
+                        'status' => ($provided['status'] ?? false) ? $row['status'] : 'active',
+                        'official_source_url' => ($provided['source_url'] ?? false) ? ($row['source_url'] ?: null) : null,
+                    ];
+
                     $model = AiModel::create($modelData);
                     $created++;
                 }
 
-                $model->featureTerms()->sync($taxonomy->featureIds($row['capabilities']));
-                $model->useCaseTerms()->sync($taxonomy->inferredUseCaseIds($row['capabilities']));
+                // Blank-safe also applies to taxonomy pivots. An empty spreadsheet cell
+                // must not wipe already verified feature/use-case relationships.
+                if (! $existing || ($provided['capabilities'] ?? false)) {
+                    $model->featureTerms()->sync($taxonomy->featureIds($row['capabilities']));
+                    $model->useCaseTerms()->sync($taxonomy->inferredUseCaseIds($row['capabilities']));
+                }
             }
         });
 
         File::delete($path);
+
         return redirect()->route('admin.models.index')->with('status',
             "Model import complete: {$created} created, {$updated} updated, {$skipped} existing skipped, {$invalid} invalid skipped.");
     }
 
     private function normalizeModelRow(array $row): array
     {
-        $capabilities = preg_split('/[|,;]+/', (string)($row['capabilities'] ?? ''), -1, PREG_SPLIT_NO_EMPTY);
+        $hasValue = fn (string $key): bool => array_key_exists($key, $row) && trim((string) $row[$key]) !== '';
+        $capabilities = preg_split('/[|,;]+/', (string) ($row['capabilities'] ?? ''), -1, PREG_SPLIT_NO_EMPTY);
         $capabilities = array_values(array_unique(array_map('trim', $capabilities ?: [])));
-        $number = fn ($value) => trim((string)$value) === '' ? null : (float)$value;
+        $number = fn ($value) => trim((string) $value) === '' ? null : (float) $value;
 
         return [
-            'row_number' => (int)($row['row_number'] ?? 0),
-            'company' => trim((string)($row['company'] ?? '')),
-            'name' => trim((string)($row['name'] ?? '')),
-            'version' => trim((string)($row['version'] ?? '')),
-            'release_date' => trim((string)($row['release_date'] ?? '')),
-            'context_window' => trim((string)($row['context_window'] ?? '')),
+            'row_number' => (int) ($row['row_number'] ?? 0),
+            'company' => trim((string) ($row['company'] ?? '')),
+            'name' => trim((string) ($row['name'] ?? '')),
+            'version' => trim((string) ($row['version'] ?? '')),
+            'release_date' => trim((string) ($row['release_date'] ?? '')),
+            'context_window' => trim((string) ($row['context_window'] ?? '')),
             'input_price_per_million' => $number($row['input_price_per_million'] ?? ''),
             'output_price_per_million' => $number($row['output_price_per_million'] ?? ''),
             'capabilities' => $capabilities,
-            'capability_notes' => trim((string)($row['capability_notes'] ?? '')),
+            'capability_notes' => trim((string) ($row['capability_notes'] ?? '')),
             'benchmark_score' => $number($row['benchmark_score'] ?? ''),
-            'status' => strtolower(trim((string)($row['status'] ?? 'active'))) ?: 'active',
-            'source_url' => trim((string)($row['source_url'] ?? '')),
+            // Blank status means preserve on update; new rows still default to active.
+            'status' => strtolower(trim((string) ($row['status'] ?? ''))),
+            'source_url' => trim((string) ($row['source_url'] ?? '')),
+            '_provided' => [
+                'version' => $hasValue('version'),
+                'release_date' => $hasValue('release_date'),
+                'context_window' => $hasValue('context_window'),
+                'input_price_per_million' => $hasValue('input_price_per_million'),
+                'output_price_per_million' => $hasValue('output_price_per_million'),
+                'capabilities' => $hasValue('capabilities'),
+                'capability_notes' => $hasValue('capability_notes'),
+                'benchmark_score' => $hasValue('benchmark_score'),
+                'status' => $hasValue('status'),
+                'source_url' => $hasValue('source_url'),
+            ],
         ];
     }
 
     private function validateModelRow(array $row): array
     {
-        $errors=[];
-        if ($row['company']==='') $errors[]='Company is required.';
-        if ($row['name']==='') $errors[]='Model name is required.';
-        elseif (mb_strlen($row['name'])>255) $errors[]='Model name is too long.';
-        if ($row['version']!=='' && mb_strlen($row['version'])>50) $errors[]='Version is too long.';
-        if ($row['release_date']!=='' && !preg_match('/^\d{4}-\d{2}-\d{2}$/',$row['release_date'])) $errors[]='Release date must use YYYY-MM-DD.';
-        if ($row['context_window']!=='' && mb_strlen($row['context_window'])>50) $errors[]='Context window is too long.';
-        foreach (['input_price_per_million','output_price_per_million'] as $field) if ($row[$field]!==null && $row[$field]<0) $errors[]='Pricing cannot be negative.';
-        if ($row['benchmark_score'] !== null && ($row['benchmark_score'] < 0 || $row['benchmark_score'] > 100)) $errors[]='Benchmark score must be between 0 and 100.';
-        if (!in_array($row['status'],['active','deprecated','preview'],true)) $errors[]='Status must be active, deprecated or preview.';
+        $errors = [];
+        if ($row['company'] === '') $errors[] = 'Company is required.';
+        if ($row['name'] === '') $errors[] = 'Model name is required.';
+        elseif (mb_strlen($row['name']) > 255) $errors[] = 'Model name is too long.';
+        if ($row['version'] !== '' && mb_strlen($row['version']) > 50) $errors[] = 'Version is too long.';
+        if ($row['release_date'] !== '' && ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $row['release_date'])) $errors[] = 'Release date must use YYYY-MM-DD.';
+        if ($row['context_window'] !== '' && mb_strlen($row['context_window']) > 50) $errors[] = 'Context window is too long.';
+        foreach (['input_price_per_million','output_price_per_million'] as $field) {
+            if ($row[$field] !== null && $row[$field] < 0) $errors[] = 'Pricing cannot be negative.';
+        }
+        if ($row['benchmark_score'] !== null && ($row['benchmark_score'] < 0 || $row['benchmark_score'] > 100)) $errors[] = 'Benchmark score must be between 0 and 100.';
+        if ($row['status'] !== '' && ! in_array($row['status'], ['active','deprecated','preview'], true)) $errors[] = 'Status must be active, deprecated or preview.';
+        if ($row['source_url'] !== '' && ! filter_var($row['source_url'], FILTER_VALIDATE_URL)) $errors[] = 'Source URL is invalid.';
+
         return $errors;
+    }
+
+    private function findExistingModelForImport(int $companyId, string $name, string $version): array
+    {
+        $query = AiModel::query()
+            ->where('company_id', $companyId)
+            ->where('name', $name);
+
+        if ($version !== '') {
+            return [$query->where('version', $version)->first(), null];
+        }
+
+        $matches = $query->limit(2)->get();
+        if ($matches->count() > 1) {
+            return [null, 'Multiple existing models share this company and name. Add an exact version before importing.'];
+        }
+
+        return [$matches->first(), null];
+    }
+
+    private function putProvidedModelField(
+        array &$modelData,
+        array $row,
+        array $provided,
+        string $targetField,
+        ?callable $transform = null,
+        ?string $sourceField = null
+    ): void {
+        $sourceField ??= $targetField;
+        if (! ($provided[$sourceField] ?? false)) {
+            return;
+        }
+
+        $value = $row[$sourceField] ?? null;
+        $modelData[$targetField] = $transform ? $transform($value) : $value;
     }
 
     private function uniqueModelSlug(string $name, ?string $version=null, ?int $ignoreId=null): string

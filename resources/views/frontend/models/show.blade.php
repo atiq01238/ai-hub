@@ -20,7 +20,7 @@
     ) !!}</script>
 @endforeach
 @endpush
-@push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/models.css') }}">@endpush
+@push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/models.css') }}?v=20260903-p56">@endpush
 @section('content')
 <section class="model-detail-hero model-detail-hero-wave">
 <div class="model-detail-wave-art" aria-hidden="true"></div>
@@ -33,77 +33,106 @@
     'summary' => $quickRating,
     'label' => 'Rate '.$model->name,
 ])
-<div class="detail-metrics"><div><span>{{ $benchmarkPrimaryClass ? \App\Models\Benchmark::classLabel($benchmarkPrimaryClass).' composite' : 'Benchmark composite' }}</span><strong>{{ $model->benchmark_score !== null ? number_format((float)$model->benchmark_score,1) : '—' }}</strong><small>{{ $model->benchmark_score !== null ? '/100' : 'Not verified' }}</small></div><div><span>Context window</span><strong>{{ $model->context_window ?: '—' }}</strong><small>tokens</small></div><div><span>Input price</span><strong>{{ $model->input_price_per_million !== null ? '$'.number_format((float)$model->input_price_per_million,2) : '—' }}</strong><small>per 1M tokens</small></div><div><span>Output price</span><strong>{{ $model->output_price_per_million !== null ? '$'.number_format((float)$model->output_price_per_million,2) : '—' }}</strong><small>per 1M tokens</small></div></div></div></section>
-<nav class="model-detail-nav"><div class="model-wrap"><a href="#overview">Overview</a><a href="#capabilities">Capabilities</a><a href="#benchmarks">Benchmarks</a><a href="#pricing">Pricing</a>@if($relatedComparisons->isNotEmpty())<a href="#comparisons">Comparisons</a>@endif<a href="#related">Related models</a></div></nav>
+@php
+    $isTokenPricing = $model->hasTokenPricing();
+    $evidenceSources = $evidenceSources ?? collect();
+    $pricingSourcesForView = $model->pricingSources ?? collect();
+    $pricingSourceCount = $pricingSourcesForView->count();
+    $pricingEvidence = $evidenceSources->firstWhere('evidence_type', 'pricing');
+    $lastPricingCheck = collect([
+        $model->pricing_verified_at,
+        $pricingSourcesForView->pluck('last_checked_at')->filter()->sortDesc()->first(),
+    ])->filter()->sortDesc()->first();
+@endphp
+<div class="detail-metrics">
+    <div><span>{{ $benchmarkPrimaryClass ? \App\Models\Benchmark::classLabel($benchmarkPrimaryClass).' composite' : 'Benchmark composite' }}</span><strong>{{ $model->benchmark_score !== null ? number_format((float)$model->benchmark_score,1) : '—' }}</strong><small>{{ $model->benchmark_score !== null ? '/100 verified composite' : 'No verified claim' }}</small></div>
+    <div><span>Context window</span><strong>{{ $model->context_window ?: '—' }}</strong><small>{{ $model->context_window ? 'tokens' : 'Not applicable / not pinned' }}</small></div>
+    @if($isTokenPricing)
+        <div><span>Input price</span><strong>{{ $model->input_price_per_million !== null ? '$'.number_format((float)$model->input_price_per_million,2) : '—' }}</strong><small>per 1M tokens</small></div>
+        <div><span>Output price</span><strong>{{ $model->output_price_per_million !== null ? '$'.number_format((float)$model->output_price_per_million,2) : '—' }}</strong><small>per 1M tokens</small></div>
+    @else
+        <div><span>Pricing model</span><strong class="metric-text">{{ $model->pricing_type_label }}</strong><small>{{ $model->pricing_unit_label ?: 'Provider terms' }}</small></div>
+        <div><span>Pricing evidence</span><strong class="metric-text">{{ $model->pricing_verification_label }}</strong><small>{{ $model->pricing_verified_at?->format('M j, Y') ?? 'Not verified' }}</small></div>
+    @endif
+</div></div></section>
+<nav class="model-detail-nav"><div class="model-wrap"><a href="#overview">Overview</a><a href="#capabilities">Capabilities</a><a href="#benchmarks">Benchmarks</a><a href="#pricing">Pricing</a><a href="#evidence">Evidence</a>@if($relatedComparisons->isNotEmpty())<a href="#comparisons">Comparisons</a>@endif<a href="#related">Related models</a></div></nav>
 <section class="model-detail-body"><div class="model-wrap detail-layout"><main><section id="overview" class="detail-block"><span class="section-kicker">MODEL OVERVIEW</span><h2>About {{ $model->name }}</h2><div class="detail-lead model-intelligence-copy"><p>{{ $contentSeo['intro'] }}</p>@if($contentSeo['profile_summary'])<p>{{ $contentSeo['profile_summary'] }}</p>@endif @if($contentSeo['capability_summary'])<p>{{ $contentSeo['capability_summary'] }}</p>@endif @if($contentSeo['performance_summary'])<p>{{ $contentSeo['performance_summary'] }}</p>@endif @if($contentSeo['pricing_summary'])<p>{{ $contentSeo['pricing_summary'] }}</p>@endif @if($contentSeo['ecosystem_summary'])<p>{{ $contentSeo['ecosystem_summary'] }}</p>@endif</div>@if($contentSeo['facts']->isNotEmpty())<div class="model-knowledge-facts" aria-label="{{ $model->name }} key facts">@foreach($contentSeo['facts'] as $fact)<div><span>{{ $fact['label'] }}</span><strong>{{ $fact['value'] }}</strong></div>@endforeach</div>@endif<div class="spec-table"><div><span>Provider</span><strong>@if($model->company && in_array($model->company->status, ['active','acquired'], true))<a href="{{ route('companies.show',$model->company) }}">{{ $model->company->name }}</a>@else{{ $model->company?->name ?? '—' }}@endif</strong></div><div><span>Version</span><strong>{{ $model->version ?: '—' }}</strong></div><div><span>Release date</span><strong>{{ $model->release_date?->format('F j, Y') ?? '—' }}</strong></div><div><span>Status</span><strong>{{ ucfirst($model->status) }}</strong></div><div><span>Context window</span><strong>{{ $model->context_window ?: '—' }}</strong></div><div><span>Associated product</span><strong>@if($model->tool && $model->tool->status === 'published')<a href="{{ route('tools.show',$model->tool) }}">{{ $model->tool->name }}</a>@else{{ $model->tool?->name ?? '—' }}@endif</strong></div></div></section>
+<section class="model-trust-panel" aria-label="AI Orbit model confidence">
+    <div class="model-trust-score {{ $modelConfidence['class'] }}">
+        <span class="trust-icon"><i data-lucide="shield-check"></i></span>
+        <div><small>AI ORBIT MODEL CONFIDENCE</small><strong>{{ $modelConfidence['score'] }}<em>/100</em></strong><span>{{ $modelConfidence['label'] }}</span></div>
+    </div>
+    <div class="model-trust-meter"><i style="width:{{ $modelConfidence['score'] }}%"></i></div>
+    <div class="model-trust-checks">
+        @foreach($modelConfidence['checks'] as $check)
+            @if($check['applicable'])
+            <div class="{{ $check['verified'] ? 'verified' : 'missing' }}">
+                <i data-lucide="{{ $check['verified'] ? 'check-circle-2' : 'circle-alert' }}"></i>
+                <span><strong>{{ $check['label'] }}</strong><small>{{ $check['detail'] }}</small></span>
+            </div>
+            @endif
+        @endforeach
+    </div>
+</section>
 <section id="capabilities" class="detail-block"><span class="section-kicker">WHAT IT CAN DO</span><h2>Capabilities & use cases</h2><div class="capability-grid">@if($model->featureTerms->isNotEmpty()) @foreach($model->featureTerms as $feature)<a class="taxonomy-cap-card" href="{{ route('features.show',$feature) }}"><i data-lucide="{{ $feature->icon ?: 'sparkles' }}"></i><strong>{{ $feature->name }}</strong><span>{{ $feature->description ?: 'Supported model capability' }}</span></a>@endforeach @else @forelse($capabilities as $cap)<div><i data-lucide="sparkles"></i><strong>{{ $cap }}</strong><span>Supported model capability</span></div>@empty<div class="inline-empty">Capability data has not been added yet.</div>@endforelse @endif</div>@if($model->useCaseTerms->isNotEmpty())<div class="taxonomy-usecase-links"><strong>Useful for</strong><div>@foreach($model->useCaseTerms->take(12) as $useCase)<a href="{{ route('use-cases.show',$useCase) }}"><i data-lucide="target"></i>{{ $useCase->name }}</a>@endforeach</div></div>@endif</section>
-<section id="benchmarks" class="detail-block"><span class="section-kicker">PERFORMANCE</span><h2>Benchmark profile</h2><p class="block-intro">Benchmark results help compare model performance, but scores should always be interpreted alongside methodology and test date.</p><div class="benchmark-list">@forelse($model->benchmarkResults as $result)<div><span><strong>{{ $result->benchmark?->name ?? 'Benchmark' }}</strong><small>{{ $result->benchmark?->benchmark_class_label ?? 'Unclassified' }} · {{ $result->source_name ?: 'Verified result' }}{{ $result->tested_at ? ' · '.$result->tested_at->format('M Y') : '' }}</small></span><div><i style="width:{{ min(100,(float)$result->score) }}%"></i></div><b>{{ number_format((float)$result->score,1) }}</b></div>@empty @foreach($benchmarks as $bench)<div><span><strong>{{ $bench['name'] }}</strong><small>Model benchmark breakdown</small></span><div><i style="width:{{ min(100,$bench['score']) }}%"></i></div><b>{{ number_format((float)$bench['score'],1) }}</b></div>@endforeach @if($benchmarks->isEmpty())<div class="inline-empty">No benchmark breakdown is available yet.</div>@endif @endforelse</div></section>
-<section id="pricing" class="detail-block">
+<section id="benchmarks" class="detail-block"><span class="section-kicker">PERFORMANCE</span><h2>Verified benchmark profile</h2><p class="block-intro">AI Orbit only presents benchmark rows here when the underlying result is marked verified. Scores should still be interpreted alongside methodology and test date.</p>
+@if($model->benchmarkResults->isNotEmpty())
+<div class="benchmark-list">@foreach($model->benchmarkResults as $result)<div><span><strong>{{ $result->benchmark?->name ?? 'Benchmark' }}</strong><small>{{ $result->benchmark?->benchmark_class_label ?? 'Unclassified' }} · {{ $result->source_name ?: 'Verified result' }}{{ $result->tested_at ? ' · '.$result->tested_at->format('M Y') : '' }}</small></span><div><i style="width:{{ min(100,(float)$result->score) }}%"></i></div><b>{{ number_format((float)$result->score,1) }}</b></div>@endforeach</div>
+@elseif($model->benchmark_score !== null)
+<div class="benchmark-composite-only"><span><i data-lucide="badge-check"></i><strong>Verified AI Orbit composite</strong><small>A composite score is available, while a detailed verified benchmark breakdown is not currently published on this profile.</small></span><b>{{ number_format((float)$model->benchmark_score,1) }}<small>/100</small></b></div>
+@else
+<div class="verified-empty-state"><i data-lucide="shield-question"></i><div><strong>No verified benchmark claim yet</strong><p>AI Orbit leaves this section empty rather than displaying an unverified legacy breakdown.</p></div></div>
+@endif
+</section>
+<section id="pricing" class="detail-block model-pricing-block">
     <span class="section-kicker">API ECONOMICS</span>
-    <h2>Token pricing</h2>
+    <div class="pricing-title-row"><div><h2>Pricing & availability</h2><p class="block-intro">Commercial terms are shown in the unit that actually applies to this model instead of forcing every model into text-token pricing.</p></div><span class="pricing-verify-badge"><i data-lucide="shield-check"></i>{{ $model->pricing_verification_label }}</span></div>
 
-    <div class="pricing-pair">
-        <div>
-            <i data-lucide="arrow-down-to-line"></i>
-            <span>
-                Input tokens
-                <small>Per 1 million tokens</small>
-            </span>
-            <strong>
-                {{ $model->input_price_per_million !== null
-                    ? '$' . number_format((float) $model->input_price_per_million, 2)
-                    : 'Not listed' }}
-            </strong>
-        </div>
-
-        <div>
-            <i data-lucide="arrow-up-from-line"></i>
-            <span>
-                Output tokens
-                <small>Per 1 million tokens</small>
-            </span>
-            <strong>
-                {{ $model->output_price_per_million !== null
-                    ? '$' . number_format((float) $model->output_price_per_million, 2)
-                    : 'Not listed' }}
-            </strong>
-        </div>
+    <div class="pricing-profile-strip">
+        <div><span>Pricing model</span><strong>{{ $model->pricing_type_label }}</strong></div>
+        <div><span>Billing unit</span><strong>{{ $model->pricing_unit_label ?: 'Not classified' }}</strong></div>
+        <div><span>Verified</span><strong>{{ $model->pricing_verified_at?->format('M j, Y') ?? 'Pending' }}</strong></div>
     </div>
 
-    <p class="pricing-note">
-        <i data-lucide="info"></i>
-        Pricing can change. Production data should be checked against the provider’s official pricing source.
-    </p>
+    @if($isTokenPricing)
+    <div class="pricing-pair">
+        <div><i data-lucide="arrow-down-to-line"></i><span>Input tokens<small>Per 1 million tokens</small></span><strong>{{ $model->input_price_per_million !== null ? '$'.number_format((float)$model->input_price_per_million,2) : 'Not listed' }}</strong></div>
+        <div><i data-lucide="arrow-up-from-line"></i><span>Output tokens<small>Per 1 million tokens</small></span><strong>{{ $model->output_price_per_million !== null ? '$'.number_format((float)$model->output_price_per_million,2) : 'Not listed' }}</strong></div>
+    </div>
+    @else
+    <div class="specialized-pricing-card">
+        <span class="specialized-pricing-icon"><i data-lucide="wallet-cards"></i></span>
+        <div><small>VERIFIED PRICING BASIS</small><strong>{{ $model->pricing_basis ?: $model->pricing_type_label }}</strong><p>{{ $model->pricing_summary ?: 'The applicable commercial model has been classified, but an exact universal numeric price is not pinned for this model.' }}</p></div>
+    </div>
+    @endif
 
-    @php
-        $pricingSourceCount = $model->pricingSources->count();
-        $lastPricingCheck = $model->pricingSources
-            ->pluck('last_checked_at')
-            ->filter()
-            ->sortDesc()
-            ->first();
+    @if($isTokenPricing && $model->pricing_summary)
+    <p class="pricing-evidence-copy"><i data-lucide="info"></i><span>{{ $model->pricing_summary }}</span></p>
+    @elseif(!$isTokenPricing && $model->pricing_basis && $model->pricing_summary)
+    <p class="pricing-evidence-copy"><i data-lucide="info"></i><span>{{ $model->pricing_summary }}</span></p>
+    @endif
 
-        $pricingSourceNote = '';
-
-        if ($pricingSourceCount > 0) {
-            $pricingSourceNote = $pricingSourceCount
-                . ' official pricing '
-                . \Illuminate\Support\Str::plural('source', $pricingSourceCount)
-                . ' monitored';
-
-            if ($lastPricingCheck) {
-                $pricingSourceNote .= ' · last checked ' . $lastPricingCheck->diffForHumans();
-            }
-
-            $pricingSourceNote .= '.';
-        }
-    @endphp
-
-    @if($pricingSourceNote !== '')
-        <p class="pricing-note">
-            <i data-lucide="shield-check"></i>
-            {{ $pricingSourceNote }}
-        </p>
+    <div class="pricing-source-row">
+        <span><i data-lucide="database-zap"></i>{{ $pricingSourceCount ? $pricingSourceCount.' token price source '.\Illuminate\Support\Str::plural('monitor', $pricingSourceCount) : 'Verified economics evidence' }}@if($lastPricingCheck) · checked {{ $lastPricingCheck->format('M j, Y') }}@endif</span>
+        @if($pricingEvidence?->source_url)<a href="{{ $pricingEvidence->source_url }}" target="_blank" rel="noopener noreferrer">Official source <i data-lucide="external-link"></i></a>@elseif($model->official_source_url)<a href="{{ $model->official_source_url }}" target="_blank" rel="noopener noreferrer">Official source <i data-lucide="external-link"></i></a>@endif
+    </div>
+</section>
+<section id="evidence" class="detail-block model-evidence-block">
+    <div class="block-title-row"><div><span class="section-kicker">SOURCE TRANSPARENCY</span><h2>Verification evidence</h2></div><span class="evidence-count"><i data-lucide="files"></i>{{ $evidenceSources->count() }} source {{ \Illuminate\Support\Str::plural('record', $evidenceSources->count()) }}</span></div>
+    <p class="block-intro">These records explain which official sources support identity, profile, pricing and lifecycle claims. Benchmark evidence remains tied to its individual verified result.</p>
+    <div class="model-evidence-grid">
+        @forelse($evidenceSources as $source)
+        <a href="{{ $source->source_url }}" target="_blank" rel="noopener noreferrer" class="model-evidence-card">
+            <span class="evidence-type-icon"><i data-lucide="{{ $source->evidence_type === 'pricing' ? 'badge-dollar-sign' : ($source->evidence_type === 'lifecycle' ? 'history' : 'file-check-2') }}"></i></span>
+            <span><small>{{ strtoupper($source->evidence_type) }}</small><strong>{{ $source->source_name ?: 'Official source' }}</strong><em>{{ $source->verification_status ?: 'verified' }}{{ $source->verified_at ? ' · '.$source->verified_at->format('M j, Y') : '' }}</em></span>
+            <i data-lucide="arrow-up-right"></i>
+        </a>
+        @empty
+        <div class="verified-empty-state"><i data-lucide="file-warning"></i><div><strong>Evidence records not imported yet</strong><p>The profile can still use its official source URL, but structured evidence rows have not been attached.</p></div></div>
+        @endforelse
+    </div>
+    @if($model->benchmarkResults->isNotEmpty())
+    <div class="benchmark-evidence-links"><strong>Benchmark sources</strong><div>@foreach($model->benchmarkResults as $result)@if($result->source_url)<a href="{{ $result->source_url }}" target="_blank" rel="noopener noreferrer">{{ $result->benchmark?->name ?? 'Benchmark' }} <i data-lucide="external-link"></i></a>@endif @endforeach</div></div>
     @endif
 </section>
 <section id="faq" class="detail-block">

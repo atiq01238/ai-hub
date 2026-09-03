@@ -26,7 +26,7 @@
         <div>
             <span class="import-eyebrow">Duplicate handling</span>
             <h3>Existing models</h3>
-            <p>Skip existing is safest. Update synchronizes normalized capabilities and inferred use cases.</p>
+            <p>Skip existing is safest. Update is blank-safe: empty spreadsheet cells preserve existing verified values, sources and taxonomy relationships.</p>
         </div>
         <div class="import-choice-wrap">
             <label class="import-choice"><input type="radio" name="existing_action" value="skip" checked><span><b>Skip existing</b><small>Recommended</small></span></label>
@@ -45,7 +45,7 @@
                     <tr>
                         <td>#{{ $row['row_number'] }}</td>
                         <td><strong>{{ $row['company_match'] ?: ($row['company'] ?: '—') }}</strong></td>
-                        <td><strong>{{ $row['name'] }}</strong><small>{{ $row['version'] ?: 'No version' }} · {{ ucfirst($row['status']) }}</small></td>
+                        <td><strong>{{ $row['name'] }}</strong><small>{{ $row['version'] ?: 'No version' }} · {{ $row['status'] ? ucfirst($row['status']) : ($row['existing_id'] ? 'Preserve status' : 'Active (default)') }}</small></td>
                         <td>{{ implode(', ', array_slice($row['capabilities'] ?? [], 0, 5)) ?: '—' }}</td>
                         <td><small>In: {{ $row['input_price_per_million'] !== null ? '$'.number_format((float)$row['input_price_per_million'], 2) : '—' }}</small><small>Out: {{ $row['output_price_per_million'] !== null ? '$'.number_format((float)$row['output_price_per_million'], 2) : '—' }}</small></td>
                         <td>{{ $row['benchmark_score'] !== null ? number_format((float)$row['benchmark_score'], 1) : '—' }}</td>

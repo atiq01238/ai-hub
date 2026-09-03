@@ -294,7 +294,11 @@ class EntitySeoService
         if ($model->context_window) $parts[] = 'context window '.$model->context_window;
         if ($caps->isNotEmpty()) $parts[] = 'capabilities including '.$caps->take(3)->join(', ');
         if ($model->benchmark_score !== null) $parts[] = 'benchmark profile and verified performance data';
-        if ($model->input_price_per_million !== null || $model->output_price_per_million !== null) $parts[] = 'API token pricing';
+        if ($model->input_price_per_million !== null || $model->output_price_per_million !== null) {
+            $parts[] = 'API token pricing';
+        } elseif (filled($model->pricing_type)) {
+            $parts[] = $model->pricing_type_label.' and commercial terms';
+        }
         $parts[] = 'related models and provider information';
         $description = $this->normalizeText(Str::limit(implode('. ', $parts).'.', 158, ''));
         $title = $this->normalizeText($title);
@@ -318,9 +322,11 @@ class EntitySeoService
             ['q' => 'What is the context window of '.$model->name.'?', 'a' => $model->context_window ? 'AI Orbit currently lists the context window as '.$model->context_window.'.' : 'A verified context-window value is not currently listed.'],
             ['q' => 'How much does '.$model->name.' cost?', 'a' => $pricingParts->isNotEmpty()
                 ? 'AI Orbit currently lists '.$pricingParts->join(' and ').'. Provider pricing can change, so check the linked official pricing source before production use.'
-                : ($model->pricingSources->isNotEmpty()
-                    ? 'AI Orbit monitors official pricing sources for this model, but a current token price is not displayed. Check the provider source for the latest rates.'
-                    : 'Verified token pricing is not currently listed on this profile; check the provider for current rates.')],
+                : (filled($model->pricing_basis) || filled($model->pricing_summary)
+                    ? trim('AI Orbit classifies the pricing structure as '.$model->pricing_type_label.'. '.($model->pricing_basis ? 'Verified basis: '.$model->pricing_basis.'. ' : '').($model->pricing_summary ?: '')).' Check the linked official provider source for current production terms.'
+                    : ($model->pricingSources->isNotEmpty()
+                        ? 'AI Orbit monitors official pricing sources for this model, but a current generic token price is not displayed. Check the provider source for the applicable rates.'
+                        : 'Verified commercial pricing is not currently listed on this profile; check the provider for current terms.'))],
         ];
 
         return compact('title','description','faq','caps');
