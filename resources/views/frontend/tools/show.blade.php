@@ -21,7 +21,7 @@
 @endpush
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('css/frontend/tools-show.css') }}?v=20260903-confidence-v2">
+<link rel="stylesheet" href="{{ asset('css/frontend/tools-show.css') }}?v=20260903-confidence-professional-v3">
 @endpush
 
 @section('content')
@@ -486,51 +486,55 @@
             </dl>
         </section>
 
-        <section class="sidebar-card confidence-card confidence-card-v2">
-            <div class="confidence-v2-head">
-                <div>
-                    <span class="confidence-v2-icon"><i data-lucide="shield-check"></i></span>
+        <section class="sidebar-card data-confidence-panel" aria-label="AI Orbit data confidence">
+            <header class="dc-head">
+                <div class="dc-heading">
+                    <span class="dc-icon" aria-hidden="true"><i data-lucide="shield-check"></i></span>
                     <div>
-                        <strong>AI Orbit data confidence</strong>
-                        <small>Evidence &amp; completeness</small>
+                        <span class="dc-kicker">Data quality</span>
+                        <h3>AI Orbit confidence</h3>
                     </div>
                 </div>
-                <span class="confidence-v2-status">{{ $dataConfidence['label'] }}</span>
-            </div>
+                <span class="dc-status">{{ $dataConfidence['label'] }}</span>
+            </header>
 
-            <div class="confidence-v2-score">
-                <div>
+            <div class="dc-score-row">
+                <div class="dc-score" aria-label="Confidence score {{ $dataConfidence['score'] }} out of 100">
                     <strong>{{ $dataConfidence['score'] }}</strong><span>/100</span>
-                    <small>Confidence score</small>
                 </div>
-                <div class="confidence-v2-meter" aria-label="Data confidence {{ $dataConfidence['score'] }} out of 100">
-                    <span style="width: {{ max(0, min(100, (int) $dataConfidence['score'])) }}%"></span>
+                <div class="dc-score-copy">
+                    <strong>Profile confidence</strong>
+                    <span>Evidence coverage &amp; freshness</span>
                 </div>
             </div>
 
-            <div class="confidence-v2-metrics">
-                <div>
-                    <span><i data-lucide="refresh-cw"></i>Freshness</span>
-                    <strong>{{ Str::headline($dataConfidence['freshness']) }}</strong>
+            <div class="dc-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ (int) $dataConfidence['score'] }}">
+                <span style="width: {{ max(0, min(100, (int) $dataConfidence['score'])) }}%"></span>
+            </div>
+
+            <div class="dc-facts">
+                <div class="dc-fact">
+                    <span class="dc-fact-label"><i data-lucide="refresh-cw"></i>Freshness</span>
+                    <strong><span class="dc-dot"></span>{{ Str::headline($dataConfidence['freshness']) }}</strong>
                 </div>
-                <div>
-                    <span><i data-lucide="link-2"></i>Verified sources</span>
+                <div class="dc-fact">
+                    <span class="dc-fact-label"><i data-lucide="link-2"></i>Verified sources</span>
                     <strong>{{ $dataConfidence['verified_sources'] }}/{{ $dataConfidence['total_sources'] }}</strong>
                 </div>
-                <div>
-                    <span><i data-lucide="badge-check"></i>Verified claims</span>
+                <div class="dc-fact">
+                    <span class="dc-fact-label"><i data-lucide="badge-check"></i>Verified claims</span>
                     <strong>{{ $dataConfidence['verified_claims'] }}/{{ $dataConfidence['known_claims'] }}</strong>
                 </div>
-                <div>
-                    <span><i data-lucide="calendar-check"></i>Last verified</span>
+                <div class="dc-fact">
+                    <span class="dc-fact-label"><i data-lucide="calendar-check"></i>Last verified</span>
                     <strong>{{ $dataConfidence['last_verified_at']?->format('M j, Y') ?? 'Not yet verified' }}</strong>
                 </div>
             </div>
 
-            <div class="confidence-v2-note">
+            <footer class="dc-note">
                 <i data-lucide="info"></i>
-                <p>This score measures profile evidence and completeness, not product quality.</p>
-            </div>
+                <span>Confidence reflects profile evidence and completeness, not product quality.</span>
+            </footer>
         </section>
 
         @if($tool->company)
