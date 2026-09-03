@@ -33,7 +33,7 @@ class BenchmarkImportController extends Controller
     {
         $d=$request->validate(['token'=>['required','string','size:40']]);
         $payload=$store->get($d['token'],$request->user()->id,'benchmarks'); $created=$invalid=$duplicates=0; $touched=[];
-        DB::transaction(function() use($payload,$request,$scoring,&$created,&$invalid,&$duplicates,&$touched){
+        DB::transaction(function() use($payload,$request,$scoring,$semantics,&$created,&$invalid,&$duplicates,&$touched){
             foreach($payload['rows']??[] as $r){
                 if(($r['state']??'')!=='ready'||!empty($r['errors'])){$invalid++;continue;}
                 $benchmark=Benchmark::firstOrNew(['name'=>$r['benchmark_name']]);
