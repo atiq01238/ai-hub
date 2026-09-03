@@ -21,7 +21,7 @@
 @endpush
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('css/frontend/tools-show.css') }}?v=20260903-confidence-professional-v3">
+<link rel="stylesheet" href="{{ asset('css/frontend/tools-show.css') }}?v=20260903-mobile-order-v4">
 @endpush
 
 @section('content')

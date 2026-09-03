@@ -615,3 +615,45 @@ body .data-confidence-panel .dc-note svg{
   body .data-confidence-panel .dc-fact > strong{max-width:58%}
 }
 
+
+/* AI Orbit — mobile content priority order v4
+   Presentation only. Desktop/tablet structure remains unchanged. */
+@media (max-width:720px){
+  body .tool-detail-content{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+
+  /* Flatten the desktop main/sidebar wrappers only on mobile so priority
+     cards can be interleaved without duplicating or changing any data. */
+  body .tool-detail-content > .tool-detail-main,
+  body .tool-detail-content > .tool-detail-sidebar{
+    display:contents;
+  }
+
+  /* Safe default for optional/secondary sections. */
+  body .tool-detail-main > *,
+  body .tool-detail-sidebar > *{
+    order:90;
+    width:100%;
+    min-width:0;
+  }
+
+  /* Primary mobile decision path. */
+  body .tool-detail-sidebar > .summary-card{order:10}
+  body .tool-detail-main > #overview{order:20}
+  body .tool-detail-main > #features{order:30}
+  body .tool-detail-main > #pricing{order:40}
+  body .tool-detail-main > #alternatives{order:50}
+  body .tool-detail-sidebar > .data-confidence-panel{order:60}
+  body .tool-detail-sidebar > .company-card-detail{order:70}
+
+  /* Secondary intelligence follows the core mobile decision path. */
+  body .tool-detail-main > #technical{order:80}
+  body .tool-detail-main > #trust{order:81}
+  body .tool-detail-main > #integrations{order:82}
+  body .tool-detail-main > #benchmarks{order:83}
+  body .tool-detail-main > #reviews{order:84}
+  body .tool-detail-main > #comparisons{order:85}
+}
