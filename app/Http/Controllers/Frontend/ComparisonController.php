@@ -9,6 +9,7 @@ use App\Models\Tool;
 use App\Services\Frontend\ComparisonHistoryService;
 use App\Services\Frontend\QuickFeedbackService;
 use App\Services\ComparisonIntelligenceService;
+use App\Services\Seo\InternalLinkingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +21,7 @@ class ComparisonController extends Controller
         private readonly ComparisonHistoryService $userHistory,
         private readonly ComparisonIntelligenceService $intelligence,
         private readonly QuickFeedbackService $feedback,
+        private readonly InternalLinkingService $internalLinks,
     ) {
     }
 
@@ -146,6 +148,7 @@ class ComparisonController extends Controller
         $comparisonType = $data['type'];
         $title = $items->pluck('name')->join(' vs ');
         $relatedComparisons = collect();
+        $relatedArticles = collect();
         $isPreview = true;
         $intelligence = $this->safeIntelligence($items, $comparisonType);
         $winner = data_get($intelligence, 'overall');
@@ -165,7 +168,7 @@ class ComparisonController extends Controller
 
         return view('frontend.comparisons.show', compact(
             'comparison', 'comparisonType', 'items', 'winner', 'title',
-            'relatedComparisons', 'isPreview', 'intelligence', 'labComparison', 'quickRating'
+            'relatedComparisons', 'relatedArticles', 'isPreview', 'intelligence', 'labComparison', 'quickRating'
         ));
     }
 
@@ -214,30 +217,15 @@ class ComparisonController extends Controller
             $this->userHistory->fromPublished($request->user(), $comparison, false);
         }
 
-        $relatedComparisons = Comparison::query()
-            ->where('status', 'published')
-            ->where('comparable_type', $comparisonType)
-            ->where('id', '!=', $comparison->id)
-            ->orderByDesc('views')
-            ->limit(4)
-            ->get();
-
-        $relatedComparisons->each(function (Comparison $item) {
-            try {
-                $item->setRelation('resolved_items', $item->publicItems());
-            } catch (\Throwable $e) {
-                report($e);
-                $item->setRelation('resolved_items', collect());
-            }
-        });
-
-        $relatedComparisons = $relatedComparisons
-            ->filter(fn (Comparison $item) => $item->getRelation('resolved_items')->count() >= 2)
-            ->values();
+        // Shared compared entities are the strongest related-comparison signal.
+        // Same provider/category/capability can support discovery, but popularity
+        // is only a tie-breaker and unrelated comparisons are never used as filler.
+        $relatedComparisons = $this->internalLinks->relatedComparisons($comparison, 4);
+        $relatedArticles = $this->internalLinks->articlesForComparison($comparison, 3);
 
         return view('frontend.comparisons.show', compact(
             'comparison', 'comparisonType', 'items', 'winner', 'title',
-            'relatedComparisons', 'isPreview', 'intelligence', 'labComparison', 'quickRating'
+            'relatedComparisons', 'relatedArticles', 'isPreview', 'intelligence', 'labComparison', 'quickRating'
         ));
     }
 

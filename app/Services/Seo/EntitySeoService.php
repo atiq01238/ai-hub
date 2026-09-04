@@ -9,6 +9,8 @@ use Illuminate\Support\Str;
 
 class EntitySeoService
 {
+    public function __construct(private readonly SeoMetadataService $metadata) {}
+
     public function tool(Tool $tool): array
     {
         $tool->loadMissing([
@@ -269,6 +271,15 @@ class EntitySeoService
             ]);
         }
 
+        $intentMeta = $this->metadata->forKey(
+            'tools.show:'.$tool->id,
+            $title,
+            $description,
+            ['include_brand' => false],
+        );
+        $title = $intentMeta['title'] ?: $title;
+        $description = $intentMeta['description'] ?: $description;
+
         return [
             'title' => $title,
             'description' => $description,
@@ -302,6 +313,15 @@ class EntitySeoService
         $parts[] = 'related models and provider information';
         $description = $this->normalizeText(Str::limit(implode('. ', $parts).'.', 158, ''));
         $title = $this->normalizeText($title);
+
+        $intentMeta = $this->metadata->forKey(
+            'models.show:'.$model->id,
+            $title,
+            $description,
+            ['include_brand' => false],
+        );
+        $title = $intentMeta['title'] ?: $title;
+        $description = $intentMeta['description'] ?: $description;
 
         $overviewAnswer = $this->normalizeText($model->overview ?: $model->capability_notes);
         if ($overviewAnswer === '') {

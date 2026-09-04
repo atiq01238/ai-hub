@@ -94,22 +94,12 @@ class ModelController extends Controller
         abort_unless(in_array($model->status, ['active','preview','deprecated'], true), 404);
         $model->load(['company','tool.category','featureTerms','useCaseTerms','tagTerms','pricingSources','evidenceSources' => fn ($q) => $q->latest('verified_at'), 'benchmarkResults' => fn ($q) => $q->with('benchmark')->where('verified',true)->where('status','verified')->latest('tested_at')]);
 
-        $relatedModels = AiModel::with(['company','tool'])->whereIn('status',['active','preview'])->whereKeyNot($model->id)
-            ->when($model->company_id, fn (Builder $q) => $q->where('company_id',$model->company_id))
-            ->orderByDesc('benchmark_score')->take(4)->get();
-        if ($relatedModels->count() < 4) {
-            $relatedModels = $relatedModels->concat(AiModel::with('company')->whereIn('status',['active','preview'])->whereKeyNot($model->id)
-                ->whereNotIn('id',$relatedModels->pluck('id'))->orderByDesc('benchmark_score')->take(4-$relatedModels->count())->get());
-        }
-
-        $latestNews = NewsItem::with('company')->where('status','published')->whereNull('duplicate_of_id')
-            ->where(fn (Builder $q) => $q->whereNull('duplicate_status')->orWhere('duplicate_status','!=','duplicate'))
-            ->where(function (Builder $q) use ($model) {
-                if ($model->company_id) $q->where('company_id',$model->company_id); else $q->whereRaw('1=0');
-                $q->orWhere('headline','like','%'.$model->name.'%')->orWhere('summary','like','%'.$model->name.'%');
-            })->latest('published_at')->take(4)->get();
-
+        // Phase 3: keep related entities semantic. Same tool/provider and shared
+        // capabilities/use cases outrank raw benchmark popularity.
+        $relatedModels = $internalLinks->modelsForModel($model, 4);
+        $latestNews = $internalLinks->newsForModel($model, 4);
         $relatedComparisons = $internalLinks->comparisonsForModel($model, 4);
+        $relatedArticles = $internalLinks->articlesForModel($model, 3);
 
         $lastUpdated = collect([
             $model->updated_at,
@@ -137,6 +127,6 @@ class ModelController extends Controller
         $seo = $seoService->model($model);
         $seoSchemas = $seoService->schemas('model', $model, $seo);
 
-        return view('frontend.models.show', compact('model','relatedModels','relatedComparisons','latestNews','lastUpdated','contentSeo','benchmarks','capabilities','labResults','labStats','quickRating','benchmarkPrimaryClass','benchmarkClassComposites','modelConfidence','evidenceSources','seo','seoSchemas'));
+        return view('frontend.models.show', compact('model','relatedModels','relatedComparisons','relatedArticles','latestNews','lastUpdated','contentSeo','benchmarks','capabilities','labResults','labStats','quickRating','benchmarkPrimaryClass','benchmarkClassComposites','modelConfidence','evidenceSources','seo','seoSchemas'));
     }
 }

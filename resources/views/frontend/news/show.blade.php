@@ -171,6 +171,13 @@
                 @if($news->verification_notes)<p class="audit-note"><i data-lucide="info"></i>{{ $news->verification_notes }}</p>@endif
             </section>
 
+            @if($deeperAnalysis)
+            <section class="news-deeper-analysis">
+                <span class="news-analysis-icon"><i data-lucide="book-open-check"></i></span>
+                <div><small>DEEPER ANALYSIS</small><h2>{{ $deeperAnalysis->title }}</h2><p>{{ Str::limit($deeperAnalysis->summary,155) }}</p><a href="{{ route('articles.show',$deeperAnalysis) }}">Read the full AI Orbit analysis <i data-lucide="arrow-right"></i></a></div>
+            </section>
+            @endif
+
             @if($relatedTools->isNotEmpty() || $relatedModels->isNotEmpty())
             <section class="related-intelligence"><div class="detail-section-title"><span>CONNECTED INTELLIGENCE</span><h2>Related AI products</h2></div>
                 <div class="connected-grid">

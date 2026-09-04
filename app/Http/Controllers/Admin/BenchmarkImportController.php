@@ -21,7 +21,7 @@ class BenchmarkImportController extends Controller
     public function template(){ $p=storage_path('app/import-templates/ai-hub-benchmarks-import.csv'); abort_unless(File::exists($p),404); return response()->download($p,'ai-hub-benchmarks-import.csv'); }
     public function preview(Request $request,SpreadsheetReader $reader,ImportPreviewStore $store){$request->validate(['file'=>['required','file','mimes:csv,txt,xlsx','max:10240']]);try{$rows=$reader->read($request->file('file'));}catch(Throwable$e){return back()->withErrors(['file'=>$e->getMessage()]);}$preview=[];
         foreach($rows as$r){$n=$this->normalize($r);$errors=[];$entity=null;$definitionOnly=$n['entity_type']===''&&$n['entity_name']===''&&$n['score']===null;if($n['benchmark_name']==='')$errors[]='Benchmark name is required.';if(!$definitionOnly){if(!in_array($n['entity_type'],['model','tool'],true))$errors[]='Entity type must be model or tool.';if($n['entity_name']==='')$errors[]='Entity name is required.';if($n['score']===null)$errors[]='Score is required.';elseif($n['score']<0)$errors[]='Score cannot be negative.';}if($n['source_url']!==''&&!filter_var($n['source_url'],FILTER_VALIDATE_URL))$errors[]='Source URL is invalid.';if($n['benchmark_class']!==''&&!in_array($n['benchmark_class'],Benchmark::CLASSES,true))$errors[]='Unknown benchmark class: '.$n['benchmark_class'];
-            $existingBenchmark=$n['benchmark_name']!==''?Benchmark::where('name',$n['benchmark_name'])->first():null;
+            $existingBenchmark=$n['benchmark_name']!==''?Benchmark::findEquivalent($n['benchmark_name']):null;
             if(!$errors&&$existingBenchmark&&$n['benchmark_class']!==''){
                 $existingClass=$existingBenchmark->benchmark_class?:Benchmark::CLASS_UNCLASSIFIED;
                 if($existingClass!==Benchmark::CLASS_UNCLASSIFIED&&$existingClass!==$n['benchmark_class'])$errors[]='Benchmark class conflicts with existing definition: '.Benchmark::classLabel($existingClass);
@@ -33,10 +33,10 @@ class BenchmarkImportController extends Controller
     {
         $d=$request->validate(['token'=>['required','string','size:40']]);
         $payload=$store->get($d['token'],$request->user()->id,'benchmarks'); $created=$invalid=$duplicates=0; $touched=[];
-        DB::transaction(function() use($payload,$request,$scoring,$semantics,&$created,&$invalid,&$duplicates,&$touched){
+        DB::transaction(function() use($payload,$request,$scoring,&$created,&$invalid,&$duplicates,&$touched){
             foreach($payload['rows']??[] as $r){
                 if(($r['state']??'')!=='ready'||!empty($r['errors'])){$invalid++;continue;}
-                $benchmark=Benchmark::firstOrNew(['name'=>$r['benchmark_name']]);
+                $benchmark=Benchmark::firstOrNewEquivalent($r['benchmark_name']);
                 $benchmark->fill([
                     'slug'=>$benchmark->slug ?: $this->uniqueSlug($r['benchmark_name']),
                     'category'=>$r['category']?:'General','entity_scope'=>$r['entity_scope']?:($r['entity_type']?:'model'),

@@ -133,6 +133,7 @@
                 <a href="#community-reviews">Reviews</a>
             @endif
             @if($relatedComparisons->isNotEmpty())<a href="#comparisons">Comparisons</a>@endif
+            @if($relatedArticles->isNotEmpty())<a href="#guides">Guides</a>@endif
             @if($relatedTools->isNotEmpty())<a href="#alternatives">Alternatives</a>@endif
         </div>
     </div>
@@ -378,7 +379,7 @@
                                             <span class="benchmark-verified-chip"><i data-lucide="badge-check"></i>Verified</span>
                                             <span class="benchmark-source-chip">{{ $sourceType }}</span>
                                         </div>
-                                        <h3>{{ $benchmark->name }}</h3>
+                                        <h3>@if($benchmark->is_active && $benchmark->slug)<a class="benchmark-profile-link" href="{{ route('benchmarks.show',$benchmark) }}">{{ $benchmark->name }}<i data-lucide="arrow-up-right"></i></a>@else{{ $benchmark->name }}@endif</h3>
                                         <div class="benchmark-tested-version"><span>Tested product / version</span><strong>{{ $result->model_version ?: $tool->name }}</strong></div>
                                     </div>
                                     <div class="benchmark-intel-score">
@@ -453,6 +454,22 @@
                         <span><i data-lucide="scale"></i><b>{{ $comparison->title }}</b><small>{{ $comparison->last_verified_at ? 'Verified '.$comparison->last_verified_at->format('M j, Y') : 'Published comparison' }}</small></span>
                         <i data-lucide="arrow-up-right"></i>
                     </a>
+                @endforeach
+            </div>
+        </section>
+        @endif
+
+        @if($relatedArticles->isNotEmpty())
+        <section class="detail-panel semantic-guides-panel" id="guides">
+            <div class="detail-section-head"><div><span>Guides & analysis</span><h2>Research related to {{ $tool->name }}</h2><p>Only published guides with a direct tool, provider or category relationship are shown here.</p></div><i data-lucide="book-open-check"></i></div>
+            <div class="semantic-guide-grid">
+                @foreach($relatedArticles as $article)
+                <a href="{{ route('articles.show',$article) }}" class="semantic-guide-card">
+                    <span class="semantic-guide-meta"><b>{{ $article->category ?: 'AI Guide' }}</b>@if($article->published_at)<small>{{ $article->published_at->format('M j, Y') }}</small>@endif</span>
+                    <h3>{{ $article->title }}</h3>
+                    <p>{{ Str::limit($article->summary,120) }}</p>
+                    <span class="semantic-guide-link">Read guide <i data-lucide="arrow-right"></i></span>
+                </a>
                 @endforeach
             </div>
         </section>
@@ -556,7 +573,7 @@
 
         @if($latestNews->isNotEmpty())
         <section class="sidebar-card">
-            <div class="sidebar-title"><span>Latest news</span><i data-lucide="radio"></i></div>
+            <div class="sidebar-title"><span>Latest relevant updates</span><i data-lucide="radio"></i></div>
             <div class="tool-news-list">@foreach($latestNews as $news)<a href="{{ route('news.show',$news) }}"><article>@if($news->image_path)<img src="{{ $news->image_url }}" alt="{{ $news->headline }}">@endif<div><span>{{ $news->category ?: 'AI News' }} @if($news->published_at)• {{ $news->published_at->diffForHumans() }}@endif</span><h3>{{ Str::limit($news->headline,75) }}</h3></div></article></a>@endforeach</div>
         </section>
         @endif

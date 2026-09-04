@@ -32,6 +32,37 @@ class Benchmark extends Model
         });
     }
 
+    /**
+     * Resolve harmless benchmark-name punctuation variants (for example
+     * "MMLU Pro" and "MMLU-Pro") to the same canonical definition.
+     *
+     * Exact canonical slugs win so legitimate versioned names remain distinct.
+     */
+    public static function findEquivalent(string $name): ?self
+    {
+        $name = trim($name);
+        if ($name === '') {
+            return null;
+        }
+
+        $slug = Str::slug($name);
+        if ($slug !== '') {
+            $byCanonicalSlug = static::query()->where('slug', $slug)->first();
+            if ($byCanonicalSlug) {
+                return $byCanonicalSlug;
+            }
+        }
+
+        return static::query()
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+            ->first();
+    }
+
+    public static function firstOrNewEquivalent(string $name): self
+    {
+        return static::findEquivalent($name) ?? new static(['name' => trim($name)]);
+    }
+
     public static function classLabel(?string $class): string
     {
         return match ($class) {

@@ -44,13 +44,15 @@ class ImportVerifiedBenchmarks extends Command
         DB::transaction(function() use($rows,$scoring,&$created,&$existing,&$touched){
             foreach($rows as $r){
                 $model=AiModel::whereRaw('LOWER(name)=?',[mb_strtolower($r['entity_name'])])->first(); if(!$model) continue;
-                $benchmark=Benchmark::updateOrCreate(['name'=>$r['benchmark_name']],[
-                    'slug'=>Str::slug($r['benchmark_name']),'category'=>$r['category'] ?: 'General','benchmark_class'=>Benchmark::CLASS_TECHNICAL,'entity_scope'=>'model',
+                $benchmark = Benchmark::firstOrNewEquivalent($r['benchmark_name']);
+                $benchmark->fill([
+                    'slug'=>$benchmark->slug ?: Str::slug($r['benchmark_name']),'category'=>$r['category'] ?: 'General','benchmark_class'=>Benchmark::CLASS_TECHNICAL,'entity_scope'=>'model',
                     'metric_type'=>$r['metric_type'] ?: 'percentage','unit'=>$r['unit'] ?: '%','min_score'=>(float)($r['min_score'] ?: 0),
                     'max_score'=>(float)($r['max_score'] ?: 100),'higher_is_better'=>$this->bool($r['higher_is_better']),
                     'version'=>$r['version'] ?: null,'variant'=>$r['variant'] ?: null,'official_url'=>$r['methodology_url'] ?: $r['source_url'],
                     'methodology_url'=>$r['methodology_url'] ?: null,'weight'=>$this->weight($r['benchmark_name']),'is_active'=>true,
                 ]);
+                $benchmark->save();
                 $fp=$scoring->fingerprint($benchmark->id,$model::class,$model->id,$r['tested_at'] ?: null,$r['source_url'],(float)$r['score']);
                 if(BenchmarkResult::where('fingerprint',$fp)->exists()){ $existing++; $touched[$model->id]=$model; continue; }
                 BenchmarkResult::create([

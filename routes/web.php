@@ -159,6 +159,9 @@ Route::get('/use-cases/{useCase:slug}', [TaxonomyDiscoveryController::class, 'us
 Route::get('/topics', [TaxonomyDiscoveryController::class, 'topics'])->name('topics.index');
 Route::get('/topics/{category:slug}', [TaxonomyDiscoveryController::class, 'topic'])->name('topics.show');
 Route::get('/benchmarks', [FrontendBenchmarkController::class, 'index'])->name('benchmarks.index');
+// Permanent alias for the retired duplicate benchmark URL. Keep this before the
+// dynamic route so existing links/search-engine discoveries consolidate safely.
+Route::redirect('/benchmarks/mmlu-pro-2', '/benchmarks/mmlu-pro', 301);
 Route::get('/benchmarks/{benchmark:slug}', [FrontendBenchmarkController::class, 'show'])->name('benchmarks.show');
 Route::get('/trending', [FrontendTrendingController::class, 'index'])->name('trending.index');
 Route::get('/saved/status', [FrontendSavedController::class, 'status'])->middleware(EnsureAccountIsActive::class)->name('saved.status');

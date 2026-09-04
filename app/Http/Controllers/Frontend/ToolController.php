@@ -244,25 +244,11 @@ class ToolController extends Controller
 
         $relatedTools = $alternatives->alternatives($tool, 4);
         $relatedComparisons = $internalLinks->comparisonsForTool($tool, 4);
+        $relatedArticles = $internalLinks->articlesForTool($tool, 3);
 
-        $latestNews = NewsItem::query()
-            ->with('company')
-            ->where('status', 'published')
-            ->whereNull('duplicate_of_id')
-            ->where(fn (Builder $query) => $query->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate'))
-            ->where(function (Builder $query) use ($tool) {
-                if ($tool->company_id) {
-                    $query->where('company_id', $tool->company_id);
-                } else {
-                    $query->whereRaw('1 = 0');
-                }
-
-                $query->orWhere('headline', 'like', '%' . $tool->name . '%')
-                    ->orWhere('summary', 'like', '%' . $tool->name . '%');
-            })
-            ->latest('published_at')
-            ->take(4)
-            ->get();
+        // Phase 3: semantic-first news. Explicit tool links and exact entity mentions
+        // outrank provider-level context; unrelated latest news is never used as filler.
+        $latestNews = $internalLinks->newsForTool($tool, 4);
 
         $editorialReviews = $tool->reviews
             ->where('review_type', 'editorial')
@@ -300,6 +286,7 @@ class ToolController extends Controller
             'pricingPlans',
             'relatedTools',
             'relatedComparisons',
+            'relatedArticles',
             'latestNews',
             'editorReview',
             'editorialReviews',

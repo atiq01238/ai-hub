@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use App\Services\Frontend\QuickFeedbackService;
+use App\Services\Seo\InternalLinkingService;
 
 class ArticleController extends Controller
 {
@@ -87,47 +88,17 @@ class ArticleController extends Controller
         return view('frontend.articles.index', compact('articles', 'featured', 'categoryCounts', 'companies', 'stats'));
     }
 
-    public function show(Article $article, QuickFeedbackService $feedback)
+    public function show(Article $article, QuickFeedbackService $feedback, InternalLinkingService $internalLinks)
     {
         abort_unless($article->status === 'published' && $article->approval_status === 'approved', 404);
 
         $article->load(['author', 'reviewer', 'company', 'categoryTerm', 'relatedToolTerms.company', 'relatedModelTerms.company', 'tagTerms']);
 
-        $toolIds = collect($article->related_tools ?? [])->filter()->map(fn ($id) => (int) $id);
-        $modelIds = collect($article->related_models ?? [])->filter()->map(fn ($id) => (int) $id);
-
-        /** @var Collection<int, Tool> $relatedTools */
-        $relatedTools = $article->relatedToolTerms
-            ->merge(Tool::query()->with('company')->whereIn('id', $toolIds)->where('status', 'published')->get())
-            ->unique('id')->take(6)->values();
-
-        /** @var Collection<int, AiModel> $relatedModels */
-        $relatedModels = $article->relatedModelTerms
-            ->merge(AiModel::query()->with('company')->whereIn('id', $modelIds)->whereIn('status', ['active', 'preview'])->get())
-            ->unique('id')->take(6)->values();
-
-        $relatedArticlesQuery = Article::query()
-            ->with(['company', 'author'])
-            ->where('status', 'published')
-            ->where('approval_status', 'approved')
-            ->whereKeyNot($article->id);
-
-        if ($article->category || $article->company_id) {
-            $relatedArticlesQuery->where(function (Builder $query) use ($article) {
-                if ($article->category) {
-                    $query->where('category', $article->category);
-                }
-                if ($article->company_id) {
-                    $method = $article->category ? 'orWhere' : 'where';
-                    $query->{$method}('company_id', $article->company_id);
-                }
-            });
-        }
-
-        $relatedArticles = $relatedArticlesQuery
-            ->latest('published_at')
-            ->take(4)
-            ->get();
+        // Phase 3: relationship evidence drives article discovery. Existing
+        // pivots/legacy links win; provider/category context is a secondary signal.
+        $relatedTools = $internalLinks->toolsForArticle($article, 6);
+        $relatedModels = $internalLinks->modelsForArticle($article, 6);
+        $relatedArticles = $internalLinks->relatedArticles($article, 4);
 
         $previous = Article::where('status', 'published')->where('approval_status', 'approved')
             ->where('published_at', '<', $article->published_at)->latest('published_at')->first();

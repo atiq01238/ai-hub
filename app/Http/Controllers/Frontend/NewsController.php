@@ -11,6 +11,7 @@ use App\Models\Tool;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use App\Services\Seo\InternalLinkingService;
 
 class NewsController extends Controller
 {
@@ -142,55 +143,19 @@ class NewsController extends Controller
         ));
     }
 
-    public function show(NewsItem $news)
+    public function show(NewsItem $news, InternalLinkingService $internalLinks)
     {
         abort_unless($news->status === 'published', 404);
         abort_if($news->duplicate_of_id || $news->duplicate_status === 'duplicate', 404);
 
         $news->load(['company', 'newsSource', 'relatedToolTerms.company', 'relatedModelTerms.company']);
 
-        $relatedNews = NewsItem::query()
-            ->with(['company', 'newsSource'])
-            ->where('status', 'published')
-            ->whereNull('duplicate_of_id')
-            ->where(function (Builder $query) {
-                $query->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate');
-            })
-            ->whereKeyNot($news->id)
-            ->where(function (Builder $query) use ($news) {
-                if ($news->company_id) {
-                    $query->where('company_id', $news->company_id);
-                }
-                if ($news->category) {
-                    $news->company_id ? $query->orWhere('category', $news->category) : $query->where('category', $news->category);
-                }
-            })
-            ->orderByDesc('published_at')
-            ->take(4)
-            ->get();
-
-        if ($relatedNews->count() < 4) {
-            $extra = NewsItem::query()->with('company')
-                ->where('status', 'published')
-                ->whereNull('duplicate_of_id')
-                ->where(function (Builder $query) {
-                    $query->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate');
-                })
-                ->whereKeyNot($news->id)
-                ->whereNotIn('id', $relatedNews->pluck('id'))
-                ->orderByDesc('published_at')->take(4 - $relatedNews->count())->get();
-            $relatedNews = $relatedNews->concat($extra);
-        }
-
-        $toolNames = collect($news->related_tools ?? [])->filter()->values();
-        $relatedTools = $news->relatedToolTerms->merge($this->resolveTools($toolNames))->unique('id')->take(6)->values();
-
-        $relatedModels = $news->relatedModelTerms;
-        if ($relatedModels->isEmpty()) {
-            $relatedModels = AiModel::query()->with('company')->whereIn('status', ['active', 'preview'])
-                ->when($news->company_id, fn (Builder $query) => $query->where('company_id', $news->company_id))
-                ->orderByDesc('benchmark_score')->take(3)->get();
-        }
+        // Phase 3: no unrelated latest-news filler. Related stories are ranked
+        // by shared entities/provider/topic/category, with explicit pivots strongest.
+        $relatedNews = $internalLinks->relatedNews($news, 4);
+        $relatedTools = $internalLinks->toolsForNews($news, 6);
+        $relatedModels = $internalLinks->modelsForNews($news, 4);
+        $deeperAnalysis = $internalLinks->analysisForNews($news);
 
         $previous = NewsItem::query()
             ->where('status', 'published')
@@ -213,22 +178,8 @@ class NewsController extends Controller
         $tags = collect($news->ai_tags ?? [])->merge($news->tags ?? [])->filter()->unique()->values();
 
         return view('frontend.news.show', compact(
-            'news', 'relatedNews', 'relatedTools', 'relatedModels', 'previous', 'next', 'tags'
+            'news', 'relatedNews', 'relatedTools', 'relatedModels', 'deeperAnalysis', 'previous', 'next', 'tags'
         ));
     }
 
-    private function resolveTools(Collection $names): Collection
-    {
-        if ($names->isEmpty()) {
-            return collect();
-        }
-
-        return Tool::query()->with('company')->where('status', 'published')
-            ->where(function (Builder $query) use ($names) {
-                foreach ($names as $name) {
-                    $query->orWhere('name', $name)->orWhere('name', 'like', '%' . $name . '%');
-                }
-            })
-            ->take(4)->get();
-    }
 }

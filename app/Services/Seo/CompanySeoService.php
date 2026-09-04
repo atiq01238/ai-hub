@@ -7,6 +7,8 @@ use Illuminate\Support\Str;
 
 class CompanySeoService
 {
+    public function __construct(private readonly SeoMetadataService $metadata) {}
+
     public function build(Company $company, int $toolCount, int $modelCount, int $newsCount, $lastUpdated = null): array
     {
         $title = $company->name.' AI Company Profile: Models, Tools & Latest News | AI Orbit';
@@ -28,6 +30,14 @@ class CompanySeoService
         } else {
             $description = Str::limit($description, 158, '');
         }
+
+        $intentMeta = $this->metadata->forKey(
+            'companies.show:'.$company->id,
+            $title,
+            $description,
+        );
+        $title = $intentMeta['title'] ?: $title;
+        $description = $intentMeta['description'] ?: $description;
 
         $canonical = route('companies.show', $company);
         $logo = $this->absoluteUrl($company->logo_url);

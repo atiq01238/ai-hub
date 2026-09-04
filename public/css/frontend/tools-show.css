@@ -657,3 +657,10 @@ body .data-confidence-panel .dc-note svg{
   body .tool-detail-main > #reviews{order:84}
   body .tool-detail-main > #comparisons{order:85}
 }
+
+/* =========================================================
+   Phase 4 — semantic guides + benchmark discovery links
+   ========================================================= */
+.semantic-guides-panel{overflow:hidden}.semantic-guide-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}.semantic-guide-card{display:flex;min-height:178px;flex-direction:column;padding:15px;border:1px solid #26334d;border-radius:12px;background:linear-gradient(145deg,rgba(17,26,44,.96),rgba(9,15,27,.98));box-shadow:0 12px 28px rgba(0,0,0,.1);transition:.2s ease}.semantic-guide-card:hover{transform:translateY(-2px);border-color:#525b88;box-shadow:0 18px 36px rgba(0,0,0,.18)}.semantic-guide-meta{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-bottom:10px}.semantic-guide-meta b{color:#958dff;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase}.semantic-guide-meta small{color:#6f7c94;font-size:9.5px}.semantic-guide-card h3{margin:0;color:#edf1f8;font-size:13px;line-height:1.4}.semantic-guide-card p{margin:8px 0 12px;color:#7d899f;font-size:10.5px;line-height:1.55}.semantic-guide-link{display:flex;align-items:center;gap:5px;margin-top:auto;color:#a9b2ff;font-size:10.5px;font-weight:750}.semantic-guide-link svg{width:11px;height:11px}.benchmark-profile-link{display:inline-flex;align-items:center;gap:6px;color:inherit}.benchmark-profile-link:hover{color:#a9b2ff}.benchmark-profile-link svg{width:12px;height:12px;opacity:.75}
+@media(max-width:900px){.semantic-guide-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:620px){.semantic-guide-grid{grid-template-columns:1fr}.semantic-guide-card{min-height:0}}

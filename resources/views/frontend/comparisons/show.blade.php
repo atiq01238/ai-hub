@@ -286,6 +286,17 @@
     </div>
     @endif
 
+    @if(!$isPreview && $relatedArticles->isNotEmpty())
+    <div class="comparison-guides-block">
+        <div class="section-heading-row"><div><span class="section-eyebrow">GUIDES & ANALYSIS</span><h2>Research behind this comparison</h2></div><a href="{{ route('articles.index') }}">All guides <i data-lucide="arrow-right"></i></a></div>
+        <div class="comparison-guide-grid">
+            @foreach($relatedArticles as $article)
+            <a href="{{ route('articles.show',$article) }}"><span>{{ $article->category ?: 'AI Guide' }}@if($article->published_at)<small>{{ $article->published_at->format('M j, Y') }}</small>@endif</span><h3>{{ $article->title }}</h3><p>{{ Str::limit($article->summary,110) }}</p><b>Read analysis <i data-lucide="arrow-right"></i></b></a>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
     @if(!$isPreview && $relatedComparisons->isNotEmpty())
     <div class="related-comparisons">
         <div class="section-heading-row"><div><span class="section-eyebrow">KEEP COMPARING</span><h2>Related comparisons</h2></div><a href="{{ route('comparisons.index') }}">View all <i data-lucide="arrow-right"></i></a></div>

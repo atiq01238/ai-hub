@@ -36,6 +36,20 @@
         config('seo.default_description')
     );
 
+    // Phase 2: apply the persisted Phase 1 keyword owner to live head metadata.
+    // Routes without a persisted SEO target keep their existing title/description.
+    try {
+        $intentMetadata = app(\App\Services\Seo\SeoMetadataService::class)
+            ->forRequest(request(), $seoTitle, $seoDescription);
+
+        if (!empty($intentMetadata['target_key'])) {
+            $seoTitle = $normalizeSeoText($intentMetadata['title'], $seoTitle);
+            $seoDescription = $normalizeSeoText($intentMetadata['description'], $seoDescription);
+        }
+    } catch (\Throwable $e) {
+        report($e);
+    }
+
     $canonicalBase = rtrim((string) config('seo.canonical_url'), '/');
     $canonicalPath = request()->path() === '/' ? '' : '/'.ltrim(request()->path(), '/');
     $seoCanonical = trim($__env->yieldContent('canonical')) ?: $canonicalBase.$canonicalPath;
