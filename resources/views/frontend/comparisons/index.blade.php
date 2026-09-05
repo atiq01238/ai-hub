@@ -7,7 +7,7 @@
         'sort',
     ]);
 
-    $comparisonsSeoTitle = 'AI Comparisons — Compare AI Tools and Models | AI Orbit';
+    $comparisonsSeoTitle = 'Compare AI Models & Tools Side-by-Side (2026) — Free Tool';
 
     if (!$comparisonsHasFilters && $comparisons->currentPage() > 1) {
         $comparisonsSeoTitle = 'AI Comparisons — Page '
@@ -15,7 +15,7 @@
             . ' | AI Orbit';
     }
 
-    $comparisonsSeoDescription = 'Compare leading AI tools and models side by side using pricing, capabilities, benchmark scores, ratings and practical product data.';
+    $comparisonsSeoDescription = 'Compare AI models and tools side-by-side on pricing, benchmarks and features. Pick the right AI tool in minutes — free comparison tool, updated 2026.';
 
     $comparisonsCanonical = route('comparisons.index');
 

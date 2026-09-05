@@ -7,8 +7,8 @@
         'sort',
     ]);
 
-    $pricingSeoTitle = 'AI Pricing Intelligence — Compare AI Tool Prices | AI Orbit';
-    $pricingSeoDescription = 'Track AI tool pricing, compare free and paid plans, API pricing and recent price changes.';
+    $pricingSeoTitle = 'AI Tool Pricing Compared (2026) — 50+ Tools, Live Price Tracker';
+    $pricingSeoDescription = 'Compare pricing for 50+ AI tools side-by-side. Free vs paid plans, API rates, and every price change tracked in real time — updated daily.';
     $pricingCanonical = route('pricing.index');
 
     $pricingCollectionSchema = [

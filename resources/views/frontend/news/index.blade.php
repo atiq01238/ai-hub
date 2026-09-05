@@ -13,7 +13,7 @@
         'sort',
     ]);
 
-    $newsSeoTitle = 'AI News — Latest AI Updates, Research and Product Intelligence | AI Orbit';
+    $newsSeoTitle = 'AI News Today (Sep 2026) — Model Releases, Funding & Research';
 
     if (!$newsHasFilters && $news->currentPage() > 1) {
         $newsSeoTitle = 'AI News — Page '
@@ -21,7 +21,7 @@
             . ' | AI Orbit';
     }
 
-    $newsSeoDescription = 'Track important AI news, model releases, research, funding, pricing changes and security updates with source and verification context.';
+    $newsSeoDescription = 'Daily AI news with sources verified — new model releases, funding rounds, pricing changes and security updates. Updated today.';
 
     $newsCanonical = route('news.index');
 
