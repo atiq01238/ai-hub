@@ -258,20 +258,28 @@ class SearchIntelligenceService
         foreach ($tokens as $token) {
             $needle = '%'.$this->escapeLike($token).'%';
 
+            // Always qualify columns with their owning table. Some search relations
+            // are belongsToMany queries (for example featureTerms) and therefore
+            // join a pivot table that can contain columns with the same name.
             foreach ($columns as $column) {
-                $query->orWhere($column, 'like', $needle);
+                $query->orWhere($query->getModel()->qualifyColumn($column), 'like', $needle);
             }
 
             foreach ($relations as $relation) {
                 $query->orWhereHas($relation, function (Builder $related) use ($needle) {
                     $related->where(function (Builder $inner) use ($needle) {
-                        $inner->where('name', 'like', $needle);
-                        // Taxonomy/provider descriptions improve discovery when available.
-                        if (in_array('description', $inner->getModel()->getFillable(), true)) {
-                            $inner->orWhere('description', 'like', $needle);
+                        $model = $inner->getModel();
+
+                        $inner->where($model->qualifyColumn('name'), 'like', $needle);
+
+                        // Qualifying these columns is required for pivot-backed
+                        // relations such as features <-> feature_tool, where both
+                        // tables currently have a `description` column.
+                        if (in_array('description', $model->getFillable(), true)) {
+                            $inner->orWhere($model->qualifyColumn('description'), 'like', $needle);
                         }
-                        if (in_array('short_description', $inner->getModel()->getFillable(), true)) {
-                            $inner->orWhere('short_description', 'like', $needle);
+                        if (in_array('short_description', $model->getFillable(), true)) {
+                            $inner->orWhere($model->qualifyColumn('short_description'), 'like', $needle);
                         }
                     });
                 });
