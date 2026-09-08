@@ -63,7 +63,7 @@
 @endpush
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('css/frontend/intelligence.css') }}">
+<link rel="stylesheet" href="{{ asset('css/frontend/intelligence.css') }}?v=20260908-benchmark-mobile-v2">
 @endpush
 
 @section('content')
@@ -118,24 +118,71 @@
             @endforeach
         </div>
         @if($modelLeaderboard->count()>3)
-        <div class="ranking-table-wrap"><table class="ranking-table"><thead><tr><th>Rank</th><th>Model</th><th>Provider</th><th>Coverage</th><th>Verified</th><th>{{ $leaderboardClassLabel }} composite</th></tr></thead><tbody>
+        <div class="ranking-table-wrap ranking-desktop-table">
+            <table class="ranking-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Model</th>
+                        <th>Provider</th>
+                        <th>Coverage</th>
+                        <th>Verified</th>
+                        <th>{{ $leaderboardClassLabel }} composite</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($modelLeaderboard->slice(3,7) as $index=>$row)
+                        @php($model=$row['entity'])
+                        <tr>
+                            <td><b>#{{ $index+4 }}</b></td>
+                            <td>
+                                <a class="rank-entity" href="{{ route('models.show',$model) }}">
+                                    <img src="{{ $model->logo_url }}" alt="{{ $model->name }} logo">
+                                    <span>{{ $model->name }}<small>{{ $model->version ?: 'Current' }}</small></span>
+                                </a>
+                            </td>
+                            <td>{{ $model->company?->name ?? '—' }}</td>
+                            <td>{{ $row['result_count'] }} tests</td>
+                            <td><span class="verified-pill"><i data-lucide="check"></i>{{ $row['verified_count'] }}</span></td>
+                            <td><strong>{{ number_format((float)$row['score'],1) }}</strong></td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
+        <div class="ranking-mobile-list" aria-label="AI model leaderboard positions 4 to 10">
             @foreach($modelLeaderboard->slice(3,7) as $index=>$row)
                 @php($model=$row['entity'])
-                <tr>
-                    <td data-label="Rank"><b>#{{ $index+4 }}</b></td>
-                    <td data-label="Model">
-                        <a class="rank-entity" href="{{ route('models.show',$model) }}">
-                            <img src="{{ $model->logo_url }}" alt="{{ $model->name }} logo">
-                            <span>{{ $model->name }}<small>{{ $model->version ?: 'Current' }}</small></span>
-                        </a>
-                    </td>
-                    <td data-label="Provider">{{ $model->company?->name ?? '—' }}</td>
-                    <td data-label="Coverage">{{ $row['result_count'] }} tests</td>
-                    <td data-label="Verified"><span class="verified-pill"><i data-lucide="check"></i>{{ $row['verified_count'] }}</span></td>
-                    <td data-label="{{ $leaderboardClassLabel }} composite"><strong>{{ number_format((float)$row['score'],1) }}</strong></td>
-                </tr>
+                <a class="ranking-mobile-card" href="{{ route('models.show',$model) }}">
+                    <div class="ranking-mobile-card-top">
+                        <span class="ranking-mobile-rank">#{{ $index+4 }}</span>
+                        <span class="ranking-mobile-score">
+                            <strong>{{ number_format((float)$row['score'],1) }}</strong>
+                            <small>{{ $leaderboardClassLabel }} composite</small>
+                        </span>
+                    </div>
+                    <div class="ranking-mobile-entity">
+                        <img src="{{ $model->logo_url }}" alt="{{ $model->name }} logo">
+                        <div>
+                            <h3>{{ $model->name }}</h3>
+                            <p>{{ $model->version ?: 'Current' }}</p>
+                            <span>{{ $model->company?->name ?? 'AI Model' }}</span>
+                        </div>
+                    </div>
+                    <div class="ranking-mobile-meta">
+                        <span>
+                            <small>Coverage</small>
+                            <strong>{{ $row['result_count'] }} tests</strong>
+                        </span>
+                        <span>
+                            <small>Verified</small>
+                            <strong><i data-lucide="check"></i>{{ $row['verified_count'] }}</strong>
+                        </span>
+                    </div>
+                </a>
             @endforeach
-        </tbody></table></div>
+        </div>
         @endif
     </section>
     @endif
