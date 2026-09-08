@@ -121,7 +121,19 @@
         <div class="ranking-table-wrap"><table class="ranking-table"><thead><tr><th>Rank</th><th>Model</th><th>Provider</th><th>Coverage</th><th>Verified</th><th>{{ $leaderboardClassLabel }} composite</th></tr></thead><tbody>
             @foreach($modelLeaderboard->slice(3,7) as $index=>$row)
                 @php($model=$row['entity'])
-                <tr><td><b>#{{ $index+4 }}</b></td><td><a class="rank-entity" href="{{ route('models.show',$model) }}"><img src="{{ $model->logo_url }}" alt=""><span>{{ $model->name }}<small>{{ $model->version ?: 'Current' }}</small></span></a></td><td>{{ $model->company?->name ?? '—' }}</td><td>{{ $row['result_count'] }} tests</td><td><span class="verified-pill"><i data-lucide="check"></i>{{ $row['verified_count'] }}</span></td><td><strong>{{ number_format((float)$row['score'],1) }}</strong></td></tr>
+                <tr>
+                    <td data-label="Rank"><b>#{{ $index+4 }}</b></td>
+                    <td data-label="Model">
+                        <a class="rank-entity" href="{{ route('models.show',$model) }}">
+                            <img src="{{ $model->logo_url }}" alt="{{ $model->name }} logo">
+                            <span>{{ $model->name }}<small>{{ $model->version ?: 'Current' }}</small></span>
+                        </a>
+                    </td>
+                    <td data-label="Provider">{{ $model->company?->name ?? '—' }}</td>
+                    <td data-label="Coverage">{{ $row['result_count'] }} tests</td>
+                    <td data-label="Verified"><span class="verified-pill"><i data-lucide="check"></i>{{ $row['verified_count'] }}</span></td>
+                    <td data-label="{{ $leaderboardClassLabel }} composite"><strong>{{ number_format((float)$row['score'],1) }}</strong></td>
+                </tr>
             @endforeach
         </tbody></table></div>
         @endif
