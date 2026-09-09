@@ -103,6 +103,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Apply the default "All" state immediately. The desktop pool contains
+    // candidates for every category tab, but only the curated top eight should
+    // be visible on first paint. Category tabs can then reveal their own up-to-8
+    // candidates without making the homepage excessively tall.
+    applyFilter();
+
 });
 
 

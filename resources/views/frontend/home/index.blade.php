@@ -112,7 +112,8 @@
                                  data-category="{{ $tool->category?->slug }}"
                                  data-home-best-tool="1"
                                  data-default-visible="{{ $bestTools->contains('id', $tool->id) ? '1' : '0' }}"
-                                 data-search="{{ strtolower($tool->name.' '.$tool->short_description.' '.($tool->company?->name ?? '')) }}">
+                                 data-search="{{ strtolower($tool->name.' '.$tool->short_description.' '.($tool->company?->name ?? '')) }}"
+                                 @if(!$bestTools->contains('id', $tool->id)) hidden @endif>
                             <div class="tool-card-top">
                                 <img loading="lazy" decoding="async" class="tool-logo" src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo">
                                 <div class="tool-title">
