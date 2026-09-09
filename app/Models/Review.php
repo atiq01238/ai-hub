@@ -59,4 +59,25 @@ class Review extends Model
     {
         return $query->where('status', 'published');
     }
+
+    /**
+     * Reviews that are suitable for public review-directory surfaces.
+     *
+     * Star-only community ratings stay published so they can contribute to
+     * aggregate rating signals, but they are not written reviews and should
+     * not be counted or rendered as review content.
+     */
+    public function scopePublicContent($query)
+    {
+        return $query
+            ->published()
+            ->where(function ($builder) {
+                $builder->where('review_type', 'editorial')
+                    ->orWhere(function ($community) {
+                        $community->where('review_type', 'user')
+                            ->whereNotNull('body')
+                            ->whereRaw("TRIM(body) <> ''");
+                    });
+            });
+    }
 }

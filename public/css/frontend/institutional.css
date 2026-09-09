@@ -297,3 +297,7 @@
         font-size:19px;
     }
 }
+
+
+/* Phase 6 — editorial trust & transparency */
+.inst-inline-link{display:inline-flex;align-items:center;gap:5px;margin-top:13px;color:#a7a8ff;font-size:11.5px;font-weight:750}.inst-inline-link svg{width:13px;height:13px}.inst-policy-links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:20px}.inst-policy-links>a{display:grid;grid-template-columns:30px minmax(0,1fr);gap:9px;align-items:start;padding:13px;border:1px solid #253052;border-radius:13px;background:#0b1227;color:#dce2f3}.inst-policy-links>a>svg{width:18px;color:#8d7bff}.inst-policy-links b,.inst-policy-links small{display:block}.inst-policy-links b{font-size:11.5px}.inst-policy-links small{margin-top:3px;color:#7e8aaa;font-size:10.5px;line-height:1.45}.inst-policy-links>a:hover{border-color:#4c4f8f;background:#111938}.inst-method-card .inst-check-list{margin-top:18px}@media(max-width:760px){.inst-policy-links{grid-template-columns:1fr}}

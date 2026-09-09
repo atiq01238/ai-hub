@@ -80,7 +80,7 @@ class SeoHealthService
             ->groupBy(fn (array $row) => $this->metadata->normalized($row['title']))
             ->filter(fn (Collection $group, string $title) => $title !== '' && $group->count() > 1);
 
-        $semantic = $this->semanticSnapshot();
+        $semantic = $this->semanticSnapshot($inventory);
 
         $hardConflictCount = $missingPrimary
             + $collisionGroups->count()
@@ -124,12 +124,17 @@ class SeoHealthService
         ];
     }
 
-    private function semanticSnapshot(): array
+    private function semanticSnapshot(Collection $inventory): array
     {
-        $tools = Tool::query()->where('status', 'published')->get(['id', 'name', 'slug']);
-        $models = AiModel::query()->whereIn('status', ['active', 'preview'])->get(['id', 'name', 'slug']);
-        $articles = Article::query()->where('status', 'published')->where('approval_status', 'approved')->get(['id']);
-        $news = $this->publicNews()->get(['id']);
+        $toolIds = $inventory->where('page_type', 'tool_detail')->where('targetable_type', Tool::class)->pluck('targetable_id')->filter()->map(fn ($id) => (int) $id)->unique();
+        $modelIds = $inventory->where('page_type', 'model_detail')->where('targetable_type', AiModel::class)->pluck('targetable_id')->filter()->map(fn ($id) => (int) $id)->unique();
+        $articleIds = $inventory->where('page_type', 'article_detail')->where('targetable_type', Article::class)->pluck('targetable_id')->filter()->map(fn ($id) => (int) $id)->unique();
+        $newsIds = $inventory->where('page_type', 'news_detail')->where('targetable_type', NewsItem::class)->pluck('targetable_id')->filter()->map(fn ($id) => (int) $id)->unique();
+
+        $tools = Tool::query()->whereIn('id', $toolIds)->get(['id', 'name', 'slug']);
+        $models = AiModel::query()->whereIn('id', $modelIds)->get(['id', 'name', 'slug']);
+        $articles = Article::query()->whereIn('id', $articleIds)->get(['id']);
+        $news = NewsItem::query()->whereIn('id', $newsIds)->get(['id']);
         $comparisons = $this->validComparisons();
 
         $articleToolIds = $this->distinctPivotIds('article_tool', 'tool_id', 'article_id', $articles->pluck('id'));
@@ -201,10 +206,7 @@ class SeoHealthService
 
     private function publicNews()
     {
-        return NewsItem::query()
-            ->where('status', 'published')
-            ->whereNull('duplicate_of_id')
-            ->where(fn ($query) => $query->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate'));
+        return NewsItem::query()->publiclyVisible();
     }
 
     private function validComparisons(): Collection
@@ -286,6 +288,16 @@ class SeoHealthService
             ->whereNull('news_items.duplicate_of_id')
             ->where(function ($q) {
                 $q->whereNull('news_items.duplicate_status')->orWhere('news_items.duplicate_status', '!=', 'duplicate');
+            })
+            ->where(function ($q) {
+                $threshold = (int) config('news_relevance.accept_threshold', 60);
+                $q->where('news_items.ai_relevance_override', 'include')
+                    ->orWhere(function ($auto) use ($threshold) {
+                        $auto->where(function ($override) {
+                            $override->whereNull('news_items.ai_relevance_override')->orWhere('news_items.ai_relevance_override', 'auto');
+                        })->where('news_items.ai_relevance_status', 'accepted')
+                          ->where('news_items.ai_relevance_score', '>=', $threshold);
+                    });
             });
         $constraints($query);
 

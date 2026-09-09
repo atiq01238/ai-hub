@@ -21,6 +21,8 @@ use Illuminate\Support\Str;
 
 class SeoIntentMapService
 {
+    public function __construct(private readonly SeoContentQualityService $contentQuality) {}
+
     /**
      * Build the current SEO target inventory from the same public/indexable
      * catalog rules used by AI Orbit's sitemap and crawl-quality gates.
@@ -167,6 +169,9 @@ class SeoIntentMapService
             ['trending.index', 'trending_directory', 'trending AI tools and models', ['popular AI tools', 'trending AI models', 'popular AI products'], 'fresh_information', 'AI Discovery'],
             ['about', 'about_page', 'AI Orbit', ['about AI Orbit', 'AI Orbit AI directory'], 'navigational', 'AI Orbit'],
             ['methodology', 'methodology_page', 'AI Orbit methodology', ['AI Orbit verification methodology', 'AI Orbit data methodology'], 'informational', 'AI Orbit'],
+            ['editorial-guidelines', 'editorial_guidelines_page', 'AI Orbit editorial guidelines', ['AI Orbit editorial standards', 'AI Orbit publishing policy'], 'informational', 'AI Orbit'],
+            ['sourcing-verification', 'sourcing_verification_page', 'AI Orbit sourcing and verification', ['AI Orbit source policy', 'AI Orbit verification standards'], 'informational', 'AI Orbit'],
+            ['corrections-policy', 'corrections_policy_page', 'AI Orbit corrections policy', ['AI Orbit data corrections', 'AI Orbit correction process'], 'informational', 'AI Orbit'],
             ['contact', 'contact_page', 'contact AI Orbit', ['AI Orbit contact'], 'navigational', 'AI Orbit'],
             ['privacy', 'privacy_page', 'AI Orbit privacy policy', [], 'navigational', 'AI Orbit'],
             ['terms', 'terms_page', 'AI Orbit terms of service', [], 'navigational', 'AI Orbit'],
@@ -189,8 +194,19 @@ class SeoIntentMapService
     {
         return Tool::query()
             ->where('status', 'published')
+            ->with([
+                'company:id,name', 'category:id,name', 'subcategoryTerm:id,name',
+                'featureTerms:id,name', 'useCaseTerms:id,name', 'platformTerms:id,name',
+                'integrationTerms:id,name', 'sources', 'factEvidence', 'pricingPlans.sources',
+                'technicalProfile',
+                'benchmarkResults' => fn ($query) => $query
+                    ->with('benchmark')
+                    ->where('verified', true)
+                    ->where('status', 'verified'),
+            ])
             ->orderBy('id')
-            ->get(['id', 'name'])
+            ->get()
+            ->filter(fn (Tool $tool) => $this->contentQuality->tool($tool)['indexable'])
             ->map(fn (Tool $tool) => $this->target(
                 'tools.show:'.$tool->id,
                 'tools.show',
@@ -200,15 +216,25 @@ class SeoIntentMapService
                 'commercial_investigation',
                 'AI Tools',
                 $tool,
-            ));
+            ))
+            ->values();
     }
 
     private function models(): Collection
     {
         return AiModel::query()
             ->whereIn('status', ['active', 'preview'])
+            ->with([
+                'company:id,name', 'featureTerms:id,name', 'useCaseTerms:id,name',
+                'pricingSources', 'evidenceSources',
+                'benchmarkResults' => fn ($query) => $query
+                    ->with('benchmark')
+                    ->where('verified', true)
+                    ->where('status', 'verified'),
+            ])
             ->orderBy('id')
-            ->get(['id', 'name'])
+            ->get()
+            ->filter(fn (AiModel $model) => $this->contentQuality->model($model)['indexable'])
             ->map(fn (AiModel $model) => $this->target(
                 'models.show:'.$model->id,
                 'models.show',
@@ -218,7 +244,8 @@ class SeoIntentMapService
                 'commercial_investigation',
                 'AI Models',
                 $model,
-            ));
+            ))
+            ->values();
     }
 
     private function companies(): Collection
@@ -303,8 +330,10 @@ class SeoIntentMapService
         return Article::query()
             ->where('status', 'published')
             ->where('approval_status', 'approved')
+            ->with(['relatedToolTerms:id', 'relatedModelTerms:id', 'tagTerms:id'])
             ->orderBy('id')
-            ->get(['id', 'title', 'tags'])
+            ->get()
+            ->filter(fn (Article $article) => $this->contentQuality->article($article)['indexable'])
             ->map(fn (Article $article) => $this->target(
                 'articles.show:'.$article->id,
                 'articles.show',
@@ -314,17 +343,17 @@ class SeoIntentMapService
                 'informational',
                 'AI Editorial',
                 $article,
-            ));
+            ))
+            ->values();
     }
 
     private function news(): Collection
     {
         return NewsItem::query()
-            ->where('status', 'published')
-            ->whereNull('duplicate_of_id')
-            ->where(fn ($query) => $query->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate'))
+            ->publiclyVisible()
             ->orderBy('id')
-            ->get(['id', 'headline', 'tags', 'ai_tags'])
+            ->get()
+            ->filter(fn (NewsItem $news) => $this->contentQuality->news($news)['indexable'])
             ->map(function (NewsItem $news) {
                 $secondary = collect($news->ai_tags ?? [])
                     ->merge($news->tags ?? [])
@@ -345,21 +374,14 @@ class SeoIntentMapService
                     'AI News',
                     $news,
                 );
-            });
+            })
+            ->values();
     }
 
     private function reviews(): Collection
     {
         return Review::query()
-            ->published()
-            ->where(function ($query) {
-                $query->where('review_type', 'editorial')
-                    ->orWhere(function ($community) {
-                        $community->where('review_type', 'user')
-                            ->whereNotNull('body')
-                            ->whereRaw("TRIM(body) <> ''");
-                    });
-            })
+            ->publicContent()
             ->where(function ($query) {
                 $query->whereHas('tool', fn ($tool) => $tool->where('status', 'published'))
                     ->orWhereHas('model', fn ($model) => $model->whereIn('status', ['active', 'preview']));

@@ -13,6 +13,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use App\Services\Frontend\QuickFeedbackService;
 use App\Services\Seo\InternalLinkingService;
+use App\Services\Seo\SeoContentQualityService;
+use App\Support\ArticleContent;
 
 class ArticleController extends Controller
 {
@@ -54,6 +56,7 @@ class ArticleController extends Controller
         };
 
         $articles = $query->paginate(12)->withQueryString();
+        \App\Support\SeoPaginationGuard::enforce($articles, $request);
 
         $featured = Article::query()
             ->with(['author', 'company'])
@@ -88,7 +91,7 @@ class ArticleController extends Controller
         return view('frontend.articles.index', compact('articles', 'featured', 'categoryCounts', 'companies', 'stats'));
     }
 
-    public function show(Article $article, QuickFeedbackService $feedback, InternalLinkingService $internalLinks)
+    public function show(Article $article, QuickFeedbackService $feedback, InternalLinkingService $internalLinks, SeoContentQualityService $contentQuality)
     {
         abort_unless($article->status === 'published' && $article->approval_status === 'approved', 404);
 
@@ -106,7 +109,9 @@ class ArticleController extends Controller
             ->where('published_at', '>', $article->published_at)->oldest('published_at')->first();
 
         $articleFeedback = $feedback->voteSummary('article', $article->id, auth()->user());
+        $seoQuality = $contentQuality->article($article);
+        $articleOutline = ArticleContent::outline($article->content);
 
-        return view('frontend.articles.show', compact('article', 'relatedTools', 'relatedModels', 'relatedArticles', 'previous', 'next', 'articleFeedback'));
+        return view('frontend.articles.show', compact('article', 'relatedTools', 'relatedModels', 'relatedArticles', 'previous', 'next', 'articleFeedback', 'seoQuality', 'articleOutline'));
     }
 }

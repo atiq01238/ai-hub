@@ -3,7 +3,11 @@
 namespace App\Console\Commands;
 
 use App\Models\NewsItem;
+use App\Services\NewsEntityLinker;
+use App\Services\NewsIntelligenceService;
+use App\Services\NewsRelevanceService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class ProcessAiNews extends Command
@@ -202,6 +206,25 @@ class ProcessAiNews extends Command
             'processing_status' => 'processed',
             'ai_processed_at' => now(),
         ])->save();
+
+        // Re-check relevance after local processing and only build public entity
+        // intelligence for records that pass the AI gate.
+        $item->loadMissing(['company', 'newsSource.company']);
+        $relevance = app(NewsRelevanceService::class);
+        $relevance->apply($item);
+
+        if ($relevance->isAccepted($item)) {
+            try {
+                app(NewsEntityLinker::class)->link($item);
+                app(NewsIntelligenceService::class)->refresh($item->fresh());
+            } catch (\Throwable $e) {
+                Log::warning('Post-processing news intelligence enrichment failed for item ' . $item->id, ['error' => $e->getMessage()]);
+            }
+        } else {
+            $item->relatedToolTerms()->sync([]);
+            $item->relatedModelTerms()->sync([]);
+            $item->forceFill(['related_tools' => []])->saveQuietly();
+        }
     }
 
     private function detectTopic(string $text): array

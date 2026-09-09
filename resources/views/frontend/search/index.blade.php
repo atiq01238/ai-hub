@@ -88,10 +88,10 @@
                                     <a class="entity-top" href="{{ route('tools.show',$tool) }}" data-search-result data-search-query="{{ $query }}" data-search-target-type="tool" data-search-target-id="{{ $tool->id }}">
                                         <img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo">
                                         <div><small>{{ $tool->company?->name ?? 'AI Tool' }}</small><h3>{{ $tool->name }}</h3><span>{{ $tool->category?->name ?? 'AI Software' }}</span></div>
-                                        <b>{{ number_format((float)$tool->rating,1) }}</b>
+                                        <b>{{ (float)$tool->rating > 0 ? number_format((float)$tool->rating,1) : 'Not rated' }}</b>
                                     </a>
                                     <p>{{ \Illuminate\Support\Str::limit($tool->short_description ?: $tool->description, 112) }}</p>
-                                    <div class="entity-meta"><span><i data-lucide="star"></i>{{ number_format((float)$tool->rating,1) }}</span><span><i data-lucide="flame"></i>{{ number_format((int)$tool->popularity) }}</span><a href="{{ route('tools.show',$tool) }}">View profile <i data-lucide="arrow-up-right"></i></a></div>
+                                    <div class="entity-meta"><span><i data-lucide="star"></i>{{ (float)$tool->rating > 0 ? number_format((float)$tool->rating,1) : 'Not rated' }}</span><span><i data-lucide="flame"></i>{{ number_format((int)$tool->popularity) }}</span><a href="{{ route('tools.show',$tool) }}">View profile <i data-lucide="arrow-up-right"></i></a></div>
                                 </article>
                             @endforeach
                         </div>
@@ -216,7 +216,7 @@
             <div class="section-bar"><div><span class="section-icon"><i data-lucide="flame"></i></span><h2>Popular AI Tools</h2><small>High-interest products across AI Orbit</small></div><a href="{{ route('tools.index',['sort'=>'popular']) }}">Explore directory <i data-lucide="arrow-right"></i></a></div>
             <div class="entity-grid entity-grid-tools">
                 @foreach($trendingTools as $tool)
-                    <article class="search-entity-card"><a class="entity-top" href="{{ route('tools.show',$tool) }}" data-search-result data-search-query="{{ $query }}" data-search-target-type="tool" data-search-target-id="{{ $tool->id }}"><img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo"><div><small>{{ $tool->company?->name }}</small><h3>{{ $tool->name }}</h3><span>Popular AI Tool</span></div><b>{{ number_format((float)$tool->rating,1) }}</b></a><p>{{ \Illuminate\Support\Str::limit($tool->short_description, 105) }}</p></article>
+                    <article class="search-entity-card"><a class="entity-top" href="{{ route('tools.show',$tool) }}" data-search-result data-search-query="{{ $query }}" data-search-target-type="tool" data-search-target-id="{{ $tool->id }}"><img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo"><div><small>{{ $tool->company?->name }}</small><h3>{{ $tool->name }}</h3><span>Popular AI Tool</span></div><b>{{ (float)$tool->rating > 0 ? number_format((float)$tool->rating,1) : 'Not rated' }}</b></a><p>{{ \Illuminate\Support\Str::limit($tool->short_description, 105) }}</p></article>
                 @endforeach
             </div>
         </section>

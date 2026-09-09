@@ -180,41 +180,16 @@ class Tool extends Model
 
     public function getOverviewAttribute(): string
     {
-        $description = trim(strip_tags((string) ($this->description ?: $this->short_description)));
-        $short = trim(strip_tags((string) $this->short_description));
-        $parts = [];
-
+        // Phase 4: keep the narrative overview editorial. Older builds padded
+        // short descriptions with repeated provider/category/capability text,
+        // which made otherwise rich tool pages read like templates. Structured
+        // facts now live in their dedicated decision, capability and pricing
+        // sections instead of being turned into synthetic overview paragraphs.
+        $description = trim(strip_tags((string) $this->description));
         if ($description !== '') {
-            $parts[] = $description;
-        } else {
-            $parts[] = $this->name . ' is an AI tool listed in the AI Orbit catalog.';
+            return $description;
         }
 
-        $needsContext = mb_strlen($description) < 180 || ($short !== '' && $description === $short);
-        if ($needsContext) {
-            $provider = $this->company?->name;
-            $category = $this->category?->name;
-            $context = $this->name;
-            if ($provider) $context .= ' is developed by ' . $provider;
-            if ($category) $context .= ' and is categorized as ' . $category;
-            $parts[] = $context . '.';
-
-            $caps = collect($this->capabilities ?? [])->filter()->take(6)->values();
-            if ($caps->isNotEmpty()) {
-                $parts[] = 'Its cataloged capabilities include ' . $caps->join(', ', ' and ') . '.';
-            }
-
-            $platforms = collect($this->platforms ?? [])->filter()->take(6)->values();
-            if ($platforms->isNotEmpty()) {
-                $parts[] = 'AI Orbit currently lists support for ' . $platforms->join(', ', ' and ') . '.';
-            }
-
-            $pricing = collect($this->pricing_models ?? [])->filter()->values();
-            if ($pricing->isNotEmpty()) {
-                $parts[] = 'The recorded pricing model is ' . $pricing->join(', ', ' and ') . '; detailed plan pricing is shown in the pricing section when verified data is available.';
-            }
-        }
-
-        return implode("\n\n", array_values(array_unique(array_filter($parts))));
+        return trim(strip_tags((string) $this->short_description));
     }
 }

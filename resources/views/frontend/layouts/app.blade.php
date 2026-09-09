@@ -34,17 +34,35 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
     @if(request()->routeIs('home'))
-        <link rel="stylesheet" href="{{ asset('css/frontend/home-performance.css') }}?v=20260901-seo4">
+        <link rel="stylesheet" href="{{ asset('css/frontend/home-performance.css') }}?v=20260909-phase8">
     @else
-        <link rel="stylesheet" href="{{ asset('css/frontend/app.css') }}?v=20260828-trendnav1">
+        <link rel="stylesheet" href="{{ asset('css/frontend/app.css') }}?v=20260909-phase8">
         <link rel="stylesheet" href="{{ asset('css/frontend/community.css') }}">
         <link rel="stylesheet" href="{{ asset('css/frontend/saved.css') }}">
         <link rel="stylesheet" href="{{ asset('css/frontend/search-intelligence.css') }}">
         @stack('styles')
         <link rel="stylesheet" href="{{ asset('css/frontend/ui-polish.css') }}?v=20260828-modelmobile1">
     @endif
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9025296892842875"
-     crossorigin="anonymous"></script>
+    @php
+        $adsenseQueryKeys = array_keys(request()->query());
+        $adsensePageValue = request()->query('page');
+        $adsenseQuerySafe = $adsenseQueryKeys === []
+            || (count($adsenseQueryKeys) === 1
+                && $adsenseQueryKeys[0] === 'page'
+                && is_scalar($adsensePageValue)
+                && ctype_digit((string) $adsensePageValue)
+                && (int) $adsensePageValue >= 1);
+        $adsenseRouteEligible = request()->route()
+            && request()->routeIs(...(array) config('adsense.content_route_patterns', []));
+        $adsenseEligible = (bool) config('adsense.enabled', true)
+            && $adsenseRouteEligible
+            && $adsenseQuerySafe
+            && filled(config('adsense.client_id'));
+    @endphp
+    @if($adsenseEligible)
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ config('adsense.client_id') }}"
+            crossorigin="anonymous"></script>
+    @endif
 </head>
 <body>
 <div class="site-shell">
@@ -58,12 +76,11 @@
             <a class="{{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}"><i data-lucide="house"></i>Home</a>
             <a class="{{ request()->routeIs('tools.*') ? 'active' : '' }}" href="{{ route('tools.index') }}"><i data-lucide="bot"></i>AI Tools</a>
             <a class="{{ request()->routeIs('models.*') ? 'active' : '' }}" href="{{ route('models.index') }}"><i data-lucide="code-xml"></i>AI Models</a>
-            <a class="{{ request()->routeIs('news.*') ? 'active' : '' }}" href="{{ route('news.index') }}"><i data-lucide="radio"></i>AI News</a>
             <a class="{{ request()->routeIs('comparisons.*') ? 'active' : '' }}" href="{{ route('comparisons.index') }}"><i data-lucide="scale"></i>Compare</a>
             <a class="{{ request()->routeIs('pricing.*') ? 'active' : '' }}" href="{{ route('pricing.index') }}"><i data-lucide="badge-dollar-sign"></i>Pricing</a>
-            <a class="{{ request()->routeIs('reviews.*') ? 'active' : '' }}" href="{{ route('reviews.index') }}"><i data-lucide="star"></i>Reviews</a>
+            <a class="{{ request()->routeIs('benchmarks.*') ? 'active' : '' }}" href="{{ route('benchmarks.index') }}"><i data-lucide="chart-no-axes-combined"></i>Benchmarks</a>
+            <a class="{{ request()->routeIs('news.*') ? 'active' : '' }}" href="{{ route('news.index') }}"><i data-lucide="radio"></i>AI News</a>
             <a class="{{ request()->routeIs('articles.*') ? 'active' : '' }}" href="{{ route('articles.index') }}"><i data-lucide="newspaper"></i>Articles</a>
-            <a class="{{ request()->routeIs('companies.*') ? 'active' : '' }}" href="{{ route('companies.index') }}"><i data-lucide="building-2"></i>Companies</a>
         </nav>
 
         <div class="nav-actions">
@@ -112,11 +129,11 @@
         <a class="{{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}"><i data-lucide="house"></i>Home</a>
         <a class="{{ request()->routeIs('tools.*') ? 'active' : '' }}" href="{{ route('tools.index') }}"><i data-lucide="bot"></i>AI Tools</a>
         <a class="{{ request()->routeIs('models.*') ? 'active' : '' }}" href="{{ route('models.index') }}"><i data-lucide="code-xml"></i>AI Models</a>
-        <a class="{{ request()->routeIs('companies.*') ? 'active' : '' }}" href="{{ route('companies.index') }}"><i data-lucide="building-2"></i>Companies</a>
-        <a class="{{ request()->routeIs('news.*') ? 'active' : '' }}" href="{{ route('news.index') }}"><i data-lucide="radio"></i>AI News</a>
-        <a class="{{ request()->routeIs('articles.*') ? 'active' : '' }}" href="{{ route('articles.index') }}"><i data-lucide="newspaper"></i>Articles</a>
         <a class="{{ request()->routeIs('comparisons.*') ? 'active' : '' }}" href="{{ route('comparisons.index') }}"><i data-lucide="scale"></i>Compare</a>
         <a class="{{ request()->routeIs('pricing.*') ? 'active' : '' }}" href="{{ route('pricing.index') }}"><i data-lucide="badge-dollar-sign"></i>Pricing</a>
+        <a class="{{ request()->routeIs('benchmarks.*') ? 'active' : '' }}" href="{{ route('benchmarks.index') }}"><i data-lucide="chart-no-axes-combined"></i>Benchmarks</a>
+        <a class="{{ request()->routeIs('news.*') ? 'active' : '' }}" href="{{ route('news.index') }}"><i data-lucide="radio"></i>AI News</a>
+        <a class="{{ request()->routeIs('articles.*') ? 'active' : '' }}" href="{{ route('articles.index') }}"><i data-lucide="newspaper"></i>Articles</a>
         <a class="{{ request()->routeIs('about') ? 'active' : '' }}" href="{{ route('about') }}"><i data-lucide="info"></i>About AI Orbit</a>
     </div>
 
@@ -178,9 +195,9 @@
 
                 <div class="footer-links">
                     <div><h3>Explore</h3><a href="{{ route('search.index') }}">Global Search</a><a href="{{ route('categories.index') }}">AI Categories</a><a href="{{ route('features.index') }}">AI Features</a><a href="{{ route('use-cases.index') }}">Use Cases</a><a href="{{ route('tools.index') }}">AI Tools</a><a href="{{ route('models.index') }}">AI Models</a><a href="{{ route('news.index') }}">AI News</a><a href="{{ route('comparisons.index') }}">Comparisons</a></div>
-                    <div><h3>Intelligence</h3><a href="{{ route('pricing.index') }}">Pricing</a><a href="{{ route('benchmarks.index') }}">Benchmarks</a><a href="{{ route('trending.index') }}">Trending</a><a href="{{ route('reviews.index') }}">Reviews</a><a href="{{ route('articles.index') }}">Articles</a><a href="{{ route('companies.index') }}">Companies</a></div>
-                    <div><h3>Company</h3><a href="{{ route('about') }}">About AI Orbit</a><a href="{{ route('methodology') }}">Methodology</a><a href="{{ route('methodology') }}#editorial">Editorial Policy</a><a href="{{ route('contact') }}">Contact</a><a href="{{ route('submissions.create') }}">Suggest a Tool</a></div>
-                    <div><h3>Resources</h3><a href="{{ route('saved.index') }}">Saved Library</a><a href="{{ route('topics.index') }}">Editorial Topics</a><a href="{{ route('categories.index') }}">AI Categories</a><a href="{{ route('benchmarks.index') }}">Benchmark Data</a><a href="{{ route('pricing.index') }}">Pricing Intelligence</a><a href="{{ route('disclosures') }}">Data Disclosures</a><a href="{{ route('contact') }}">Help & Feedback</a></div>
+                    <div><h3>Intelligence</h3><a href="{{ route('pricing.index') }}">Pricing</a><a href="{{ route('benchmarks.index') }}">Benchmarks</a><a href="{{ route('trending.index') }}">Trending</a><a href="{{ route('articles.index') }}">Articles</a><a href="{{ route('companies.index') }}">Companies</a></div>
+                    <div><h3>Company</h3><a href="{{ route('about') }}">About AI Orbit</a><a href="{{ route('methodology') }}">Methodology</a><a href="{{ route('editorial-guidelines') }}">Editorial Guidelines</a><a href="{{ route('sourcing-verification') }}">Sourcing & Verification</a><a href="{{ route('corrections-policy') }}">Corrections Policy</a><a href="{{ route('contact') }}">Contact</a></div>
+                    <div><h3>Resources</h3><a href="{{ route('saved.index') }}">Saved Library</a><a href="{{ route('topics.index') }}">Editorial Topics</a><a href="{{ route('benchmarks.index') }}">Benchmark Data</a><a href="{{ route('pricing.index') }}">Pricing Intelligence</a><a href="{{ route('disclosures') }}">Disclosures & Independence</a><a href="{{ route('submissions.create') }}">Suggest / Correct Data</a><a href="{{ route('contact') }}">Help & Feedback</a></div>
                 </div>
             </div>
 
@@ -193,7 +210,7 @@
     </footer>
 </div>
 <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-<script src="{{ asset('js/frontend/app.js') }}?v=20260828-trendnav1"></script>
+<script src="{{ asset('js/frontend/app.js') }}?v=20260909-phase8"></script>
 <script src="{{ asset('js/frontend/search-intelligence.js') }}?v=20260827-search2"></script>
 <script src="{{ asset('js/frontend/saved.js') }}?v=20260827-reviewfix1"></script>
 <script src="{{ asset('js/frontend/community.js') }}?v=20260827-reviewfix1"></script>

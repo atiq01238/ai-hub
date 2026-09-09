@@ -18,7 +18,7 @@ class SendWeeklyAiDigest extends Command
     {
         $since = now()->subDays(7);
         $lines = [];
-        NewsItem::where('status','published')->where('published_at','>=',$since)->whereNull('duplicate_of_id')
+        NewsItem::query()->publiclyVisible()->where('published_at','>=',$since)
             ->orderByDesc('importance')->limit(3)->pluck('headline')->each(fn($v)=>$lines[]='News: '.$v);
         AiModel::where('status','active')->where('created_at','>=',$since)->latest()->limit(3)->pluck('name')->each(fn($v)=>$lines[]='New model: '.$v);
         Tool::where('status','published')->where('published_at','>=',$since)->latest('published_at')->limit(3)->pluck('name')->each(fn($v)=>$lines[]='New tool: '.$v);

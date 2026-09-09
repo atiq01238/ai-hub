@@ -16,10 +16,12 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use App\Services\Seo\EntitySeoService;
 use App\Services\Seo\InternalLinkingService;
+use App\Services\Seo\SeoContentQualityService;
 use App\Services\Frontend\QuickFeedbackService;
 use App\Services\Tools\ToolCommercialProfileService;
 use App\Services\Tools\ToolAlternativeScoringService;
 use App\Services\Tools\ToolDataConfidenceService;
+use App\Services\Tools\ToolEditorialIntelligenceService;
 use App\Services\BenchmarkScoringService;
 
 class ToolController extends Controller
@@ -62,6 +64,7 @@ class ToolController extends Controller
         $this->applySort($query, $validated['sort'] ?? 'popular');
 
         $tools = $query->paginate(12)->withQueryString();
+        \App\Support\SeoPaginationGuard::enforce($tools, $request);
 
         $categories = Category::query()
             ->product()->active()
@@ -135,7 +138,7 @@ class ToolController extends Controller
         ));
     }
 
-    public function show(Tool $tool, EntitySeoService $seoService, QuickFeedbackService $feedback, BenchmarkScoringService $benchmarkScoring, ToolAlternativeScoringService $alternatives, ToolDataConfidenceService $confidence, InternalLinkingService $internalLinks)
+    public function show(Tool $tool, EntitySeoService $seoService, QuickFeedbackService $feedback, BenchmarkScoringService $benchmarkScoring, ToolAlternativeScoringService $alternatives, ToolDataConfidenceService $confidence, ToolEditorialIntelligenceService $editorialIntelligence, InternalLinkingService $internalLinks, SeoContentQualityService $contentQuality)
     {
         abort_unless($tool->status === 'published', 404);
 
@@ -155,7 +158,7 @@ class ToolController extends Controller
                 ->orderByDesc('benchmark_score')
                 ->orderByDesc('release_date'),
             'reviews' => fn ($query) => $query
-                ->published()
+                ->publicContent()
                 ->with('user')
                 ->latest('moderated_at')
                 ->latest('created_at'),
@@ -268,6 +271,16 @@ class ToolController extends Controller
         $integrations = $tool->integrationTerms->values();
         $factEvidenceMap = $tool->factEvidence->keyBy(fn ($evidence) => $evidence->fact_type.'.'.$evidence->fact_key);
         $dataConfidence = $confidence->score($tool);
+        $editorialBrief = $editorialIntelligence->build(
+            tool: $tool,
+            pricingPlans: $pricingPlans,
+            relatedTools: $relatedTools,
+            relatedComparisons: $relatedComparisons,
+            benchmarkResults: $benchmarkResults,
+            dataConfidence: $dataConfidence,
+            editorReview: $editorReview,
+        );
+        $seoQuality = $contentQuality->tool($tool, $dataConfidence);
         $verifiedIdentitySource = $tool->sources
             ->first(fn ($source) => in_array($source->source_type, ['official_product','company'], true) && $source->verification_status === 'verified');
         $tags = $tool->tagTerms->pluck('name')
@@ -308,6 +321,8 @@ class ToolController extends Controller
             'integrations',
             'factEvidenceMap',
             'dataConfidence',
+            'editorialBrief',
+            'seoQuality',
             'quickRating',
             'seo',
             'seoSchemas',

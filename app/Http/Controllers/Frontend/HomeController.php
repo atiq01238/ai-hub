@@ -7,18 +7,20 @@ use App\Models\AiModel;
 use App\Models\Article;
 use App\Models\BenchmarkResult;
 use App\Models\Category;
-use App\Models\Company;
 use App\Models\Comparison;
 use App\Models\NewsItem;
 use App\Models\PricingPlan;
-use App\Models\Review;
 use App\Models\Tool;
 use App\Services\Analytics\ToolTrendingService;
+use App\Services\Seo\SeoContentQualityService;
 
 class HomeController extends Controller
 {
-    public function index(ToolTrendingService $toolTrending)
+    public function index(ToolTrendingService $toolTrending, SeoContentQualityService $contentQuality)
     {
+        // Keep the homepage intentionally curated. Full catalogs live on their
+        // dedicated index pages; the homepage only needs enough data to help a
+        // first-time visitor understand AI Orbit and choose a next step.
         $categories = Category::query()
             ->product()->active()
             ->where('is_indexable', true)
@@ -27,36 +29,77 @@ class HomeController extends Controller
             ->orderByDesc('tools_count')
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->take(8)
+            ->take(5)
             ->get();
 
+        // Keep the classic Best AI Tools block populated even when a local
+        // database has not imported community ratings yet. Rated tools still
+        // rank first; unrated tools fall back to catalog popularity.
         $bestTools = Tool::query()
             ->with(['company', 'category'])
             ->where('status', 'published')
+            ->orderByRaw('CASE WHEN COALESCE(rating, 0) > 0 THEN 0 ELSE 1 END')
             ->orderByDesc('rating')
             ->orderByDesc('popularity')
+            ->orderBy('name')
             ->take(8)
             ->get();
 
-        $popularTools = Tool::query()
+        // The category tabs need their own ranked candidates. Filtering only
+        // the global top eight meant a category could show one card even when
+        // many published tools existed in that category. Load up to eight per
+        // homepage category, then merge them into one small client-side pool.
+        $bestToolsByCategory = collect();
+        foreach ($categories as $category) {
+            $categoryTools = Tool::query()
+                ->with(['company', 'category'])
+                ->where('status', 'published')
+                ->where('category_id', $category->id)
+                ->orderByRaw('CASE WHEN COALESCE(rating, 0) > 0 THEN 0 ELSE 1 END')
+                ->orderByDesc('rating')
+                ->orderByDesc('popularity')
+                ->orderBy('name')
+                ->take(8)
+                ->get();
+
+            $bestToolsByCategory = $bestToolsByCategory->merge($categoryTools);
+        }
+
+        $bestToolsPool = $bestTools
+            ->merge($bestToolsByCategory)
+            ->unique('id')
+            ->values();
+
+        // Mobile gets a deliberately small random discovery sample. This is
+        // rendered separately from the desktop Best Tools ranking so the phone
+        // layout can stay one-card-per-row without changing desktop ordering.
+        $mobileBestTools = Tool::query()
             ->with(['company', 'category'])
             ->where('status', 'published')
-            ->orderByDesc('popularity')
-            ->orderByDesc('rating')
+            ->inRandomOrder()
             ->take(5)
             ->get();
 
         $trendingTools = $toolTrending->homepage(6);
 
+        // Only quality-gated AI news appears on the homepage. The public news
+        // directory can remain broader while this surface stays editorially tight.
         $latestNews = NewsItem::query()
             ->with('company')
-            ->where('status', 'published')
-            ->whereNull('duplicate_of_id')
-            ->where(function ($q) {
-                $q->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate');
-            })
+            ->publiclyVisible()
             ->orderByDesc('published_at')
-            ->take(4)
+            ->take(40)
+            ->get()
+            ->filter(fn (NewsItem $news) => $contentQuality->news($news)['indexable'])
+            ->take(2)
+            ->values();
+
+        $featuredArticles = Article::query()
+            ->with(['author', 'company'])
+            ->where('status', 'published')
+            ->where('approval_status', 'approved')
+            ->orderByDesc('published_at')
+            ->take(2)
             ->get();
 
         $comparisons = Comparison::query()
@@ -72,115 +115,28 @@ class HomeController extends Controller
                     return false;
                 }
             })
-            ->take(4)
+            ->take(3)
             ->values();
 
-        $featuredModels = AiModel::query()
-            ->with(['company', 'tool'])
-            ->where('status', 'active')
-            ->orderByDesc('benchmark_score')
-            ->take(6)
-            ->get();
-
-        $recentModels = AiModel::query()
-            ->with(['company', 'tool'])
-            ->where('status', 'active')
-            ->orderByDesc('release_date')
-            ->take(6)
-            ->get();
-
-        $recentTools = Tool::query()
-            ->with(['company', 'category'])
-            ->where('status', 'published')
-            ->orderByDesc('published_at')
-            ->take(6)
-            ->get();
-
-        $pricingPicks = PricingPlan::query()
-            ->with('tool.company')
-            ->whereHas('tool', fn ($q) => $q->where('status', 'published'))
-            ->orderByRaw('CASE WHEN monthly_price = 0 THEN 0 ELSE 1 END')
-            ->orderBy('monthly_price')
-            ->take(6)
-            ->get();
-
-        $latestReviews = Review::query()
-            ->with(['tool.company', 'model.company', 'user'])
-            ->published()
-            ->where(function ($query) {
-                $query->where('review_type', 'editorial')
-                    ->orWhere(function ($community) {
-                        $community->where('review_type', 'user')
-                            ->whereNotNull('body')
-                            ->whereRaw("TRIM(body) <> ''");
-                    });
-            })
-            ->where(function ($query) {
-                $query->whereHas('tool', fn ($tool) => $tool->where('status', 'published'))
-                    ->orWhereHas('model', fn ($model) => $model->whereIn('status', ['active', 'preview']));
-            })
-            ->orderByDesc('rating')
-            ->orderByDesc('created_at')
-            ->take(4)
-            ->get();
-
-        $featuredArticles = Article::query()
-            ->with(['author', 'company'])
-            ->where('status', 'published')
-            ->where('approval_status', 'approved')
-            ->orderByDesc('published_at')
-            ->take(4)
-            ->get();
-
-        $topCompanies = Company::query()
-            ->seoIndexable()
-            ->withCount([
-                'tools' => fn ($q) => $q->where('status', 'published'),
-                'models' => fn ($q) => $q->where('status', 'active'),
-            ])
-            ->where('status', 'active')
-            ->orderByDesc('tools_count')
-            ->orderByDesc('models_count')
-            ->take(8)
-            ->get();
-
-        $benchmarkGroups = BenchmarkResult::query()
-            ->with(['benchmark', 'benchmarkable'])
-            ->where('verified', true)
-            ->where('benchmarkable_type', AiModel::class)
-            ->orderByDesc('score')
-            ->get()
-            ->groupBy('benchmark_id')
-            ->map(fn ($rows) => $rows->take(3))
-            ->take(4);
-
-        $newsCategoryCounts = NewsItem::query()
-            ->where('status', 'published')
-            ->whereNull('duplicate_of_id')
-            ->where(fn ($query) => $query->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate'))
-            ->selectRaw('category, COUNT(*) as total')
-            ->whereNotNull('category')
-            ->groupBy('category')
-            ->orderByDesc('total')
-            ->take(7)
-            ->pluck('total', 'category');
+        $homepageStats = [
+            'tools' => Tool::query()->where('status', 'published')->count(),
+            'models' => AiModel::query()->whereIn('status', ['active', 'preview'])->count(),
+            'pricing_plans' => PricingPlan::query()
+                ->whereHas('tool', fn ($query) => $query->where('status', 'published'))
+                ->count(),
+            'verified_benchmarks' => BenchmarkResult::query()->where('verified', true)->count(),
+        ];
 
         return view('frontend.home.index', compact(
             'categories',
             'bestTools',
-            'popularTools',
+            'bestToolsPool',
+            'mobileBestTools',
             'trendingTools',
             'latestNews',
             'comparisons',
-            'featuredModels',
-            'recentModels',
-            'recentTools',
-            'pricingPicks',
-            'latestReviews',
             'featuredArticles',
-            'topCompanies',
-            'benchmarkGroups',
-            'newsCategoryCounts',
+            'homepageStats',
         ));
     }
 }

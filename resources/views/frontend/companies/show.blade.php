@@ -222,7 +222,7 @@
                                 <a href="{{ route('tools.show', $tool) }}">
                                     <img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo">
                                     <div><small>{{ $tool->category?->name ?: 'AI Tool' }}</small><strong>{{ $tool->name }}</strong><span>{{ \Illuminate\Support\Str::limit($tool->short_description ?: $tool->description, 72) }}</span></div>
-                                    <b>{{ number_format((float) $tool->rating, 1) }}★</b>
+                                    <b>{{ (float)$tool->rating > 0 ? number_format((float)$tool->rating, 1).'★' : 'Not rated' }}</b>
                                 </a>
                             @endforeach
                         </div>

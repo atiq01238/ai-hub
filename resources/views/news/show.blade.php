@@ -11,6 +11,7 @@
 @php
     $sentimentClass = $item->sentiment === 'positive' ? 'badge-pos' : ($item->sentiment === 'negative' ? 'badge-neg' : 'badge-neutral');
     $verificationClass = $item->verification_status === 'verified' ? 'badge-pos' : ($item->verification_status === 'unverified' ? 'badge-neg' : 'badge-warn');
+    $relevanceClass = $item->ai_relevance_status === 'accepted' ? 'badge-pos' : ($item->ai_relevance_status === 'rejected' ? 'badge-neg' : 'badge-warn');
 @endphp
 
 <div class="news-shell news-detail">
@@ -41,6 +42,7 @@
                 @if ($item->category)<span class="badge badge-neutral">{{ $item->category }}</span>@endif
                 <span class="badge {{ $sentimentClass }}">{{ ucfirst($item->sentiment) }}</span>
                 <span class="badge {{ $verificationClass }}">{{ str_replace('_', ' ', ucfirst($item->verification_status)) }}</span>
+                <span class="badge {{ $relevanceClass }}">AI {{ ucfirst($item->ai_relevance_status ?? 'pending') }}{{ $item->ai_relevance_score !== null ? ' · '.(int) $item->ai_relevance_score.'/100' : '' }}</span>
                 <span><i data-lucide="building-2"></i>{{ $item->company->name ?? 'No company linked' }}</span>
                 <span><i data-lucide="clock-3"></i>{{ $item->published_at?->diffForHumans() ?? ucfirst($item->status) }}</span>
             </div>
@@ -78,7 +80,16 @@
                         <div class="news-fact"><span>Category</span><strong>{{ $item->category ?: '—' }}</strong></div>
                         <div class="news-fact"><span>Related company</span><strong>{{ $item->company->name ?? '—' }}</strong></div>
                         <div class="news-fact"><span>Publication status</span><strong>{{ ucfirst($item->status) }}</strong></div>
+                        <div class="news-fact"><span>AI relevance</span><strong>{{ ucfirst($item->ai_relevance_status ?? 'pending') }} · {{ $item->ai_relevance_score !== null ? (int) $item->ai_relevance_score.'/100' : 'Not scored' }}</strong></div>
+                        <div class="news-fact"><span>Relevance override</span><strong>{{ ucfirst($item->ai_relevance_override ?? 'auto') }}</strong></div>
                     </div>
+
+                    @if(!empty($item->ai_relevance_reasons))
+                        <div class="news-detail__tag-block">
+                            <span>Relevance signals</span>
+                            <div>@foreach($item->ai_relevance_reasons as $reason)<span class="news-chip">{{ $reason }}</span>@endforeach</div>
+                        </div>
+                    @endif
 
                     @if (!empty($item->related_tools))
                         <div class="news-detail__tag-block"><span>Related tools</span><div>@foreach ($item->related_tools as $tool)<span class="news-chip">{{ $tool }}</span>@endforeach</div></div>

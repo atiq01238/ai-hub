@@ -3,7 +3,7 @@
 @section('title', html_entity_decode($seo['title'], ENT_QUOTES | ENT_HTML5, 'UTF-8') . ' | AI Orbit')
 @section('meta_description', html_entity_decode($seo['description'], ENT_QUOTES | ENT_HTML5, 'UTF-8'))
 @section('canonical', route('tools.show', $tool))
-@section('robots', 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1')
+@section('robots', $seoQuality['robots'] ?? 'noindex,follow')
 @push('head')
 @foreach($seoSchemas as $schema)
     @php
@@ -21,7 +21,7 @@
 @endpush
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('css/frontend/tools-show.css') }}?v=20260903-mobile-order-v4">
+<link rel="stylesheet" href="{{ asset('css/frontend/tools-show.css') }}?v=20260908-editorial-decision-v1">
 @endpush
 
 @section('content')
@@ -37,6 +37,7 @@
     $technicalProfile = $technicalProfile ?? null;
     $integrations = $integrations ?? collect();
     $dataConfidence = $dataConfidence ?? ['score'=>0,'label'=>'Low','freshness'=>'unverified','verified_sources'=>0,'total_sources'=>0,'verified_claims'=>0,'known_claims'=>0,'last_verified_at'=>null,'sections'=>[]];
+    $editorialBrief = $editorialBrief ?? ['show'=>false,'best_for'=>collect(),'strengths'=>collect(),'considerations'=>collect(),'signals'=>collect(),'alternatives'=>collect(),'verdict'=>'','method_note'=>"Built from AI Orbit's recorded profile data. Unknown product facts are not inferred."];
     $factEvidenceMap = $factEvidenceMap ?? collect();
     $factVerified = fn($type, $key) => (($factEvidenceMap->get($type.'.'.$key)?->verification_status ?? 'pending') === 'verified');
     $sourceFor = fn($id) => $id ? ($sourceMap->get((int)$id) ?? null) : null;
@@ -121,6 +122,7 @@
     <div class="tool-detail-wrap sticky-nav-inner">
         <div class="detail-nav-links">
             <a href="#overview" class="active">Overview</a>
+            @if($editorialBrief['show'] ?? false)<a href="#decision">Decision brief</a>@endif
             @if($capabilities->isNotEmpty() || $tool->featureTerms->isNotEmpty())<a href="#features">Features</a>@endif
             @if($hasTechnicalIntel)<a href="#technical">Technical</a>@endif
             @if($hasTrustIntel)<a href="#trust">Trust</a>@endif
@@ -143,11 +145,19 @@
     <div class="tool-detail-main">
         <section class="detail-panel overview-panel" id="overview">
             <div class="detail-section-head"><div><span>Overview</span><h2>What is {{ $tool->name }}?</h2></div><i data-lucide="sparkles"></i></div>
-            <div class="rich-description">{!! nl2br(e($tool->overview)) !!}</div>
+            @if(trim((string) $tool->overview) !== '')
+                <div class="rich-description">{!! nl2br(e($tool->overview)) !!}</div>
+            @else
+                <p class="detail-empty">A narrative overview has not been published yet. The structured evidence below is shown without filling unknown details with generated copy.</p>
+            @endif
             @if($tool->useCaseTerms->isNotEmpty())
             <div class="best-for-box"><span><i data-lucide="target"></i>Best for</span><div>@foreach($tool->useCaseTerms->take(5) as $useCase)<b title="{{ $useCase->pivot?->fit_note ?: ($useCase->short_description ?: 'AI Orbit use-case classification') }}">{{ $useCase->name }}@if(($useCase->pivot?->verification_status ?? 'pending') === 'verified') <i data-lucide="badge-check"></i>@endif</b>@endforeach</div></div>
             @endif
         </section>
+
+        @if($editorialBrief['show'] ?? false)
+            @include('frontend.tools.partials.editorial-decision-brief')
+        @endif
 
         @if($capabilities->isNotEmpty() || $tool->featureTerms->isNotEmpty())
         <section class="detail-panel" id="features">
@@ -491,14 +501,38 @@
         <section class="sidebar-card summary-card">
             <div class="sidebar-title"><span>At a glance</span><i data-lucide="scan-eye"></i></div>
             <dl>
-                <div><dt>Rating</dt><dd><i data-lucide="star"></i>{{ number_format((float)$tool->rating,1) }}/5</dd></div>
+                <div>
+                    <dt>Rating</dt>
+                    <dd>
+                        @if((float) $tool->rating > 0)
+                            <i data-lucide="star"></i>{{ number_format((float)$tool->rating,1) }}/5
+                        @else
+                            Not rated yet
+                        @endif
+                    </dd>
+                </div>
                 <div><dt>Pricing</dt><dd>{{ $priceLabel }}</dd></div>
                 <div><dt>Category</dt><dd>{{ $tool->category?->name ?: 'AI Tool' }}</dd></div>
                 @if($tool->launch_date)<div><dt>Launched</dt><dd>{{ $tool->launch_date->format('M Y') }}</dd></div>@endif
                 <div><dt>Platforms</dt><dd>{{ $platforms->join(', ') ?: 'Not specified' }}</dd></div>
                 @if($tool->company)<div><dt>Developer</dt><dd>{{ $tool->company->name }}</dd></div>@endif
-                <div><dt>Product status</dt><dd>@if(($tool->product_status ?? 'unknown') === 'unknown')Not yet verified@else{{ $tool->product_status_label }} @if($tool->product_status_verified_at)<i data-lucide="badge-check"></i>@endif @endif</dd></div>
-                @if($productStatusSource && ($tool->product_status ?? 'unknown') !== 'unknown')<div><dt>Lifecycle evidence</dt><dd><a href="{{ $productStatusSource->source_url }}" target="_blank" rel="noopener noreferrer nofollow">{{ $tool->product_status_verified_at ? 'Verified source' : 'Source · pending verification' }}</a></dd></div>@endif
+                @if(($tool->product_status ?? 'unknown') !== 'unknown')
+                    <div>
+                        <dt>Product status</dt>
+                        <dd>
+                            {{ $tool->product_status_label }}
+                            @if($tool->product_status_verified_at)
+                                <i data-lucide="badge-check"></i>
+                            @endif
+                        </dd>
+                    </div>
+                    @if($productStatusSource)
+                        <div>
+                            <dt>Lifecycle evidence</dt>
+                            <dd><a href="{{ $productStatusSource->source_url }}" target="_blank" rel="noopener noreferrer nofollow">{{ $tool->product_status_verified_at ? 'Verified source' : 'Source · pending verification' }}</a></dd>
+                        </div>
+                    @endif
+                @endif
                 @if($primarySource)<div><dt>Source</dt><dd><a href="{{ $primarySource->source_url }}" target="_blank" rel="noopener noreferrer nofollow">{{ $primarySource->verification_status === 'verified' ? 'Verified official source' : 'Official source · verification pending' }}</a></dd></div>@endif
             </dl>
         </section>
@@ -550,7 +584,7 @@
 
             <footer class="dc-note">
                 <i data-lucide="info"></i>
-                <span>Confidence reflects profile evidence and completeness, not product quality.</span>
+                <span>Confidence reflects profile evidence and completeness, not product quality. <a href="{{ route('sourcing-verification') }}">How verification works</a></span>
             </footer>
         </section>
 

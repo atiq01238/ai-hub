@@ -69,6 +69,24 @@
         </dl>
     </section>
 
+    <section class="card content-article__quality">
+        <div class="content-article__quality-head">
+            <div><span class="content-eyebrow">Editorial Quality</span><strong>{{ $editorialQuality['score'] }}/100</strong></div>
+            <span class="content-state {{ ($editorialQuality['indexable'] ?? false) ? 'content-state--approved' : 'content-state--needs_changes' }}">{{ ($editorialQuality['indexable'] ?? false) ? 'Indexable' : 'Noindex' }}</span>
+        </div>
+        <div class="content-article__quality-metrics">
+            <div><span>Words</span><strong>{{ data_get($editorialQuality,'metrics.word_count',0) }}</strong></div>
+            <div><span>H2</span><strong>{{ data_get($editorialQuality,'metrics.h2_count',0) }}</strong></div>
+            <div><span>FAQ</span><strong>{{ data_get($editorialQuality,'metrics.faq_count',0) }}</strong></div>
+            <div><span>Related</span><strong>{{ data_get($editorialQuality,'metrics.related_signals',0) }}</strong></div>
+        </div>
+        @if(!empty($editorialQuality['reasons']))
+        <div class="content-article__quality-list is-blocking"><strong>Blocking gaps</strong><ul>@foreach($editorialQuality['reasons'] as $reason)<li>{{ $reason }}</li>@endforeach</ul></div>
+        @elseif(!empty($editorialQuality['quality_warnings']))
+        <div class="content-article__quality-list"><strong>Enrichment ideas</strong><ul>@foreach(array_slice($editorialQuality['quality_warnings'],0,3) as $warning)<li>{{ $warning }}</li>@endforeach</ul></div>
+        @endif
+    </section>
+
     @if($article->tagTerms->isNotEmpty())
     <section class="card content-tags"><span class="content-eyebrow">Tags</span><div>@foreach($article->tagTerms as $tag)<span>{{ $tag->name }}</span>@endforeach</div></section>
     @endif

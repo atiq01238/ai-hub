@@ -33,7 +33,7 @@ class CompanyController extends Controller
             ->withCount([
                 'tools as published_tools_count' => fn ($q) => $q->where('status', 'published'),
                 'models as active_models_count' => fn ($q) => $q->whereIn('status', ['active', 'preview']),
-                'newsItems as published_news_count' => fn ($q) => $q->where('status', 'published')->whereNull('duplicate_of_id')->where(fn ($news) => $news->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate')),
+                'newsItems as published_news_count' => fn ($q) => $q->publiclyVisible(),
             ]);
 
         if ($q = trim($filters['q'] ?? '')) {
@@ -65,12 +65,13 @@ class CompanyController extends Controller
         };
 
         $companies = $query->paginate(12)->withQueryString();
+        \App\Support\SeoPaginationGuard::enforce($companies, $request);
 
         $stats = [
             'companies' => Company::query()->seoIndexable()->count(),
             'tools' => Tool::where('status', 'published')->count(),
             'models' => AiModel::whereIn('status', ['active', 'preview'])->count(),
-            'news' => NewsItem::where('status', 'published')->whereNull('duplicate_of_id')->where(fn ($news) => $news->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate'))->count(),
+            'news' => NewsItem::query()->publiclyVisible()->count(),
         ];
 
         $leaders = Company::query()
@@ -100,7 +101,7 @@ class CompanyController extends Controller
         $company->loadCount([
             'tools as published_tools_count' => fn ($q) => $q->where('status', 'published'),
             'models as active_models_count' => fn ($q) => $q->whereIn('status', ['active', 'preview']),
-            'newsItems as published_news_count' => fn ($q) => $q->where('status', 'published')->whereNull('duplicate_of_id')->where(fn ($news) => $news->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate')),
+            'newsItems as published_news_count' => fn ($q) => $q->publiclyVisible(),
         ]);
 
         $tools = $company->tools()->with('category')->where('status', 'published')
@@ -110,9 +111,7 @@ class CompanyController extends Controller
             ->orderByDesc('benchmark_score')->orderByDesc('release_date')->take(6)->get();
 
         $news = $company->newsItems()
-            ->where('status', 'published')
-            ->whereNull('duplicate_of_id')
-            ->where(fn ($query) => $query->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate'))
+            ->publiclyVisible()
             ->latest('published_at')->take(6)->get();
 
         $articles = $company->articles()

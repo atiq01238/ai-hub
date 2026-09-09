@@ -39,7 +39,7 @@ class SavedItemService
         } elseif ($modelClass === AiModel::class) {
             $query->whereIn('status', ['active', 'preview']);
         } elseif ($modelClass === NewsItem::class) {
-            $query->where('status', 'published');
+            $query->publiclyVisible();
         } elseif ($modelClass === Article::class) {
             $query->where('status', 'published')->where('approval_status', 'approved');
         } elseif ($modelClass === Company::class) {

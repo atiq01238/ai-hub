@@ -175,7 +175,7 @@
                                 <small>{{ $tool->category?->name ?? 'AI Tool' }}</small>
                                 <h3><a href="{{ route('tools.show',$tool) }}">{{ $tool->name }}</a></h3>
                             </div>
-                            <span class="rating-pill"><i data-lucide="star"></i>{{ number_format((float)$tool->rating,1) }}</span>
+                            <span class="rating-pill"><i data-lucide="star"></i>{{ (float)$tool->rating > 0 ? number_format((float)$tool->rating,1) : 'Not rated' }}</span>
                         </div>
                         <p>{{ \Illuminate\Support\Str::limit($tool->short_description ?: $tool->description,125) }}</p>
                         <div class="tool-card-foot">

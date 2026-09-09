@@ -16,8 +16,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth/social/apple/callback',
         ]);
 
-        // Keep public GET/HEAD requests on the canonical non-www production host.
+        // Keep public GET/HEAD requests on the canonical production origin.
         $middleware->appendToGroup('web', \App\Http\Middleware\CanonicalDomain::class);
+
+        // Collapse duplicate pagination URLs (?page=1, ?page=0002) before
+        // controllers render them; out-of-range pages are guarded after paginate().
+        $middleware->appendToGroup('web', \App\Http\Middleware\NormalizeSeoPagination::class);
 
         // Native, privacy-conscious public visitor analytics. The middleware itself
         // skips admin/auth/private routes, bots, prefetches and DNT requests.

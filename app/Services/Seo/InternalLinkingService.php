@@ -578,10 +578,7 @@ class InternalLinkingService
 
     private function publicNews(): Builder
     {
-        return NewsItem::query()
-            ->where('status', 'published')
-            ->whereNull('duplicate_of_id')
-            ->where(fn (Builder $query) => $query->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate'));
+        return NewsItem::query()->publiclyVisible();
     }
 
     private function validateCandidates(Collection $candidates, int $limit): Collection

@@ -111,6 +111,15 @@
                             </select>
                         </div>
                         <div class="form-field news-span-2">
+                            <label for="ai_relevance_override">AI relevance override</label>
+                            <select id="ai_relevance_override" class="select" name="ai_relevance_override">
+                                @foreach (['auto'=>'Automatic (recommended)','include'=>'Force include after editorial verification','exclude'=>'Force exclude'] as $value => $label)
+                                    <option value="{{ $value }}" @selected($old('ai_relevance_override', 'auto') === $value)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            <div class="news-help">Automatic publishing requires a relevance score of {{ config('news_relevance.accept_threshold', 60) }}+. Force include is an explicit editorial override for a genuinely AI-related story the local evaluator missed.</div>
+                        </div>
+                        <div class="form-field news-span-2">
                             <label for="related_tools_input">Related tools</label>
                             <input id="related_tools_input" class="input" name="related_tools_input" value="{{ $old('related_tools_input', $item && $item->related_tools ? implode(', ', $item->related_tools) : '') }}" placeholder="ChatGPT, Claude, Gemini…">
                             <div class="news-help">Separate tool names with commas.</div>
@@ -156,6 +165,9 @@
                             <div class="news-editor__status-row"><span>Mode</span><strong>{{ $item ? 'Editing' : 'Creating' }}</strong></div>
                             <div class="news-editor__status-row"><span>Current status</span><strong>{{ ucfirst($item->status ?? 'Draft') }}</strong></div>
                             <div class="news-editor__status-row"><span>Verification</span><strong>{{ ucfirst(str_replace('_', ' ', $old('verification_status', 'unverified'))) }}</strong></div>
+                            @if($item)
+                                <div class="news-editor__status-row"><span>AI relevance</span><strong>{{ ucfirst($item->ai_relevance_status ?? 'pending') }}{{ $item->ai_relevance_score !== null ? ' · '.(int) $item->ai_relevance_score.'/100' : '' }}</strong></div>
+                            @endif
                         </div>
 
                         <div class="news-editor__tip">

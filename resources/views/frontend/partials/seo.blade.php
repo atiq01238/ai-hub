@@ -50,9 +50,38 @@
         report($e);
     }
 
+    $routeName = request()->route()?->getName();
+    $paginationRoutes = (array) config('seo.indexable_pagination_routes', []);
+    $isIndexablePaginationRoute = $routeName && in_array($routeName, $paginationRoutes, true);
+    $allowedCanonicalQueryKeys = $isIndexablePaginationRoute ? ['page'] : [];
+
     $canonicalBase = rtrim((string) config('seo.canonical_url'), '/');
-    $canonicalPath = request()->path() === '/' ? '' : '/'.ltrim(request()->path(), '/');
-    $seoCanonical = trim($__env->yieldContent('canonical')) ?: $canonicalBase.$canonicalPath;
+    $requestCanonicalPath = request()->path() === '/' ? '' : '/'.ltrim(request()->path(), '/');
+    $rawCanonical = trim($__env->yieldContent('canonical')) ?: $canonicalBase.$requestCanonicalPath;
+    $canonicalParts = parse_url($rawCanonical) ?: [];
+    $canonicalPath = (string) ($canonicalParts['path'] ?? $requestCanonicalPath);
+    $canonicalPath = $canonicalPath === '/' ? '' : '/'.ltrim($canonicalPath, '/');
+    $canonicalQuery = [];
+
+    if (!empty($canonicalParts['query'])) {
+        parse_str((string) $canonicalParts['query'], $canonicalQuery);
+        $canonicalQuery = array_intersect_key($canonicalQuery, array_flip($allowedCanonicalQueryKeys));
+    }
+
+    if (array_key_exists('page', $canonicalQuery)) {
+        $canonicalPage = (int) $canonicalQuery['page'];
+        if ($canonicalPage <= 1) {
+            unset($canonicalQuery['page']);
+        } else {
+            $canonicalQuery['page'] = $canonicalPage;
+        }
+    }
+
+    $seoCanonical = $canonicalBase.$canonicalPath;
+    if ($canonicalQuery !== []) {
+        $seoCanonical .= '?'.http_build_query($canonicalQuery);
+    }
+
     $seoOgType = trim($__env->yieldContent('og_type')) ?: 'website';
     $seoImage = trim($__env->yieldContent('og_image')) ?: asset(config('seo.default_image'));
     if ($seoImage !== '' && !\Illuminate\Support\Str::startsWith($seoImage, ['http://', 'https://'])) {
@@ -80,11 +109,21 @@
         'comparisons.my',
         'testlab.*'
     );
+
+    // Query-string variants are crawlable only for canonical pagination. Filters,
+    // tracking parameters and accidental query keys consolidate to the clean URL
+    // and remain noindex,follow so they cannot create an indexable crawl trap.
+    $queryKeys = array_keys(request()->query());
+    $nonCanonicalQueryKeys = array_values(array_diff($queryKeys, $allowedCanonicalQueryKeys));
+    $hasNonCanonicalQuery = $nonCanonicalQueryKeys !== [];
+
     $seoRobots = trim($__env->yieldContent('robots'));
     if ($seoRobots === '') {
-        $seoRobots = ($privateSeoRoute || request()->query())
+        $seoRobots = ($privateSeoRoute || $hasNonCanonicalQuery)
             ? 'noindex,follow'
             : config('seo.default_robots');
+    } elseif ($hasNonCanonicalQuery && !str_contains(strtolower($seoRobots), 'noindex')) {
+        $seoRobots = 'noindex,follow';
     }
 
     $brandUrl = config('brand.url');

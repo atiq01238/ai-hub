@@ -2,7 +2,7 @@
 @section('title', html_entity_decode($seo['title'], ENT_QUOTES | ENT_HTML5, 'UTF-8') . ' | AI Orbit')
 @section('meta_description', html_entity_decode($seo['description'], ENT_QUOTES | ENT_HTML5, 'UTF-8'))
 @section('canonical', route('models.show', $model))
-@section('robots', 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1')
+@section('robots', $seoQuality['robots'] ?? 'noindex,follow')
 @section('og_type', 'website')
 @section('og_image', $model->logo_url)
 @push('head')
@@ -73,6 +73,7 @@
             @endif
         @endforeach
     </div>
+    <a class="model-trust-method" href="{{ route('sourcing-verification') }}"><i data-lucide="book-open-check"></i>How AI Orbit verifies model data <i data-lucide="arrow-right"></i></a>
 </section>
 <section id="capabilities" class="detail-block"><span class="section-kicker">WHAT IT CAN DO</span><h2>Capabilities & use cases</h2><div class="capability-grid">@if($model->featureTerms->isNotEmpty()) @foreach($model->featureTerms as $feature)<a class="taxonomy-cap-card" href="{{ route('features.show',$feature) }}"><i data-lucide="{{ $feature->icon ?: 'sparkles' }}"></i><strong>{{ $feature->name }}</strong><span>{{ $feature->description ?: 'Supported model capability' }}</span></a>@endforeach @else @forelse($capabilities as $cap)<div><i data-lucide="sparkles"></i><strong>{{ $cap }}</strong><span>Supported model capability</span></div>@empty<div class="inline-empty">Capability data has not been added yet.</div>@endforelse @endif</div>@if($model->useCaseTerms->isNotEmpty())<div class="taxonomy-usecase-links"><strong>Useful for</strong><div>@foreach($model->useCaseTerms->take(12) as $useCase)<a href="{{ route('use-cases.show',$useCase) }}"><i data-lucide="target"></i>{{ $useCase->name }}</a>@endforeach</div></div>@endif</section>
 <section id="benchmarks" class="detail-block"><span class="section-kicker">PERFORMANCE</span><h2>Verified benchmark profile</h2><p class="block-intro">AI Orbit only presents benchmark rows here when the underlying result is marked verified. Scores should still be interpreted alongside methodology and test date.</p>

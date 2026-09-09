@@ -11,6 +11,7 @@ use App\Services\Frontend\QuickFeedbackService;
 use App\Services\ComparisonIntelligenceService;
 use App\Services\Seo\InternalLinkingService;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -51,47 +52,51 @@ class ComparisonController extends Controller
             default => $query->orderByDesc('views')->latest(),
         };
 
-        $comparisons = $query->paginate(9)->withQueryString();
-        $comparisons->getCollection()->each(function (Comparison $comparison) {
+        // Resolve stale comparison IDs before pagination so invalid saved rows
+        // cannot create sparse/empty crawlable pages or inflate directory totals.
+        $resolved = $query->get()->each(function (Comparison $comparison) {
             try {
                 $comparison->setRelation('resolved_items', $comparison->publicItems());
             } catch (\Throwable $e) {
                 report($e);
                 $comparison->setRelation('resolved_items', collect());
             }
-        });
+        })->filter(fn (Comparison $comparison) => $comparison->getRelation('resolved_items')->count() >= 2)->values();
 
-        // Do not expose internal links to saved comparisons that cannot resolve
-        // at least two current catalog entities; their detail route is a 404.
-        $comparisons->setCollection(
-            $comparisons->getCollection()
-                ->filter(fn (Comparison $comparison) => $comparison->getRelation('resolved_items')->count() >= 2)
-                ->values()
+        $perPage = 9;
+        $currentPage = LengthAwarePaginator::resolveCurrentPage();
+        $comparisons = new LengthAwarePaginator(
+            $resolved->slice(($currentPage - 1) * $perPage, $perPage)->values(),
+            $resolved->count(),
+            $perPage,
+            $currentPage,
+            ['path' => $request->url(), 'query' => $request->query()]
         );
+        \App\Support\SeoPaginationGuard::enforce($comparisons, $request);
 
-        $featured = Comparison::query()
+        $allPublic = Comparison::query()
             ->where('status', 'published')
             ->orderByDesc('views')
-            ->limit(3)
-            ->get();
-        $featured->each(function (Comparison $comparison) {
-            try {
-                $comparison->setRelation('resolved_items', $comparison->publicItems());
-            } catch (\Throwable $e) {
-                report($e);
-                $comparison->setRelation('resolved_items', collect());
-            }
-        });
-
-        $featured = $featured
+            ->latest()
+            ->get()
+            ->each(function (Comparison $comparison) {
+                try {
+                    $comparison->setRelation('resolved_items', $comparison->publicItems());
+                } catch (\Throwable $e) {
+                    report($e);
+                    $comparison->setRelation('resolved_items', collect());
+                }
+            })
             ->filter(fn (Comparison $comparison) => $comparison->getRelation('resolved_items')->count() >= 2)
             ->values();
 
+        $featured = $allPublic->take(3)->values();
+
         $stats = [
-            'published' => Comparison::where('status', 'published')->count(),
-            'tool' => Comparison::where('status', 'published')->where('comparable_type', 'tool')->count(),
-            'model' => Comparison::where('status', 'published')->where('comparable_type', 'model')->count(),
-            'views' => (int) Comparison::where('status', 'published')->sum('views'),
+            'published' => $allPublic->count(),
+            'tool' => $allPublic->where('comparable_type', 'tool')->count(),
+            'model' => $allPublic->where('comparable_type', 'model')->count(),
+            'views' => (int) $allPublic->sum('views'),
         ];
 
         return view('frontend.comparisons.index', compact(
@@ -175,6 +180,14 @@ class ComparisonController extends Controller
     public function show(Request $request, Comparison $comparison)
     {
         abort_unless($comparison->status === 'published', 404);
+
+        // Comparison::resolveRouteBinding() supports exact legacy aliases for
+        // old links. Consolidate those aliases with a permanent redirect rather
+        // than serving a second 200 URL with only a canonical hint.
+        $requestedSlug = rawurldecode((string) basename($request->path()));
+        if ($requestedSlug !== (string) $comparison->slug) {
+            return redirect()->route('comparisons.show', $comparison, 301);
+        }
 
         // Views are analytics, not editorial content. Updating the model with
         // Eloquent's increment() can advance updated_at, which would make sitemap

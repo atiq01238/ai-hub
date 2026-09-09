@@ -1399,3 +1399,379 @@ a{overflow-wrap:anywhere}
 }
 /* 2026-09-01 — SEO Phase 4 descriptive entity anchors */
 .home-entity-link{color:inherit;text-decoration:none}.home-entity-link:hover{color:#fff}
+
+/* ==========================================================
+   Phase 8 — Homepage reviewer experience / trust proof
+   ========================================================== */
+.homepage-proof{
+    display:grid;
+    grid-template-columns:minmax(280px,1.25fr) minmax(420px,1fr) auto;
+    align-items:center;
+    gap:18px;
+    padding:15px 18px;
+    border-color:#29365d;
+    background:
+        radial-gradient(circle at 82% 15%,rgba(82,74,255,.10),transparent 34%),
+        linear-gradient(145deg,rgba(13,20,43,.98),rgba(8,13,29,.98));
+}
+.homepage-proof-copy{min-width:0}
+.homepage-proof-kicker{display:flex;align-items:center;gap:7px;margin-bottom:5px;color:#9e8dff;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.homepage-proof-kicker svg{width:14px;height:14px;color:#53d7ff}
+.homepage-proof-copy>strong{display:block;color:#f5f7ff;font-size:13px;line-height:1.35}
+.homepage-proof-copy p{max-width:610px;margin:5px 0 0;color:#8f9dba;font-size:10px;line-height:1.55}
+.homepage-proof-metrics{display:grid;grid-template-columns:repeat(4,minmax(86px,1fr));gap:7px}
+.homepage-proof-metrics a{min-width:0;padding:9px 8px;border:1px solid #202d50;border-radius:11px;background:rgba(14,21,45,.75);text-align:center;transition:.18s ease}
+.homepage-proof-metrics a:hover{border-color:#6156dc;background:#161f45;transform:translateY(-1px)}
+.homepage-proof-metrics b{display:block;color:#eef2ff;font-size:14px;line-height:1.1}
+.homepage-proof-metrics span{display:block;margin-top:4px;color:#7f8daa;font-size:8px;white-space:nowrap}
+.homepage-proof-links{display:grid;gap:6px;min-width:168px}
+.homepage-proof-links a{display:flex;align-items:center;justify-content:space-between;gap:7px;padding:7px 9px;border-radius:9px;color:#aeb8dd;font-size:9px;font-weight:700}
+.homepage-proof-links a:hover{background:#141d3d;color:#fff}
+.homepage-proof-links svg{width:12px;height:12px;color:#7a67ff}
+.homepage-proof + .trending-strip{margin-top:12px}
+
+@media(max-width:1200px){
+    .homepage-proof{grid-template-columns:minmax(260px,1fr) minmax(390px,1.25fr)}
+    .homepage-proof-links{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:5px}
+    .homepage-proof-links a{justify-content:flex-start}
+}
+@media(max-width:760px){
+    .homepage-proof{grid-template-columns:1fr;gap:12px;padding:14px}
+    .homepage-proof-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .homepage-proof-metrics span{white-space:normal}
+    .homepage-proof-links{grid-column:auto;display:grid;grid-template-columns:1fr}
+    .homepage-proof-copy>strong{font-size:12px}
+}
+
+/* Phase 8: empty/weak modules are hidden in Blade, so let remaining cards use
+   the available width instead of leaving reviewer-visible blank grid columns. */
+@media(min-width:1101px){
+    .lower-grid{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))!important}
+}
+
+/* ========================================================================
+   Phase 8.1 — Compact homepage
+   Keep the homepage curated: hero, trust proof, trending, best tools,
+   comparisons and latest insights. Dedicated catalog pages carry the depth.
+   ======================================================================== */
+.home-hero-reference.home-hero-compact{height:300px;min-height:300px}
+.home-hero-reference.home-hero-compact .home-hero-shell{min-height:300px;padding:18px 0 15px}
+.home-hero-reference.home-hero-compact h1{margin-bottom:6px;font-size:40px}
+.home-hero-reference.home-hero-compact p{margin-bottom:12px;font-size:13px}
+.home-hero-reference.home-hero-compact .home-hero-search{height:46px}
+.home-hero-reference.home-hero-compact .home-hero-search button{height:38px}
+.home-hero-actions{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+.home-hero-primary,.home-hero-secondary{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:38px;padding:9px 14px;border-radius:10px;font-size:10px;font-weight:800;letter-spacing:.01em;transition:.18s ease}
+.home-hero-primary{background:linear-gradient(135deg,#4e54ff,#841fff);box-shadow:0 7px 20px rgba(91,45,255,.28);color:#fff}
+.home-hero-secondary{border:1px solid #2b3762;background:rgba(15,22,48,.86);color:#c8d1ee}
+.home-hero-primary:hover,.home-hero-secondary:hover{transform:translateY(-1px);border-color:#655cf1}
+.home-hero-primary svg,.home-hero-secondary svg{width:14px;height:14px}
+.home-hero-chips-compact{margin-top:8px}
+.home-hero-chips-compact a:nth-child(n+6){display:none}
+
+.home-compact-page{display:grid;gap:12px;padding-top:14px}
+.homepage-proof-compact{display:grid;grid-template-columns:minmax(230px,.9fr) minmax(420px,1.25fr) auto;gap:12px;align-items:center;padding:12px 14px}
+.homepage-proof-heading{min-width:0}
+.homepage-proof-heading>strong{display:block;color:#f5f7ff;font-size:12px;line-height:1.35}
+.homepage-proof-compact .homepage-proof-kicker{margin-bottom:4px}
+.homepage-proof-compact .homepage-proof-metrics{grid-template-columns:repeat(4,minmax(78px,1fr));gap:6px}
+.homepage-proof-compact .homepage-proof-metrics a{padding:7px 6px}
+.homepage-proof-compact .homepage-proof-metrics b{font-size:13px}
+.homepage-proof-compact .homepage-proof-metrics span{margin-top:3px;font-size:7.5px}
+.homepage-proof-links-compact{display:flex;align-items:center;justify-content:flex-end;gap:4px;flex-wrap:wrap;min-width:0}
+.homepage-proof-links-compact a{padding:6px 7px;border-radius:8px;color:#aeb8dd;font-size:8.5px;font-weight:700}
+.homepage-proof-links-compact a:hover{background:#141d3d;color:#fff}
+
+.home-trending-compact{margin-top:0;min-height:48px;padding-top:6px;padding-bottom:6px}
+.home-trending-compact .trend-item img{width:27px;height:27px}
+.home-trending-compact .trend-item span{font-size:10px}
+
+.home-section-compact{padding-bottom:12px}
+.home-section-compact .section-heading{padding:12px 14px 9px}
+.home-section-compact .section-heading h2{font-size:15px}
+.home-section-compact .section-heading p{font-size:9.5px}
+
+.tool-grid.home-compact-tools{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;padding:0 12px 12px}
+.home-compact-tool-card{padding:11px}
+.home-compact-tool-card .tool-logo{width:40px;height:40px}
+.home-compact-tool-card .tool-title h3{font-size:12px}
+.home-compact-tool-card>p{height:auto;min-height:31px;margin:7px 0 9px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font-size:9.5px;line-height:1.5}
+.home-compact-tool-card .card-actions{gap:6px}
+.home-compact-tool-card .primary-btn,.home-compact-tool-card .secondary-btn{padding:7px 8px;font-size:9px}
+
+/* Best Tools + restored Popular AI Tools card */
+.home-tools-showcase{display:grid;grid-template-columns:minmax(0,1fr) 292px;gap:12px;align-items:stretch}
+.home-tools-showcase>.panel{min-width:0}
+.home-popular-tools-card{padding:11px 13px}
+.home-popular-tools-card .side-title{margin-bottom:4px}
+.home-popular-tools-card .side-title h2{font-size:14px}
+.home-popular-tools-card .rank-item{grid-template-columns:17px 36px minmax(0,1fr) auto;gap:7px;padding:8px 0}
+.home-popular-tools-card .rank-item img{width:36px;height:36px}
+.home-popular-tools-card .rank-item strong{font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.home-popular-tools-card .rank-item small{display:block;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.home-popular-tools-card .rank-item b{font-size:9px;white-space:nowrap}
+.home-popular-unrated{color:#8f9bb9!important;font-weight:700}
+
+.comparison-grid-wide.home-comparison-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;padding:0 12px 12px}
+.home-comparison-card{padding:10px}
+.home-comparison-card .comparison-icons{height:42px}
+.home-comparison-card .comparison-icons img{width:36px;height:36px}
+.home-comparison-card h3{margin:7px 0 4px;font-size:10.5px}
+.home-comparison-card p{margin:0 0 7px;font-size:8px}
+
+.home-insight-links{display:flex;align-items:center;gap:11px}
+.home-insights-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 12px 12px}
+.home-insight-column{min-width:0;border:1px solid #202b4c;border-radius:12px;background:linear-gradient(150deg,#10172e,#0a1022);padding:8px 10px}
+.home-insight-column-title{display:flex;align-items:center;gap:7px;padding:2px 2px 7px;color:#dfe6ff;font-size:9px}
+.home-insight-column-title svg{width:14px;height:14px;color:#8c70ff}
+.home-insight-row{display:grid;grid-template-columns:64px minmax(0,1fr) 14px;gap:9px;align-items:center;padding:8px 2px;border-top:1px solid #1b2541}
+.home-insight-row img{width:64px;height:45px;object-fit:cover;border-radius:8px;background:#11182f}
+.home-insight-row>div{min-width:0}
+.home-insight-row span{display:block;color:#8f83ff;font-size:7px;font-weight:800;letter-spacing:.04em}
+.home-insight-row h3{margin:3px 0 3px;font-size:9.5px;line-height:1.35;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.home-insight-row small{display:block;color:#7d89a8;font-size:7.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.home-insight-row>svg{width:13px;height:13px;color:#7180a6}
+
+@media(max-width:1180px){
+  .homepage-proof-compact{grid-template-columns:1fr 1.45fr}
+  .homepage-proof-links-compact{grid-column:1 / -1;justify-content:flex-start}
+  .tool-grid.home-compact-tools{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .home-tools-showcase{grid-template-columns:minmax(0,1fr) 270px}
+}
+
+
+@media(max-width:760px){
+  .home-hero-reference.home-hero-compact{height:auto;min-height:310px}
+  .home-hero-reference.home-hero-compact .home-hero-shell{min-height:310px;padding:20px 0 16px}
+  .home-hero-reference.home-hero-compact h1{font-size:32px}
+  .home-hero-reference.home-hero-compact p{max-width:92%;margin-bottom:10px;font-size:12px}
+  .home-hero-reference.home-hero-compact .home-hero-search{height:46px}
+  .home-hero-actions{gap:7px;margin-top:10px}
+  .home-hero-primary,.home-hero-secondary{flex:1;min-width:130px;min-height:36px;padding:8px 10px;font-size:9px}
+  .home-hero-chips-compact{display:flex;overflow-x:auto;flex-wrap:nowrap;padding-bottom:3px;scrollbar-width:none}
+  .home-hero-chips-compact::-webkit-scrollbar{display:none}
+  .home-hero-chips-compact a{flex:0 0 auto}
+  .home-compact-page{gap:10px;padding-top:10px}
+  .homepage-proof-compact{grid-template-columns:1fr;gap:9px;padding:11px}
+  .homepage-proof-heading>strong{font-size:11px}
+  .homepage-proof-compact .homepage-proof-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .homepage-proof-compact .homepage-proof-metrics a{padding:7px 5px}
+  .homepage-proof-links-compact{grid-column:auto;justify-content:flex-start;gap:2px}
+  .homepage-proof-links-compact a{padding:5px 6px;font-size:8px}
+  .home-trending-compact{gap:9px;padding-left:10px;padding-right:10px}
+  .home-trending-compact .trend-label strong{font-size:9px}
+  .home-trending-compact .trend-items{gap:8px}
+  .home-trending-compact .trend-item:nth-child(n+5){display:none}
+  .home-trending-compact .trend-item img{width:24px;height:24px}
+  .home-trending-compact .trend-item span{font-size:9px}
+  .home-trending-compact .ghost-link{font-size:9px}
+  .home-section-compact .section-heading{padding:10px 10px 8px}
+  .home-section-compact .section-heading p{display:none}
+  .tool-grid.home-compact-tools{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;padding:0 8px 9px}
+  .home-compact-tool-card{padding:9px}
+  .home-compact-tool-card:nth-child(n+5){display:none}
+  .home-compact-tool-card .tool-logo{width:34px;height:34px;border-radius:8px}
+  .home-compact-tool-card .tool-title h3{font-size:10px}
+  .home-compact-tool-card .tool-title span{font-size:8px}
+  .home-compact-tool-card .tool-rating{font-size:8px}
+  .home-compact-tool-card>p{display:none}
+  .home-compact-tool-card .card-actions{margin-top:8px}
+  .home-compact-tool-card .primary-btn,.home-compact-tool-card .secondary-btn{padding:6px 5px;font-size:8px}
+  .home-tools-showcase{grid-template-columns:1fr;gap:10px}
+  .home-popular-tools-card{padding:10px 11px}
+  .home-popular-tools-card .rank-item:nth-child(n+4){display:none}
+  .home-popular-tools-card .rank-item{padding:7px 0}
+  .home-popular-tools-card .rank-item img{width:33px;height:33px}
+  .home-popular-tools-card .rank-item small{max-width:none}
+  .comparison-grid-wide.home-comparison-grid{grid-template-columns:1fr;gap:7px;padding:0 8px 9px}
+  .home-comparison-card:nth-child(n+3){display:none}
+  .home-comparison-card{display:grid;grid-template-columns:82px minmax(0,1fr) auto;column-gap:9px;align-items:center}
+  .home-comparison-card .comparison-icons{grid-row:1 / span 3;height:auto}
+  .home-comparison-card h3{margin:0 0 3px;font-size:9.5px}
+  .home-comparison-card p{margin:0;font-size:7.5px}
+  .home-comparison-card>a{grid-column:3;grid-row:1 / span 3;white-space:nowrap;font-size:0}
+  .home-comparison-card>a svg{width:14px;height:14px}
+  .home-insight-links{gap:8px}
+  .home-insights-grid{grid-template-columns:1fr;gap:8px;padding:0 8px 9px}
+  .home-insight-column{padding:7px 8px}
+  .home-insight-row{grid-template-columns:56px minmax(0,1fr) 13px;gap:8px;padding:7px 1px}
+  .home-insight-row img{width:56px;height:41px}
+  .home-insight-row h3{font-size:9px}
+}
+
+@media(max-width:420px){
+  .home-hero-reference.home-hero-compact{min-height:300px}
+  .home-hero-reference.home-hero-compact .home-hero-shell{min-height:300px;padding:17px 0 14px}
+  .home-hero-reference.home-hero-compact h1{font-size:30px}
+  .home-hero-reference.home-hero-compact .home-hero-chips a:nth-child(n+4){display:none}
+  .home-hero-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}
+  .home-hero-primary,.home-hero-secondary{min-width:0}
+  .home-trending-compact .trend-item:nth-child(n+4){display:none}
+  .tool-grid.home-compact-tools{grid-template-columns:1fr 1fr}
+  .home-compact-tool-card .tool-card-top{gap:7px}
+  .home-compact-tool-card .tool-rating{position:absolute;right:7px;top:7px;background:#10172f;padding:3px 5px;border-radius:6px}
+  .home-compact-tool-card .tool-title{padding-right:38px}
+}
+
+/* ========================================================================
+   Phase 8.4 — Classic Best Tools + Popular Tools composition
+   Restore the familiar desktop relationship from the earlier homepage:
+   a 4-column Best AI Tools grid on the left and a compact ranked Popular AI
+   Tools card on the right, while keeping the rest of Phase 8 compact.
+   ======================================================================== */
+.home-tools-showcase-classic{
+  grid-template-columns:minmax(0,1fr) 250px;
+  gap:14px;
+  align-items:start;
+}
+.home-best-tools-classic{min-width:0}
+.home-best-tool-tabs{padding:0 14px 8px}
+.home-best-tool-tabs button{padding:7px 14px;font-size:9px;white-space:nowrap}
+.tool-grid.home-classic-tool-grid{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+  padding:0 12px 12px;
+}
+.home-classic-tool-card{
+  min-height:154px;
+  padding:10px;
+  display:flex;
+  flex-direction:column;
+}
+.home-classic-tool-card .tool-logo{width:38px;height:38px;border-radius:9px}
+.home-classic-tool-card .tool-title h3{font-size:11px}
+.home-classic-tool-card .tool-title span{font-size:8px}
+.home-classic-tool-card .tool-rating{font-size:8px}
+.home-classic-tool-card .tool-card-meta-line{min-height:21px;margin:7px 0 3px}
+.home-classic-tool-card .tool-card-meta-line .badge{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:7.5px;padding:3px 6px}
+.home-classic-tool-card>p{
+  height:31px;
+  margin:5px 0 8px;
+  font-size:9px;
+  line-height:1.45;
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+  overflow:hidden;
+}
+.home-classic-tool-card .card-actions{margin-top:auto;gap:6px}
+.home-classic-tool-card .primary-btn,.home-classic-tool-card .secondary-btn{padding:7px 6px;font-size:8px}
+.home-popular-tools-classic{
+  align-self:start;
+  height:auto;
+  min-height:0;
+  padding:10px 12px;
+}
+.home-popular-tools-classic .side-title{margin-bottom:2px}
+.home-popular-tools-classic .side-title h2{font-size:13px}
+.home-popular-tools-classic .side-title>a{font-size:8px}
+.home-popular-tools-classic .rank-item{
+  grid-template-columns:16px 34px minmax(0,1fr) auto;
+  gap:7px;
+  padding:8px 0;
+}
+.home-popular-tools-classic .rank-item img{width:34px;height:34px;border-radius:8px}
+.home-popular-tools-classic .rank-item strong{font-size:10px}
+.home-popular-tools-classic .rank-item small{max-width:105px;font-size:7.5px}
+.home-popular-tools-classic .rank-item b{font-size:8px}
+
+@media(max-width:1180px){
+  .home-tools-showcase-classic{grid-template-columns:minmax(0,1fr) 238px}
+  .tool-grid.home-classic-tool-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+
+@media(max-width:980px){
+  .home-tools-showcase-classic{grid-template-columns:1fr;gap:10px}
+  .tool-grid.home-classic-tool-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .home-popular-tools-classic{width:100%}
+  .home-popular-tools-classic .rank-list{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+  .home-popular-tools-classic .rank-item{grid-template-columns:16px 32px minmax(0,1fr);border:1px solid #1b2542;border-radius:9px;padding:7px}
+  .home-popular-tools-classic .rank-item:first-child{border-top:1px solid #1b2542}
+  .home-popular-tools-classic .rank-item b{grid-column:2 / -1;padding-left:0}
+}
+
+@media(max-width:760px){
+  .home-best-tool-tabs{padding:0 8px 7px}
+  .home-best-tool-tabs button{padding:6px 10px;font-size:8px}
+  .tool-grid.home-classic-tool-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;padding:0 8px 9px}
+  .home-classic-tool-card{min-height:122px;padding:8px}
+  .home-classic-tool-card:nth-child(n+5){display:none}
+  .home-classic-tool-card .tool-logo{width:34px;height:34px}
+  .home-classic-tool-card .tool-title h3{font-size:9.5px}
+  .home-classic-tool-card .tool-card-meta-line{margin:6px 0 2px}
+  .home-classic-tool-card>p{display:none}
+  .home-classic-tool-card .primary-btn,.home-classic-tool-card .secondary-btn{padding:6px 4px;font-size:7.5px}
+  .home-popular-tools-classic .rank-list{grid-template-columns:1fr}
+  .home-popular-tools-classic .rank-item:nth-child(n+4){display:none}
+  .home-popular-tools-classic .rank-item{grid-template-columns:16px 34px minmax(0,1fr) auto;border:0;border-top:1px solid #18223e;border-radius:0;padding:7px 0}
+  .home-popular-tools-classic .rank-item:first-child{border-top:0}
+  .home-popular-tools-classic .rank-item b{grid-column:auto;padding-left:0}
+  .home-popular-tools-classic .rank-item small{max-width:none}
+}
+
+/* ========================================================================
+   Phase 8.6 — Best Tools full-width + single-column mobile discovery
+   Remove the separate Popular AI Tools sidebar. Best AI Tools now owns the
+   full content width. Phones render a separate random five-tool sample as
+   one card per row so the section is easier to scan and much less cramped.
+   ======================================================================== */
+.home-tools-showcase-best-only{
+  display:block;
+  grid-template-columns:1fr !important;
+}
+.home-best-tools-fullwidth{
+  width:100%;
+  min-width:0;
+}
+.home-best-tools-mobile{display:none !important}
+
+@media(min-width:1181px){
+  .home-best-tools-fullwidth .tool-grid.home-classic-tool-grid{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+  }
+}
+
+@media(max-width:1180px) and (min-width:761px){
+  .home-best-tools-fullwidth .tool-grid.home-classic-tool-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
+
+@media(max-width:760px){
+  .home-best-tool-tabs-desktop{display:none !important}
+  .home-best-tools-desktop{display:none !important}
+  .home-best-tools-mobile{
+    display:grid !important;
+    grid-template-columns:1fr !important;
+    gap:8px !important;
+    padding:0 8px 10px !important;
+  }
+  .home-best-tools-mobile .home-classic-tool-card{
+    display:flex !important;
+    min-height:0;
+    padding:10px;
+  }
+  .home-best-tools-mobile .home-classic-tool-card:nth-child(n+5){
+    display:flex !important;
+  }
+  .home-best-tools-mobile .home-classic-tool-card>p{
+    display:-webkit-box;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
+    overflow:hidden;
+    height:auto;
+    min-height:0;
+    margin:7px 0 9px;
+  }
+  .home-best-tools-mobile .home-classic-tool-card .card-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:7px;
+  }
+  .home-best-tools-mobile .home-classic-tool-card .primary-btn,
+  .home-best-tools-mobile .home-classic-tool-card .secondary-btn{
+    min-height:36px;
+    padding:8px 6px;
+    font-size:8.5px;
+  }
+}

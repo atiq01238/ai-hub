@@ -190,8 +190,7 @@ class SearchIntelligenceService
                     ->orWhereHas('tool', fn ($tool) => $tool->where('name', 'like', $needle))),
 
             'news' => NewsItem::query()->with('company')
-                ->where('status', 'published')
-                ->where(fn ($q) => $q->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate'))
+                ->publiclyVisible()
                 ->where(fn ($q) => $q->where('headline', 'like', $needle)->orWhere('source', 'like', $needle)),
 
             'companies' => Company::query()->withCount(['tools', 'models'])->with(['tools:id,company_id,name', 'models:id,company_id,name'])
@@ -224,8 +223,7 @@ class SearchIntelligenceService
 
             'news' => NewsItem::query()
                 ->with('company')
-                ->where('status', 'published')
-                ->where(fn ($q) => $q->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate'))
+                ->publiclyVisible()
                 ->where(fn (Builder $q) => $this->match($q, $tokens, ['headline', 'summary', 'ai_summary', 'source', 'category', 'ai_topic', 'ai_tags', 'tags'], ['company'])),
 
             'companies' => Company::query()

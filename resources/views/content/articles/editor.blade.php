@@ -80,8 +80,69 @@
         </div>
         @endif
     </section>
+
+    <section class="card content-editor__quality">
+        <span class="content-eyebrow">Editorial Quality</span>
+        @if($editorialQuality)
+        <div class="content-editor__quality-score">
+            <strong>{{ $editorialQuality['score'] }}</strong><span>/100</span>
+            <small>{{ $editorialQuality['label'] }}</small>
+        </div>
+        @endif
+        <div class="content-editor__quality-grid">
+            <div><span>Words</span><strong id="articleQualityWords">{{ data_get($editorialQuality,'metrics.word_count',0) }}</strong><small>300 floor · 700 preferred</small></div>
+            <div><span>H2 sections</span><strong id="articleQualityHeadings">{{ data_get($editorialQuality,'metrics.h2_count',0) }}</strong><small>3+ for shorter guides</small></div>
+            <div><span>Summary</span><strong id="articleQualitySummary">{{ data_get($editorialQuality,'metrics.summary_chars',0) }}</strong><small>60+ characters</small></div>
+            <div><span>FAQ</span><strong id="articleQualityFaq">{{ data_get($editorialQuality,'metrics.faq_count',0) }}</strong><small>Optional when useful</small></div>
+        </div>
+        <div class="content-editor__quality-note">
+            <i data-lucide="sparkles"></i>
+            <p>Depth is judged by usefulness, not word count alone. Add examples, checklists, trade-offs or primary-source links only when they improve the reader's decision.</p>
+        </div>
+        @if($editorialQuality && !empty($editorialQuality['reasons']))
+        <div class="content-editor__quality-gaps is-blocking"><strong>Before indexing</strong><ul>@foreach($editorialQuality['reasons'] as $reason)<li>{{ $reason }}</li>@endforeach</ul></div>
+        @elseif($editorialQuality && !empty($editorialQuality['quality_warnings']))
+        <div class="content-editor__quality-gaps"><strong>Enrichment ideas</strong><ul>@foreach(array_slice($editorialQuality['quality_warnings'],0,3) as $warning)<li>{{ $warning }}</li>@endforeach</ul></div>
+        @endif
+    </section>
 </aside>
 </div>
 </form>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+(() => {
+    const body = document.querySelector('textarea[name="content"]');
+    const summary = document.querySelector('textarea[name="summary"]');
+    if (!body || !summary) return;
+
+    const wordsEl = document.getElementById('articleQualityWords');
+    const headingsEl = document.getElementById('articleQualityHeadings');
+    const summaryEl = document.getElementById('articleQualitySummary');
+    const faqEl = document.getElementById('articleQualityFaq');
+
+    const countWords = value => {
+        const cleaned = value
+            .replace(/^#{1,6}\s+/gm, '')
+            .replace(/[`*_>#\[\]()]/g, ' ')
+            .trim();
+        return cleaned ? (cleaned.match(/[\p{L}\p{N}]+(?:[’'\-][\p{L}\p{N}]+)*/gu) || []).length : 0;
+    };
+
+    const refresh = () => {
+        const value = body.value || '';
+        wordsEl.textContent = countWords(value);
+        headingsEl.textContent = (value.match(/^##\s+.+$/gm) || []).length;
+        summaryEl.textContent = (summary.value || '').trim().length;
+        const faqBlock = value.match(/^##\s+(?:Frequently Asked Questions|FAQ)\s*$([\s\S]*?)(?=^##\s+|\s*$)/im);
+        faqEl.textContent = faqBlock ? (faqBlock[1].match(/^###\s+.+$/gm) || []).length : 0;
+    };
+
+    body.addEventListener('input', refresh);
+    summary.addEventListener('input', refresh);
+    refresh();
+})();
+</script>
+@endpush

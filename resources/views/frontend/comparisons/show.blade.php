@@ -218,7 +218,7 @@
                     <tr><th>Provider</th>@foreach($items as $item)<td>{{ $item->company->name ?? '—' }}</td>@endforeach</tr>
                     <tr><th>Benchmark score</th>@foreach($items as $item)<td>@if($item->benchmark_score !== null)<strong class="score-value">{{ number_format((float)$item->benchmark_score,1) }}</strong><span class="mini-score-bar"><i style="width:{{ min(100,max(0,(float)$item->benchmark_score)) }}%"></i></span>@else<span class="muted">Not verified</span>@endif</td>@endforeach</tr>
                     @if($comparisonType === 'tool')
-                        <tr><th>Rating</th>@foreach($items as $item)<td><span class="rating-cell"><i data-lucide="star"></i>{{ number_format((float)$item->rating,1) }}/5</span></td>@endforeach</tr>
+                        <tr><th>Rating</th>@foreach($items as $item)<td><span class="rating-cell"><i data-lucide="star"></i>{{ (float)$item->rating > 0 ? number_format((float)$item->rating,1).'/5' : 'Not rated' }}</span></td>@endforeach</tr>
                         <tr><th>Popularity</th>@foreach($items as $item)<td>{{ number_format((int)$item->popularity) }}</td>@endforeach</tr>
                         <tr><th>Category</th>@foreach($items as $item)<td>{{ $item->category->name ?? '—' }}</td>@endforeach</tr>
                         <tr><th>Pricing</th>@foreach($items as $item)<td>@forelse((array)$item->pricing_models as $price)<span class="data-chip">{{ ucfirst((string)$price) }}</span>@empty—@endforelse</td>@endforeach</tr>

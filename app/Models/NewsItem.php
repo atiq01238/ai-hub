@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 use App\Support\MediaUrl;
 
@@ -26,6 +27,12 @@ class NewsItem extends Model
         'ai_summary',
         'ai_why_it_matters',
         'ai_confidence',
+        'ai_relevance_score',
+        'ai_relevance_status',
+        'ai_relevance_reasons',
+        'ai_relevance_override',
+        'ai_relevance_version',
+        'ai_relevance_checked_at',
         'ai_processor',
         'source',
         'source_url',
@@ -59,10 +66,13 @@ class NewsItem extends Model
         'importance' => 'integer',
         'trending_score' => 'float',
         'ai_confidence' => 'integer',
+        'ai_relevance_score' => 'integer',
+        'ai_relevance_reasons' => 'array',
         'duplicate_score' => 'decimal:2',
         'published_at' => 'datetime',
         'fetched_at' => 'datetime',
         'ai_processed_at' => 'datetime',
+        'ai_relevance_checked_at' => 'datetime',
         'discovery_analyzed_at' => 'datetime',
         'verified_at' => 'datetime',
         'duplicate_checked_at' => 'datetime',
@@ -81,6 +91,14 @@ class NewsItem extends Model
                     $item->duplicate_score = null;
                     $item->duplicate_status = 'unique';
                     $item->discovery_analyzed_at = null;
+
+                    if (! $item->isDirty('ai_relevance_checked_at')) {
+                        $item->ai_relevance_score = null;
+                        $item->ai_relevance_status = 'pending';
+                        $item->ai_relevance_reasons = null;
+                        $item->ai_relevance_version = null;
+                        $item->ai_relevance_checked_at = null;
+                    }
                 }
             }
 
@@ -122,6 +140,49 @@ class NewsItem extends Model
         $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
 
         return trim($value);
+    }
+
+
+    public function scopeAiRelevant(Builder $query): Builder
+    {
+        $threshold = (int) config('news_relevance.accept_threshold', 60);
+
+        return $query->where(function (Builder $relevance) use ($threshold) {
+            $relevance->where('ai_relevance_override', 'include')
+                ->orWhere(function (Builder $auto) use ($threshold) {
+                    $auto->where(function (Builder $override) {
+                        $override->whereNull('ai_relevance_override')
+                            ->orWhere('ai_relevance_override', 'auto');
+                    })
+                    ->where('ai_relevance_status', 'accepted')
+                    ->where('ai_relevance_score', '>=', $threshold);
+                });
+        });
+    }
+
+    public function scopePubliclyVisible(Builder $query): Builder
+    {
+        return $query->where('status', 'published')
+            ->whereNull('duplicate_of_id')
+            ->where(function (Builder $duplicate) {
+                $duplicate->whereNull('duplicate_status')
+                    ->orWhere('duplicate_status', '!=', 'duplicate');
+            })
+            ->aiRelevant();
+    }
+
+    public function isAiRelevant(): bool
+    {
+        if (($this->ai_relevance_override ?: 'auto') === 'include') {
+            return true;
+        }
+
+        if (($this->ai_relevance_override ?: 'auto') === 'exclude') {
+            return false;
+        }
+
+        return $this->ai_relevance_status === 'accepted'
+            && (int) $this->ai_relevance_score >= (int) config('news_relevance.accept_threshold', 60);
     }
 
     public function getImageUrlAttribute(): ?string

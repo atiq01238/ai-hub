@@ -11,6 +11,7 @@ use App\Models\Company;
 use App\Models\Tag;
 use App\Models\Tool;
 use App\Models\User;
+use App\Services\Articles\ArticleEditorialQualityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -37,9 +38,10 @@ class ArticleController extends Controller
         return $this->filteredIndex($request, 'Guides');
     }
 
-    public function editor(Request $request, ?int $id = null)
+    public function editor(Request $request, ArticleEditorialQualityService $quality, ?int $id = null)
     {
         $article = $id ? Article::with(['relatedToolTerms', 'relatedModelTerms', 'tagTerms'])->findOrFail($id) : null;
+        $editorialQuality = $article ? $quality->assess($article) : null;
 
         return view('content.articles.editor', [
             'article' => $article,
@@ -50,6 +52,7 @@ class ArticleController extends Controller
             'tools' => Tool::orderBy('name')->get(),
             'models' => AiModel::orderBy('name')->get(),
             'canPublish' => (bool) $request->user()?->canAccessModule('Content', 'Publish'),
+            'editorialQuality' => $editorialQuality,
         ]);
     }
 
@@ -81,14 +84,15 @@ class ArticleController extends Controller
         return redirect()->route('admin.content.articles.show', $article->id)->with('status', 'Article created.');
     }
 
-    public function show(int $id)
+    public function show(int $id, ArticleEditorialQualityService $quality)
     {
         $article = Article::with([
             'author', 'reviewer', 'company', 'categoryTerm', 'relatedToolTerms',
             'relatedModelTerms', 'tagTerms', 'workflowEvents.user',
         ])->findOrFail($id);
+        $editorialQuality = $quality->assess($article);
 
-        return view('content.articles.show', compact('article'));
+        return view('content.articles.show', compact('article', 'editorialQuality'));
     }
 
     public function update(Request $request, int $id)

@@ -169,6 +169,26 @@ class ToolDataConfidenceService
 
     private function benchmarks(Tool $tool): array
     {
+        if ($tool->relationLoaded('benchmarkResults')) {
+            $results = $tool->benchmarkResults;
+            $benchmarksLoaded = $results->isEmpty()
+                || $results->every(fn ($result) => $result->relationLoaded('benchmark'));
+
+            if ($benchmarksLoaded) {
+                $exists = $results->contains(function ($result) {
+                    $benchmark = $result->benchmark;
+
+                    return (bool) $result->verified
+                        && $result->status === 'verified'
+                        && $benchmark
+                        && (bool) $benchmark->is_active
+                        && $benchmark->benchmark_class !== Benchmark::CLASS_UNCLASSIFIED;
+                });
+
+                return $this->section($exists ? 5 : 0, 5);
+            }
+        }
+
         $exists = $tool->benchmarkResults()
             ->where('verified', true)
             ->where('status', 'verified')

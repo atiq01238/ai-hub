@@ -56,15 +56,16 @@ class RunNewsPipeline extends Command
                 $failedSteps[] = 'RSS collection';
             }
 
-            if ($this->commandExists('discovery:scan')) {
-                if (! $this->runStep('AI discovery scan', 'discovery:scan', [
+            if ($this->commandExists('news:audit-relevance')) {
+                if (! $this->runStep('AI relevance gate', 'news:audit-relevance', [
                     '--limit' => $limit,
+                    '--apply' => true,
                 ])) {
-                    $failedSteps[] = 'AI discovery scan';
+                    $failedSteps[] = 'AI relevance gate';
                 }
             } else {
-                $this->error('discovery:scan command not found.');
-                $failedSteps[] = 'AI discovery scan';
+                $this->error('news:audit-relevance command not found.');
+                $failedSteps[] = 'AI relevance gate';
             }
 
             if ($this->commandExists('news:duplicates')) {
@@ -77,6 +78,17 @@ class RunNewsPipeline extends Command
             } else {
                 $this->error('Duplicate command not found.');
                 $failedSteps[] = 'Duplicate detection';
+            }
+
+            if ($this->commandExists('discovery:scan')) {
+                if (! $this->runStep('AI discovery scan', 'discovery:scan', [
+                    '--limit' => $limit,
+                ])) {
+                    $failedSteps[] = 'AI discovery scan';
+                }
+            } else {
+                $this->error('discovery:scan command not found.');
+                $failedSteps[] = 'AI discovery scan';
             }
 
             if (! $this->option('skip-ai')) {

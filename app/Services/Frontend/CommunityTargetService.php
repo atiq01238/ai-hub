@@ -24,8 +24,7 @@ class CommunityTargetService
             'tool' => Tool::query()->where('status', 'published')->findOrFail($id),
             'model' => AiModel::query()->whereIn('status', ['active', 'preview'])->findOrFail($id),
             'news' => NewsItem::query()
-                ->where('status', 'published')
-                ->whereNull('duplicate_of_id')
+                ->publiclyVisible()
                 ->findOrFail($id),
             'article' => Article::query()
                 ->where('status', 'published')
@@ -53,8 +52,8 @@ class CommunityTargetService
         }
 
         if (preg_match('#^/ai-news/([^/]+)$#', $path, $m)) {
-            $target = NewsItem::where('slug', rawurldecode($m[1]))
-                ->where('status', 'published')->whereNull('duplicate_of_id')->first();
+            $target = NewsItem::query()->where('slug', rawurldecode($m[1]))
+                ->publiclyVisible()->first();
             return $target ? $this->context('news', $target) : null;
         }
 

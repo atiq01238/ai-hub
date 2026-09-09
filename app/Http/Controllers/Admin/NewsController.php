@@ -7,6 +7,9 @@ use App\Models\Company;
 use App\Models\Article;
 use App\Models\NewsBookmark;
 use App\Models\NewsItem;
+use App\Services\NewsEntityLinker;
+use App\Services\NewsIntelligenceService;
+use App\Services\NewsRelevanceService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -15,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class NewsController extends Controller
 {
@@ -83,7 +87,9 @@ class NewsController extends Controller
 
     public function store(Request $request)
     {
-        NewsItem::create($this->fromRequest($request));
+        $item = NewsItem::create($this->fromRequest($request));
+        $this->refreshRelevanceIntelligence($item);
+
         return redirect()->route('admin.news.index')->with('status', 'News item created.');
     }
 
@@ -104,6 +110,8 @@ class NewsController extends Controller
     {
         $item = NewsItem::findOrFail($id);
         $item->update($this->fromRequest($request, $item));
+        $this->refreshRelevanceIntelligence($item->fresh());
+
         return redirect()->route('admin.news.show', $item->id)->with('status', 'News item updated.');
     }
 
@@ -125,6 +133,28 @@ class NewsController extends Controller
 
         return redirect()->route('admin.news.index')
             ->with('status', $output ?: 'News pipeline completed successfully.');
+    }
+
+    public function auditRelevance()
+    {
+        $exitCode = Artisan::call('news:audit-relevance', [
+            '--all' => true,
+            '--apply' => true,
+            '--unpublish' => true,
+            '--only-published' => true,
+        ]);
+        $output = trim(Artisan::output());
+
+        if ($exitCode !== 0) {
+            return redirect()->route('admin.news.index')
+                ->with('error', $output ?: 'AI relevance audit failed.');
+        }
+
+        $lines = array_values(array_filter(preg_split('/\R/', $output) ?: []));
+        $summary = implode(' | ', array_slice($lines, -3));
+
+        return redirect()->route('admin.news.index')
+            ->with('status', $summary ?: 'Published news relevance audit completed.');
     }
 
     public function duplicates(Request $request)
@@ -238,6 +268,12 @@ class NewsController extends Controller
         if ($companyId = $request->query('company_id')) {
             $query->where('company_id', $companyId);
         }
+
+        if ($relevance = $request->query('relevance')) {
+            if (in_array($relevance, ['accepted', 'review', 'rejected', 'pending'], true)) {
+                $query->where('ai_relevance_status', $relevance);
+            }
+        }
     }
 
 
@@ -277,6 +313,7 @@ class NewsController extends Controller
             'sentiment' => ['required', 'in:positive,neutral,negative'],
             'importance' => ['required', 'integer', 'min:0', 'max:100'],
             'verification_status' => ['required', 'in:unverified,needs_verification,verified'],
+            'ai_relevance_override' => ['nullable', 'in:auto,include,exclude'],
             'tags_input' => ['nullable', 'string'],
             'related_tools_input' => ['nullable', 'string'],
             'status' => ['required', 'in:draft,published,archived'],
@@ -298,6 +335,34 @@ class NewsController extends Controller
             $data['slug'] = $slug;
         }
 
+        if ($data['status'] === 'published' && ! ($item?->published_at)) {
+            $data['published_at'] = now();
+        }
+
+        $data['ai_relevance_override'] = $data['ai_relevance_override'] ?? 'auto';
+
+        $candidate = $item ? clone $item : new NewsItem();
+        $candidate->forceFill($data);
+        if ($item?->relationLoaded('newsSource')) {
+            $candidate->setRelation('newsSource', $item->getRelation('newsSource'));
+        } elseif ($item?->news_source_id) {
+            $candidate->setRelation('newsSource', $item->newsSource);
+        }
+
+        $result = app(NewsRelevanceService::class)->evaluate($candidate);
+        $data['ai_relevance_score'] = $result['score'];
+        $data['ai_relevance_status'] = $result['status'];
+        $data['ai_relevance_reasons'] = $result['reasons'];
+        $data['ai_relevance_version'] = $result['version'];
+        $data['ai_relevance_checked_at'] = now();
+
+        if ($data['status'] === 'published' && $result['status'] !== 'accepted') {
+            throw ValidationException::withMessages([
+                'status' => 'This story does not pass the AI relevance gate (' . $result['score'] . '/100, ' . $result['status'] . '). Keep it as a draft, improve the AI context, or choose Force include after editorial verification.',
+            ]);
+        }
+
+        // File mutations happen only after validation and relevance checks pass.
         if ($request->boolean('remove_image')) {
             if ($item?->image_path) {
                 $this->deleteNewsImage($item->image_path);
@@ -314,11 +379,24 @@ class NewsController extends Controller
 
         unset($data['image'], $data['remove_image']);
 
-        if ($data['status'] === 'published' && ! ($item?->published_at)) {
-            $data['published_at'] = now();
+        return $data;
+    }
+
+    private function refreshRelevanceIntelligence(NewsItem $item): void
+    {
+        $item->loadMissing(['company', 'newsSource.company']);
+        $relevance = app(NewsRelevanceService::class);
+        $relevance->apply($item);
+
+        if ($relevance->isAccepted($item)) {
+            app(NewsEntityLinker::class)->link($item);
+            app(NewsIntelligenceService::class)->refresh($item->fresh());
+            return;
         }
 
-        return $data;
+        $item->relatedToolTerms()->sync([]);
+        $item->relatedModelTerms()->sync([]);
+        $item->forceFill(['related_tools' => []])->saveQuietly();
     }
 
     private function deleteNewsImage(?string $path): void

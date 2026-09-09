@@ -229,7 +229,7 @@
                 <span class="rank">#{{ $rank + 1 }}</span>
                 <img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo">
                 <div><h3>{{ $tool->name }}</h3><p>{{ $tool->category?->name ?? 'AI Tool' }}</p></div>
-                <span class="mini-score"><i data-lucide="star"></i>{{ number_format((float)$tool->rating, 1) }}</span>
+                <span class="mini-score"><i data-lucide="star"></i>{{ (float)$tool->rating > 0 ? number_format((float)$tool->rating, 1) : 'Not rated' }}</span>
                 @if($tool->website)<a href="{{ $tool->website }}" target="_blank" rel="noopener" aria-label="Visit {{ $tool->name }}"><i data-lucide="arrow-up-right"></i></a>@endif
             </article>
         @endforeach
@@ -409,7 +409,14 @@
                                 <div class="tool-card-identity">
                                     <img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo" loading="lazy">
                                     <div><h3><a class="entity-name-link" href="{{ route('tools.show', $tool) }}">{{ $tool->name }}</a></h3><p>{{ $tool->company?->name ?? 'Independent' }} <span>•</span> {{ $tool->category?->name ?? 'AI Tool' }}</p></div>
-                                    <div class="tool-rating"><i data-lucide="star"></i><strong>{{ number_format((float)$tool->rating,1) }}</strong><small>/5</small></div>
+                                    <div class="tool-rating">
+                                        <i data-lucide="star"></i>
+                                        @if((float) $tool->rating > 0)
+                                            <strong>{{ number_format((float)$tool->rating,1) }}</strong><small>/5</small>
+                                        @else
+                                            <strong>Not rated</strong>
+                                        @endif
+                                    </div>
                                 </div>
 
                                 <p class="tool-card-description">{{ Str::limit($tool->short_description ?: $tool->description, 115) }}</p>

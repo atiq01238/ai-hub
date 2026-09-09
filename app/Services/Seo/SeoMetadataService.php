@@ -299,7 +299,7 @@ class SeoMetadataService
         if ($entity->tools()->where('status', 'published')->exists()) {
             $signals[] = 'Tools';
         }
-        if ($entity->newsItems()->where('status', 'published')->whereNull('duplicate_of_id')->exists()) {
+        if ($entity->newsItems()->publiclyVisible()->exists()) {
             $signals[] = 'News';
         }
         if (! $signals) {
@@ -430,7 +430,7 @@ class SeoMetadataService
 
         $models = $entity->models()->whereIn('status', ['active', 'preview'])->count();
         $tools = $entity->tools()->where('status', 'published')->count();
-        $news = $entity->newsItems()->where('status', 'published')->whereNull('duplicate_of_id')->count();
+        $news = $entity->newsItems()->publiclyVisible()->count();
 
         $signals = collect([
             $models ? $models.' active AI model'.($models === 1 ? '' : 's') : null,

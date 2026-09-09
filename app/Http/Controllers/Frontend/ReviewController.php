@@ -47,6 +47,7 @@ class ReviewController extends Controller
         };
 
         $reviews = $query->paginate(12)->withQueryString();
+        \App\Support\SeoPaginationGuard::enforce($reviews, $request);
         $statsQuery = $this->publicReviews();
 
         $stats = [
@@ -61,13 +62,13 @@ class ReviewController extends Controller
             ->addSelect([
                 'review_avg' => Review::selectRaw('AVG(rating)')
                     ->whereColumn('reviews.tool_id', 'tools.id')
-                    ->where('status', 'published'),
+                    ->publicContent(),
                 'review_count' => Review::selectRaw('COUNT(*)')
                     ->whereColumn('reviews.tool_id', 'tools.id')
-                    ->where('status', 'published'),
+                    ->publicContent(),
             ])
             ->where('status', 'published')
-            ->whereHas('reviews', fn ($q) => $q->published())
+            ->whereHas('reviews', fn ($q) => $q->publicContent())
             ->orderByDesc('review_avg')
             ->orderByDesc('review_count')
             ->take(6)
@@ -88,7 +89,8 @@ class ReviewController extends Controller
         $itemType = $review->model ? 'model' : 'tool';
         if ($itemType === 'model') {
             abort_unless(in_array($item->status, ['active', 'preview'], true), 404);
-            $itemReviewStats = Review::published()
+            $itemReviewStats = Review::query()
+                ->publicContent()
                 ->where('model_id', $review->model_id)
                 ->selectRaw('COUNT(*) as total, AVG(rating) as average')
                 ->first();
@@ -102,7 +104,8 @@ class ReviewController extends Controller
                 ->get();
         } else {
             abort_unless($item->status === 'published', 404);
-            $itemReviewStats = Review::published()
+            $itemReviewStats = Review::query()
+                ->publicContent()
                 ->where('tool_id', $review->tool_id)
                 ->selectRaw('COUNT(*) as total, AVG(rating) as average')
                 ->first();
@@ -127,15 +130,7 @@ class ReviewController extends Controller
     private function publicReviews(): Builder
     {
         return Review::query()
-            ->published()
-            ->where(function (Builder $query) {
-                $query->where('review_type', 'editorial')
-                    ->orWhere(function (Builder $community) {
-                        $community->where('review_type', 'user')
-                            ->whereNotNull('body')
-                            ->where('body', '!=', '');
-                    });
-            })
+            ->publicContent()
             ->where(function (Builder $query) {
                 $query->whereHas('tool', fn (Builder $tool) => $tool->where('status', 'published'))
                     ->orWhereHas('model', fn (Builder $model) => $model->whereIn('status', ['active', 'preview']));

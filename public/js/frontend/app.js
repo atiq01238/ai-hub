@@ -71,7 +71,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const applyFilter = () => {
         let visible = 0;
         cards.forEach(card => {
-            const categoryMatch = category === 'all' || card.dataset.category === category;
+            const isHomepageBestTool = card.dataset.homeBestTool === '1';
+            const categoryMatch = category === 'all'
+                ? (!isHomepageBestTool || card.dataset.defaultVisible === '1')
+                : card.dataset.category === category;
             const show = categoryMatch;
             card.hidden = !show;
             if (show) visible++;

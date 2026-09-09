@@ -211,7 +211,7 @@
                     <div>
                         <b>{{ $alt->name }}</b>
                         <small>
-                            {{ $alt->pricingPlans->count() }} plans · {{ number_format((float) ($alt->rating ?? 0), 1) }} rating
+                            {{ $alt->pricingPlans->count() }} plans · {{ (float)($alt->rating ?? 0) > 0 ? number_format((float)$alt->rating, 1).' rating' : 'Not rated' }}
                         </small>
                     </div>
                     <i data-lucide="chevron-right"></i>

@@ -120,6 +120,7 @@ class AuditSeoCrawlPriority extends Command
             ['Subcategory records withheld by empty-content quality gate', Subcategory::query()->active()->where('is_indexable', true)->whereDoesntHave('tools', fn ($q) => $q->where('status', 'published'))->count()],
             ['Feature/use-case records withheld by empty-content quality gate', $this->emptyTaxonomyCount()],
             ['Published duplicate news excluded from discovery', NewsItem::query()->where('status', 'published')->where(fn ($q) => $q->whereNotNull('duplicate_of_id')->orWhere('duplicate_status', 'duplicate'))->count()],
+            ['Published news blocked by AI relevance gate', NewsItem::query()->where('status', 'published')->whereNotIn('id', NewsItem::query()->publiclyVisible()->select('id'))->count()],
             ['Published articles not approved for public discovery', Article::query()->where('status', 'published')->where('approval_status', '!=', 'approved')->count()],
             ['Published blank community reviews excluded', Review::query()->published()->where('review_type', 'user')->where(fn ($q) => $q->whereNull('body')->orWhereRaw("TRIM(body) = ''"))->count()],
             ['Published comparisons resolving fewer than 2 public items', $this->invalidComparisonCount()],
@@ -303,7 +304,7 @@ class AuditSeoCrawlPriority extends Command
             'companies' => Company::query()->seoIndexable()->get()->map(fn (Company $company) => route('companies.show', $company)),
             'tools' => Tool::query()->where('status', 'published')->get()->map(fn (Tool $tool) => route('tools.show', $tool)),
             'models' => AiModel::query()->whereIn('status', ['active', 'preview'])->get()->map(fn (AiModel $model) => route('models.show', $model)),
-            'news' => NewsItem::query()->where('status', 'published')->whereNull('duplicate_of_id')->where(fn ($q) => $q->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate'))->get()->map(fn (NewsItem $news) => route('news.show', $news)),
+            'news' => NewsItem::query()->publiclyVisible()->get()->map(fn (NewsItem $news) => route('news.show', $news)),
             'articles' => Article::query()->where('status', 'published')->where('approval_status', 'approved')->get()->map(fn (Article $article) => route('articles.show', $article)),
             'reviews' => Review::query()->published()
                 ->where(fn ($q) => $q->where('review_type', 'editorial')->orWhere(fn ($user) => $user->where('review_type', 'user')->whereNotNull('body')->whereRaw("TRIM(body) <> ''")))

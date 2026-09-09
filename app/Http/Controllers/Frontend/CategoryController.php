@@ -45,6 +45,7 @@ class CategoryController extends Controller
         $featuredTools = Tool::query()
             ->with(['company', 'category'])
             ->where('status', 'published')
+            ->where('rating', '>', 0)
             ->orderByDesc('rating')
             ->orderByDesc('popularity')
             ->take(8)
@@ -88,6 +89,7 @@ class CategoryController extends Controller
 
         $this->sortTools($toolsQuery, $sort);
         $tools = $toolsQuery->paginate(12)->withQueryString();
+        \App\Support\SeoPaginationGuard::enforce($tools, $request);
 
         $modelBase = AiModel::query()
             ->whereIn('status', ['active', 'preview'])
@@ -181,6 +183,7 @@ class CategoryController extends Controller
 
         $this->sortTools($query, $sort);
         $tools = $query->paginate(15)->withQueryString();
+        \App\Support\SeoPaginationGuard::enforce($tools, $request);
 
         $models = AiModel::query()
             ->with(['company', 'tool'])
@@ -226,11 +229,7 @@ class CategoryController extends Controller
             ->all();
 
         return NewsItem::query()
-            ->where('status', 'published')
-            ->whereNull('duplicate_of_id')
-            ->where(fn ($q) => $q
-                ->whereNull('duplicate_status')
-                ->orWhere('duplicate_status', '!=', 'duplicate'))
+            ->publiclyVisible()
             ->where(function ($q) use ($keywords) {
                 foreach ($keywords as $keyword) {
                     $q->orWhere('category', 'like', '%'.$keyword.'%')

@@ -20,6 +20,21 @@ class PageController extends Controller
         return view('frontend.pages.methodology');
     }
 
+    public function editorialGuidelines()
+    {
+        return view('frontend.pages.editorial-guidelines');
+    }
+
+    public function sourcingVerification()
+    {
+        return view('frontend.pages.sourcing-verification');
+    }
+
+    public function correctionsPolicy()
+    {
+        return view('frontend.pages.corrections-policy');
+    }
+
     public function contact()
     {
         return view('frontend.pages.contact');

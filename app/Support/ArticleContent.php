@@ -97,6 +97,36 @@ class ArticleContent
         return implode("\n", $html);
     }
 
+    /** @return array<int,array{level:int,text:string,id:string}> */
+    public static function outline(?string $content): array
+    {
+        $content = trim((string) $content);
+        if ($content === '') {
+            return [];
+        }
+
+        $outline = [];
+        foreach (preg_split('/\R/u', $content) ?: [] as $rawLine) {
+            $line = trim($rawLine);
+            if (! preg_match('/^(#{2,3})\s+(.+)$/u', $line, $match)) {
+                continue;
+            }
+
+            $text = trim(strip_tags($match[2]));
+            if ($text === '') {
+                continue;
+            }
+
+            $outline[] = [
+                'level' => strlen($match[1]),
+                'text' => $text,
+                'id' => Str::slug($text),
+            ];
+        }
+
+        return $outline;
+    }
+
     /** @return array<int,array{question:string,answer:string}> */
     public static function faq(?string $content): array
     {
@@ -151,9 +181,24 @@ class ArticleContent
 
     private static function inline(string $text): string
     {
+        // Preserve safe http(s) Markdown links while escaping every other part
+        // of the editorial text. This lets writers add primary references in
+        // the article body without enabling arbitrary HTML.
+        $links = [];
+        $text = preg_replace_callback('/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/iu', function (array $match) use (&$links): string {
+            $token = '__AI_ORBIT_LINK_'.count($links).'__';
+            $links[$token] = '<a href="'.e($match[2]).'" target="_blank" rel="noopener noreferrer">'.e($match[1]).'</a>';
+            return $token;
+        }, $text) ?? $text;
+
         $escaped = e($text);
         $escaped = preg_replace('/\*\*(.+?)\*\*/u', '<strong>$1</strong>', $escaped) ?? $escaped;
         $escaped = preg_replace('/`([^`]+)`/u', '<code>$1</code>', $escaped) ?? $escaped;
+
+        foreach ($links as $token => $link) {
+            $escaped = str_replace($token, $link, $escaped);
+        }
+
         return $escaped;
     }
 }

@@ -38,6 +38,13 @@ class DiscoveryClassifier
             return null;
         }
 
+        // Phase 2: discovery is downstream of AI relevance. Generic company or
+        // product words in unrelated stories must not create model/tool cards.
+        if (! $item->isAiRelevant()) {
+            $this->markAnalyzed($item);
+            return null;
+        }
+
         if (! $force && $item->discovery_analyzed_at) {
             return AiDiscovery::where('news_item_id', $item->id)->first();
         }

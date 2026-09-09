@@ -182,7 +182,7 @@
                         <div class="pi-card-foot">
                             <span>
                                 <i data-lucide="star"></i>
-                                {{ number_format((float) ($tool->rating ?? 0), 1) }} rating
+                                {{ (float)($tool->rating ?? 0) > 0 ? number_format((float)$tool->rating, 1).' rating' : 'Not rated' }}
                             </span>
                             <a href="{{ route('pricing.show', $tool) }}">
                                 Pricing details <i data-lucide="arrow-up-right"></i>

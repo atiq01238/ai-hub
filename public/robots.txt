@@ -16,5 +16,6 @@ Disallow: /suggest-tool
 Disallow: /community/
 Disallow: /search/suggest
 Disallow: /test-lab
+Disallow: /up
 
 Sitemap: https://ai-orbit.online/sitemap.xml

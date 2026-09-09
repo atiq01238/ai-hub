@@ -14,7 +14,7 @@ class CompanySitemapController extends Controller
             ->seoIndexable()
             ->withMax(['tools as tools_updated_at' => fn ($q) => $q->where('status', 'published')], 'updated_at')
             ->withMax(['models as models_updated_at' => fn ($q) => $q->whereIn('status', ['active', 'preview'])], 'updated_at')
-            ->withMax(['newsItems as news_updated_at' => fn ($q) => $q->where('status', 'published')->whereNull('duplicate_of_id')->where(fn ($news) => $news->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate'))], 'updated_at')
+            ->withMax(['newsItems as news_updated_at' => fn ($q) => $q->publiclyVisible()], 'updated_at')
             ->withMax(['articles as articles_updated_at' => fn ($q) => $q->where('status', 'published')->where('approval_status', 'approved')], 'updated_at')
             ->orderBy('id')
             ->get()

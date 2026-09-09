@@ -44,6 +44,16 @@
         </div>
     </section>
 
+    <section class="inst-section">
+        <div class="inst-section-head"><span>How we work</span><h2>Clear standards for publishing, sourcing and corrections.</h2><p>AI Orbit separates factual source records, calculated signals, editorial judgment and community input so readers can understand what kind of evidence they are looking at.</p></div>
+        <div class="inst-value-grid">
+            <article class="inst-value"><i data-lucide="book-open-check"></i><h3>Editorial guidelines</h3><p>How guides, summaries, decision briefs and reviews are written, checked and labeled.</p><a class="inst-inline-link" href="{{ route('editorial-guidelines') }}">Read guidelines <i data-lucide="arrow-right"></i></a></article>
+            <article class="inst-value"><i data-lucide="scan-search"></i><h3>Sourcing & verification</h3><p>How official sources, freshness, benchmarks, pricing evidence and news verification are handled.</p><a class="inst-inline-link" href="{{ route('sourcing-verification') }}">See verification standards <i data-lucide="arrow-right"></i></a></article>
+            <article class="inst-value"><i data-lucide="file-pen-line"></i><h3>Corrections policy</h3><p>How readers can report an error and how material corrections are reviewed and reflected in structured records.</p><a class="inst-inline-link" href="{{ route('corrections-policy') }}">Read corrections policy <i data-lucide="arrow-right"></i></a></article>
+            <article class="inst-value"><i data-lucide="badge-info"></i><h3>Disclosures</h3><p>How provider claims, measured results, AI-assisted processing and commercial relationships are kept distinguishable.</p><a class="inst-inline-link" href="{{ route('disclosures') }}">Read disclosures <i data-lucide="arrow-right"></i></a></article>
+        </div>
+    </section>
+
     <section class="inst-callout">
         <div><span class="inst-eyebrow"><i data-lucide="users"></i> Community input</span><h2>See something missing or incorrect?</h2><p>AI changes quickly. Community submissions help surface new products and corrections, while moderation keeps public data controlled.</p></div>
         <div class="inst-actions"><a class="inst-btn primary" href="{{ route('submissions.create') }}">Suggest or correct data</a><a class="inst-btn" href="{{ route('contact') }}">Contact AI Orbit</a></div>

@@ -132,6 +132,15 @@ class AuditSemanticInternalLinks extends Command
             ->where(function ($query) {
                 $query->whereNull('news_items.duplicate_status')->orWhere('news_items.duplicate_status', '!=', 'duplicate');
             })
+            ->where(function ($query) {
+                $query->where('news_items.ai_relevance_override', 'include')
+                    ->orWhere(function ($auto) {
+                        $auto->where(function ($override) {
+                            $override->whereNull('news_items.ai_relevance_override')
+                                ->orWhere('news_items.ai_relevance_override', 'auto');
+                        })->where('news_items.ai_relevance_status', 'accepted');
+                    });
+            })
             ->where('tools.status', '!=', 'published')->count();
 
         $invalidNewsModelLinks = DB::table('ai_model_news_item')
@@ -141,6 +150,15 @@ class AuditSemanticInternalLinks extends Command
             ->whereNull('news_items.duplicate_of_id')
             ->where(function ($query) {
                 $query->whereNull('news_items.duplicate_status')->orWhere('news_items.duplicate_status', '!=', 'duplicate');
+            })
+            ->where(function ($query) {
+                $query->where('news_items.ai_relevance_override', 'include')
+                    ->orWhere(function ($auto) {
+                        $auto->where(function ($override) {
+                            $override->whereNull('news_items.ai_relevance_override')
+                                ->orWhere('news_items.ai_relevance_override', 'auto');
+                        })->where('news_items.ai_relevance_status', 'accepted');
+                    });
             })
             ->whereNotIn('ai_models.status', ['active', 'preview'])->count();
 
@@ -180,10 +198,7 @@ class AuditSemanticInternalLinks extends Command
 
     private function publicNews()
     {
-        return NewsItem::query()
-            ->where('status', 'published')
-            ->whereNull('duplicate_of_id')
-            ->where(fn ($query) => $query->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate'));
+        return NewsItem::query()->publiclyVisible();
     }
 
     private function validComparisons(): Collection

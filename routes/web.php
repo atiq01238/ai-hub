@@ -179,6 +179,9 @@ Route::middleware(['auth', 'verified', EnsureAccountIsActive::class])->group(fun
 });
 Route::get('/about', [FrontendPageController::class, 'about'])->name('about');
 Route::get('/methodology', [FrontendPageController::class, 'methodology'])->name('methodology');
+Route::get('/editorial-guidelines', [FrontendPageController::class, 'editorialGuidelines'])->name('editorial-guidelines');
+Route::get('/sourcing-verification', [FrontendPageController::class, 'sourcingVerification'])->name('sourcing-verification');
+Route::get('/corrections-policy', [FrontendPageController::class, 'correctionsPolicy'])->name('corrections-policy');
 Route::get('/contact', [FrontendPageController::class, 'contact'])->name('contact');
 Route::get('/privacy', [FrontendPageController::class, 'privacy'])->name('privacy');
 Route::get('/terms', [FrontendPageController::class, 'terms'])->name('terms');
@@ -284,6 +287,7 @@ Route::middleware(['auth', EnsureAccountIsActive::class, 'admin'])
                 Route::get('/create', 'create')->middleware(RequirePermission::class . ':AI News,Add')->name('create');
                 Route::get('/duplicates', 'duplicates')->middleware(RequirePermission::class . ':AI News,View')->name('duplicates');
                 Route::post('/fetch-now', 'fetchNow')->middleware(RequirePermission::class . ':AI News,Add')->name('fetch-now');
+                Route::post('/audit-relevance', 'auditRelevance')->middleware(RequirePermission::class . ':AI News,Edit')->name('audit-relevance');
                 Route::post('/{id}/article-draft', 'createArticleDraft')->whereNumber('id')->middleware(RequirePermission::class . ':Content,Add')->name('article-draft');
                 Route::get('/{id}/edit', 'edit')->whereNumber('id')->middleware(RequirePermission::class . ':AI News,Edit')->name('edit');
                 Route::post('/', 'store')->middleware(RequirePermission::class . ':AI News,Add')->name('store');

@@ -16,6 +16,7 @@ use App\Models\Tool;
 use App\Models\UseCase;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
+use App\Services\Seo\SeoContentQualityService;
 
 class SeoSitemapController extends Controller
 {
@@ -39,16 +40,34 @@ class SeoSitemapController extends Controller
         return $this->xmlResponse($body);
     }
 
-    public function tools(): Response
+    public function tools(SeoContentQualityService $contentQuality): Response
     {
         $items = Tool::query()
             ->where('status', 'published')
-            ->select(['id', 'slug', 'updated_at'])
+            ->with([
+                'company:id,name',
+                'category:id,name',
+                'subcategoryTerm:id,name',
+                'featureTerms:id,name',
+                'useCaseTerms:id,name',
+                'platformTerms:id,name',
+                'integrationTerms:id,name',
+                'sources',
+                'factEvidence',
+                'pricingPlans.sources',
+                'technicalProfile',
+                'benchmarkResults' => fn ($query) => $query
+                    ->with('benchmark')
+                    ->where('verified', true)
+                    ->where('status', 'verified'),
+            ])
             ->withMax('pricingPlans', 'updated_at')
             ->withMax(['reviews as public_reviews_updated_at' => fn ($query) => $query->where('status', 'published')], 'updated_at')
             ->withMax(['benchmarkResults as verified_benchmarks_updated_at' => fn ($query) => $query->where('verified', true)->where('status', 'verified')], 'updated_at')
             ->orderBy('id')
             ->get()
+            ->filter(fn (Tool $tool) => $contentQuality->tool($tool)['indexable'])
+            ->values()
             ->each(function (Tool $tool) {
                 $tool->updated_at = $this->latestTimestamp([
                     $tool->updated_at,
@@ -61,15 +80,27 @@ class SeoSitemapController extends Controller
         return $this->xml($items, fn ($item) => route('tools.show', $item));
     }
 
-    public function models(): Response
+    public function models(SeoContentQualityService $contentQuality): Response
     {
         $items = AiModel::query()
             ->whereIn('status', ['active', 'preview'])
-            ->select(['id', 'slug', 'updated_at'])
+            ->with([
+                'company:id,name',
+                'featureTerms:id,name',
+                'useCaseTerms:id,name',
+                'pricingSources',
+                'evidenceSources',
+                'benchmarkResults' => fn ($query) => $query
+                    ->with('benchmark')
+                    ->where('verified', true)
+                    ->where('status', 'verified'),
+            ])
             ->withMax(['reviews as public_reviews_updated_at' => fn ($query) => $query->where('status', 'published')], 'updated_at')
             ->withMax(['benchmarkResults as verified_benchmarks_updated_at' => fn ($query) => $query->where('verified', true)->where('status', 'verified')], 'updated_at')
             ->orderBy('id')
             ->get()
+            ->filter(fn (AiModel $model) => $contentQuality->model($model)['indexable'])
+            ->values()
             ->each(function (AiModel $model) {
                 $model->updated_at = $this->latestTimestamp([
                     $model->updated_at,
@@ -81,39 +112,37 @@ class SeoSitemapController extends Controller
         return $this->xml($items, fn ($item) => route('models.show', $item));
     }
 
-    public function news(): Response
+    public function news(SeoContentQualityService $contentQuality): Response
     {
         $items = NewsItem::query()
-            ->where('status', 'published')
-            ->whereNull('duplicate_of_id')
-            ->where(function ($query) {
-                $query->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate');
-            })
-            ->select(['slug', 'updated_at'])
+            ->publiclyVisible()
             ->orderByDesc('published_at')
-            ->get();
-        return $this->xml($items, fn($item)=>route('news.show',$item));
+            ->get()
+            ->filter(fn (NewsItem $item) => $contentQuality->news($item)['indexable'])
+            ->values();
+
+        return $this->xml($items, fn ($item) => route('news.show', $item));
     }
 
-    public function articles(): Response
+    public function articles(SeoContentQualityService $contentQuality): Response
     {
-        $items=Article::query()->where('status','published')->where('approval_status','approved')->select(['slug','updated_at'])->orderByDesc('published_at')->get();
-        return $this->xml($items, fn($item)=>route('articles.show',$item));
+        $items = Article::query()
+            ->where('status', 'published')
+            ->where('approval_status', 'approved')
+            ->with(['relatedToolTerms:id', 'relatedModelTerms:id', 'tagTerms:id'])
+            ->orderByDesc('published_at')
+            ->get()
+            ->filter(fn (Article $article) => $contentQuality->article($article)['indexable'])
+            ->values();
+
+        return $this->xml($items, fn ($item) => route('articles.show', $item));
     }
 
 
     public function reviews(): Response
     {
         $items = Review::query()
-            ->published()
-            ->where(function ($query) {
-                $query->where('review_type', 'editorial')
-                    ->orWhere(function ($community) {
-                        $community->where('review_type', 'user')
-                            ->whereNotNull('body')
-                            ->whereRaw("TRIM(body) <> ''");
-                    });
-            })
+            ->publicContent()
             ->where(function ($query) {
                 $query->whereHas('tool', fn ($tool) => $tool->where('status', 'published'))
                     ->orWhereHas('model', fn ($model) => $model->whereIn('status', ['active', 'preview']));
@@ -194,11 +223,27 @@ class SeoSitemapController extends Controller
     {
         $routes = [
             'home', 'tools.index', 'models.index', 'news.index', 'comparisons.index',
-            'companies.index', 'articles.index', 'reviews.index', 'pricing.index',
+            'companies.index', 'articles.index', 'pricing.index',
             'categories.index', 'features.index',
             'use-cases.index', 'topics.index', 'benchmarks.index', 'trending.index',
-            'about', 'methodology', 'contact', 'privacy', 'terms', 'cookies', 'disclosures',
+            'about', 'methodology', 'editorial-guidelines', 'sourcing-verification', 'corrections-policy',
+            'contact', 'privacy', 'terms', 'cookies', 'disclosures',
         ];
+
+        // An empty review directory is useful as a product surface, but it is
+        // not useful search inventory. Add it to the static sitemap only after
+        // at least one written/editorial public review exists.
+        $hasPublicReviews = Review::query()
+            ->publicContent()
+            ->where(function ($query) {
+                $query->whereHas('tool', fn ($tool) => $tool->where('status', 'published'))
+                    ->orWhereHas('model', fn ($model) => $model->whereIn('status', ['active', 'preview']));
+            })
+            ->exists();
+
+        if ($hasPublicReviews) {
+            $routes[] = 'reviews.index';
+        }
 
         $items = collect($routes)->map(fn (string $name) => (object) [
             'url' => route($name),

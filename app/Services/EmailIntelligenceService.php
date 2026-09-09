@@ -59,7 +59,7 @@ class EmailIntelligenceService
 
     public function breakingNewsPublished(NewsItem $news): void
     {
-        if (! $this->isBreaking($news) || $news->duplicate_status === 'duplicate') return;
+        if (! $news->isAiRelevant() || ! $this->isBreaking($news) || $news->duplicate_status === 'duplicate') return;
         $this->broadcast(
             'breaking_news', 'breaking_news:'.$news->id, 'Breaking AI News: '.Str::limit($news->headline, 120, '…'),
             'Breaking AI news', $news->ai_summary ?: $news->summary ?: $news->headline,

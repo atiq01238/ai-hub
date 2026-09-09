@@ -252,7 +252,7 @@
 
                             <span class="rating-pill">
                                 <i data-lucide="star"></i>
-                                {{ number_format((float) $tool->rating, 1) }}
+                                {{ (float) $tool->rating > 0 ? number_format((float) $tool->rating, 1) : 'Not rated' }}
                             </span>
 
                         </div>

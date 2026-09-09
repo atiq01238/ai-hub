@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use App\Services\Seo\InternalLinkingService;
+use App\Services\Seo\SeoContentQualityService;
 
 class NewsController extends Controller
 {
@@ -29,12 +30,7 @@ class NewsController extends Controller
             'tab' => ['nullable', 'in:latest,breaking,trending,research'],
         ]);
 
-        $base = NewsItem::query()
-            ->where('status', 'published')
-            ->whereNull('duplicate_of_id')
-            ->where(function (Builder $query) {
-                $query->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate');
-            });
+        $base = NewsItem::query()->publiclyVisible();
 
         $query = (clone $base)->with(['company', 'newsSource']);
 
@@ -94,6 +90,7 @@ class NewsController extends Controller
         };
 
         $news = $query->paginate(12)->withQueryString();
+        \App\Support\SeoPaginationGuard::enforce($news, $request);
 
         $featured = (clone $base)
             ->with(['company', 'newsSource'])
@@ -116,14 +113,14 @@ class NewsController extends Controller
             ->get();
 
         $companies = Company::query()
-            ->withCount(['newsItems' => fn ($q) => $q->where('status', 'published')->whereNull('duplicate_of_id')])
-            ->whereHas('newsItems', fn ($q) => $q->where('status', 'published')->whereNull('duplicate_of_id'))
+            ->withCount(['newsItems' => fn ($q) => $q->publiclyVisible()])
+            ->whereHas('newsItems', fn ($q) => $q->publiclyVisible())
             ->orderByDesc('news_items_count')
             ->get();
 
         $sources = NewsSource::query()
-            ->withCount(['newsItems' => fn ($q) => $q->where('status', 'published')->whereNull('duplicate_of_id')])
-            ->whereHas('newsItems', fn ($q) => $q->where('status', 'published')->whereNull('duplicate_of_id'))
+            ->withCount(['newsItems' => fn ($q) => $q->publiclyVisible()])
+            ->whereHas('newsItems', fn ($q) => $q->publiclyVisible())
             ->orderByDesc('news_items_count')
             ->take(12)
             ->get();
@@ -135,7 +132,7 @@ class NewsController extends Controller
             'published' => (clone $base)->count(),
             'verified' => (clone $base)->where('verification_status', 'verified')->count(),
             'today' => (clone $base)->where('published_at', '>=', now()->startOfDay())->count(),
-            'sources' => NewsItem::query()->where('status', 'published')->whereNotNull('source')->distinct('source')->count('source'),
+            'sources' => NewsItem::query()->publiclyVisible()->whereNotNull('source')->distinct('source')->count('source'),
         ];
 
         return view('frontend.news.index', compact(
@@ -143,10 +140,9 @@ class NewsController extends Controller
         ));
     }
 
-    public function show(NewsItem $news, InternalLinkingService $internalLinks)
+    public function show(NewsItem $news, InternalLinkingService $internalLinks, SeoContentQualityService $contentQuality)
     {
-        abort_unless($news->status === 'published', 404);
-        abort_if($news->duplicate_of_id || $news->duplicate_status === 'duplicate', 404);
+        abort_unless(NewsItem::query()->publiclyVisible()->whereKey($news->id)->exists(), 404);
 
         $news->load(['company', 'newsSource', 'relatedToolTerms.company', 'relatedModelTerms.company']);
 
@@ -158,27 +154,20 @@ class NewsController extends Controller
         $deeperAnalysis = $internalLinks->analysisForNews($news);
 
         $previous = NewsItem::query()
-            ->where('status', 'published')
-            ->whereNull('duplicate_of_id')
-            ->where(function (Builder $query) {
-                $query->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate');
-            })
+            ->publiclyVisible()
             ->where('published_at', '<', $news->published_at ?? $news->created_at)
             ->orderByDesc('published_at')->first(['id', 'headline', 'slug', 'published_at']);
 
         $next = NewsItem::query()
-            ->where('status', 'published')
-            ->whereNull('duplicate_of_id')
-            ->where(function (Builder $query) {
-                $query->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate');
-            })
+            ->publiclyVisible()
             ->where('published_at', '>', $news->published_at ?? $news->created_at)
             ->orderBy('published_at')->first(['id', 'headline', 'slug', 'published_at']);
 
         $tags = collect($news->ai_tags ?? [])->merge($news->tags ?? [])->filter()->unique()->values();
+        $seoQuality = $contentQuality->news($news);
 
         return view('frontend.news.show', compact(
-            'news', 'relatedNews', 'relatedTools', 'relatedModels', 'deeperAnalysis', 'previous', 'next', 'tags'
+            'news', 'relatedNews', 'relatedTools', 'relatedModels', 'deeperAnalysis', 'previous', 'next', 'tags', 'seoQuality'
         ));
     }
 

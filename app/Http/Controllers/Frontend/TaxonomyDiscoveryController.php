@@ -7,6 +7,7 @@ use App\Models\Article;
 use App\Models\Category;
 use App\Models\Feature;
 use App\Models\UseCase;
+use Illuminate\Http\Request;
 
 class TaxonomyDiscoveryController extends Controller
 {
@@ -26,7 +27,7 @@ class TaxonomyDiscoveryController extends Controller
         return view('frontend.taxonomy.index', ['kind' => 'features', 'items' => $items]);
     }
 
-    public function feature(Feature $feature)
+    public function feature(Request $request, Feature $feature)
     {
         abort_unless($feature->is_active && $feature->is_indexable, 404);
 
@@ -41,6 +42,7 @@ class TaxonomyDiscoveryController extends Controller
             ->orderByDesc('rating')
             ->orderByDesc('popularity')
             ->paginate(12);
+        \App\Support\SeoPaginationGuard::enforce($tools, $request);
 
         $models = $feature->models()
             ->with(['company', 'tool'])
@@ -73,7 +75,7 @@ class TaxonomyDiscoveryController extends Controller
         return view('frontend.taxonomy.index', ['kind' => 'use-cases', 'items' => $items]);
     }
 
-    public function useCase(UseCase $useCase)
+    public function useCase(Request $request, UseCase $useCase)
     {
         abort_unless($useCase->is_active && $useCase->is_indexable, 404);
 
@@ -88,6 +90,7 @@ class TaxonomyDiscoveryController extends Controller
             ->orderByDesc('rating')
             ->orderByDesc('popularity')
             ->paginate(12);
+        \App\Support\SeoPaginationGuard::enforce($tools, $request);
 
         $models = $useCase->models()
             ->with(['company', 'tool'])
@@ -121,7 +124,7 @@ class TaxonomyDiscoveryController extends Controller
         return view('frontend.topics.index', compact('items'));
     }
 
-    public function topic(Category $category)
+    public function topic(Request $request, Category $category)
     {
         abort_unless(
             $category->type === 'content' && $category->is_active && $category->is_indexable,
@@ -140,6 +143,7 @@ class TaxonomyDiscoveryController extends Controller
             ->where('approval_status', 'approved')
             ->orderByDesc('published_at')
             ->paginate(15);
+        \App\Support\SeoPaginationGuard::enforce($articles, $request);
 
         return view('frontend.topics.show', [
             'topic' => $category,

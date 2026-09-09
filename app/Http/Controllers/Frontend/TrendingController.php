@@ -30,10 +30,7 @@ class TrendingController extends Controller
 
         $news = NewsItem::query()
             ->with('company')
-            ->where('status', 'published')
-            ->where(function ($query) {
-                $query->whereNull('duplicate_status')->orWhere('duplicate_status', '!=', 'duplicate');
-            })
+            ->publiclyVisible()
             ->orderByDesc('importance')
             ->orderByDesc('published_at')
             ->limit(10)
@@ -43,7 +40,7 @@ class TrendingController extends Controller
             ->withCount([
                 'tools' => fn ($query) => $query->where('status', 'published'),
                 'models' => fn ($query) => $query->whereIn('status', ['active', 'preview']),
-                'newsItems' => fn ($query) => $query->where('status', 'published'),
+                'newsItems' => fn ($query) => $query->publiclyVisible(),
             ])
             ->where('status', 'active')
             ->get()
@@ -72,7 +69,7 @@ class TrendingController extends Controller
             'stats' => [
                 'tools' => Tool::query()->where('status', 'published')->count(),
                 'models' => AiModel::query()->whereIn('status', ['active', 'preview'])->count(),
-                'news_today' => NewsItem::query()->where('status', 'published')->where('published_at', '>=', now()->subDay())->count(),
+                'news_today' => NewsItem::query()->publiclyVisible()->where('published_at', '>=', now()->subDay())->count(),
                 'comparisons' => Comparison::query()->where('status', 'published')->count(),
             ],
         ]);

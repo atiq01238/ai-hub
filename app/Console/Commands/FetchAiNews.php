@@ -253,17 +253,35 @@ class FetchAiNews extends Command
             'fetched_at' => now(),
         ]);
 
-        // Discovery is intentionally non-blocking: a classifier failure must
-        // never stop the existing RSS/news collection pipeline.
+        // Phase 2 relevance gate runs before discovery/entity linking. A company
+        // or generic product name must never make unrelated technology news look
+        // like AI news. Rejected/review items remain private drafts for editors.
         try {
-            app(DiscoveryClassifier::class)->analyze($newsItem->loadMissing(['company', 'newsSource.company']));
+            $newsItem->loadMissing(['company', 'newsSource.company']);
+            $relevance = app(\App\Services\NewsRelevanceService::class);
+            $result = $relevance->apply($newsItem);
+
+            if ($relevance->isAccepted($newsItem)) {
+                // Discovery is intentionally non-blocking: a classifier failure
+                // must never stop the existing RSS/news collection pipeline.
+                try {
+                    app(DiscoveryClassifier::class)->analyze($newsItem);
+                } catch (\Throwable $e) {
+                    Log::warning('AI discovery analysis failed for news item ' . $newsItem->id, ['error' => $e->getMessage()]);
+                }
+
+                app(\App\Services\NewsEntityLinker::class)->link($newsItem);
+                app(\App\Services\NewsIntelligenceService::class)->refresh($newsItem->fresh());
+            } else {
+                Log::info('News item held by AI relevance gate', [
+                    'news_item_id' => $newsItem->id,
+                    'score' => $result['score'],
+                    'status' => $result['status'],
+                ]);
+            }
         } catch (\Throwable $e) {
-            Log::warning('AI discovery analysis failed for news item ' . $newsItem->id, ['error' => $e->getMessage()]);
+            Log::warning('News relevance/intelligence enrichment failed for item ' . $newsItem->id, ['error' => $e->getMessage()]);
         }
-        try {
-            app(\App\Services\NewsEntityLinker::class)->link($newsItem);
-            app(\App\Services\NewsIntelligenceService::class)->refresh($newsItem->fresh());
-        } catch (\Throwable $e) { Log::warning('News intelligence enrichment failed for item '.$newsItem->id,['error'=>$e->getMessage()]); }
 
         return 'created';
     }

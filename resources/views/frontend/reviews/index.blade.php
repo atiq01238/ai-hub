@@ -58,7 +58,7 @@
 
 @section(
     'robots',
-    $reviewsHasFilters
+    ($reviewsHasFilters || (int) ($stats['reviews'] ?? 0) === 0)
         ? 'noindex,follow'
         : 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'
 )
@@ -93,7 +93,7 @@
             <div><strong>{{ number_format($stats['reviews']) }}</strong><span>Published reviews</span></div>
             <div><strong>{{ number_format($stats['editorial']) }}</strong><span>Editorial reviews</span></div>
             <div><strong>{{ number_format($stats['community']) }}</strong><span>Community reviews</span></div>
-            <div><strong>{{ number_format($stats['average'],1) }}</strong><span>Average rating</span></div>
+            <div><strong>{{ $stats['reviews'] > 0 ? number_format($stats['average'],1) : '—' }}</strong><span>Average rating</span></div>
         </div>
     </div>
 </section>
@@ -192,15 +192,17 @@
                 <div class="side-card">
                     <span class="side-label">TOP RATED TOOLS</span>
                     <h3>Best reviewed tools</h3>
-                    @foreach($topTools as $tool)
+                    @forelse($topTools as $tool)
                         <a class="top-review-tool" href="{{ route('tools.show',$tool) }}">
                             <img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo">
-                            <div><strong>{{ $tool->name }}</strong><small>{{ (int)$tool->review_count }} reviews</small></div>
+                            <div><strong>{{ $tool->name }}</strong><small>{{ (int)$tool->review_count }} public {{ \Illuminate\Support\Str::plural('review', (int)$tool->review_count) }}</small></div>
                             <b>★ {{ number_format((float)$tool->review_avg,1) }}</b>
                         </a>
-                    @endforeach
+                    @empty
+                        <p>No public tool reviews are published yet.</p>
+                    @endforelse
                 </div>
-                <div class="side-card editorial-card"><i data-lucide="shield-check"></i><h3>Moderated reviews</h3><p>Only reviews with <strong>published</strong> status and a public tool or model are visible here.</p></div>
+                <div class="side-card editorial-card"><i data-lucide="shield-check"></i><h3>Moderated reviews</h3><p>This directory counts published editorial reviews and community reviews with written feedback. Star-only ratings contribute to rating aggregates but are not presented as written reviews.</p></div>
             </aside>
         </div>
     </div>

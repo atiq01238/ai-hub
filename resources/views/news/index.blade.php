@@ -35,6 +35,13 @@
                 <i data-lucide="copy-check"></i>
                 Duplicates
             </a>
+            <form action="{{ route('admin.news.audit-relevance') }}" method="POST" class="news-inline-form" onsubmit="return confirm('Audit currently published news and move non-AI/review stories back to draft?')">
+                @csrf
+                <button type="submit" class="btn btn-secondary btn-sm">
+                    <i data-lucide="shield-check"></i>
+                    Clean Public News
+                </button>
+            </form>
             <a href="{{ route('admin.news.create') }}" class="btn btn-primary btn-sm">
                 <i data-lucide="plus"></i>
                 Add News
@@ -84,9 +91,16 @@
                 @endforeach
             </select>
 
+            <select class="select" name="relevance" aria-label="Filter by AI relevance">
+                <option value="">All relevance</option>
+                @foreach (['accepted'=>'AI relevant','review'=>'Needs review','rejected'=>'Rejected','pending'=>'Not checked'] as $value => $label)
+                    <option value="{{ $value }}" @selected(request('relevance') === $value)>{{ $label }}</option>
+                @endforeach
+            </select>
+
             <button type="submit" class="btn btn-secondary btn-sm"><i data-lucide="sliders-horizontal"></i> Apply</button>
 
-            @if (request()->anyFilled(['search','category','company_id']))
+            @if (request()->anyFilled(['search','category','company_id','relevance']))
                 <a href="{{ url()->current() }}" class="btn btn-ghost btn-sm"><i data-lucide="x"></i> Clear</a>
             @endif
         </form>
@@ -105,6 +119,7 @@
             @php
                 $sentimentClass = $item->sentiment === 'positive' ? 'badge-pos' : ($item->sentiment === 'negative' ? 'badge-neg' : 'badge-neutral');
                 $verificationClass = $item->verification_status === 'verified' ? 'badge-pos' : ($item->verification_status === 'unverified' ? 'badge-neg' : 'badge-warn');
+                $relevanceClass = $item->ai_relevance_status === 'accepted' ? 'badge-pos' : ($item->ai_relevance_status === 'rejected' ? 'badge-neg' : 'badge-warn');
             @endphp
 
             <article class="news-card">
@@ -118,6 +133,10 @@
                             @endif
                             <span class="badge {{ $sentimentClass }}">{{ ucfirst($item->sentiment) }}</span>
                             <span class="badge {{ $verificationClass }}">{{ str_replace('_', ' ', ucfirst($item->verification_status)) }}</span>
+                            <span class="badge {{ $relevanceClass }}">AI {{ ucfirst($item->ai_relevance_status ?? 'pending') }}{{ $item->ai_relevance_score !== null ? ' · '.(int) $item->ai_relevance_score : '' }}</span>
+                            @if(($item->ai_relevance_override ?? 'auto') !== 'auto')
+                                <span class="badge badge-neutral">Override: {{ ucfirst($item->ai_relevance_override) }}</span>
+                            @endif
                         </div>
                         <div class="news-card__time">
                             <i data-lucide="clock-3"></i>

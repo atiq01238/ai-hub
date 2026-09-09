@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use App\Services\Seo\EntitySeoService;
 use App\Services\Seo\InternalLinkingService;
 use App\Services\Seo\ModelContentService;
+use App\Services\Seo\SeoContentQualityService;
 use App\Services\Taxonomy\TaxonomyNormalizer;
 use App\Services\Frontend\QuickFeedbackService;
 use App\Services\BenchmarkScoringService;
@@ -65,6 +66,7 @@ class ModelController extends Controller
         };
 
         $models = $query->paginate(12)->withQueryString();
+        \App\Support\SeoPaginationGuard::enforce($models, $request);
         $companies = Company::query()
             ->seoIndexable()
             ->withCount(['models' => fn ($q) => $q->whereIn('status',['active','preview'])])
@@ -89,7 +91,7 @@ class ModelController extends Controller
         return view('frontend.models.index', compact('models','companies','capabilities','stats','leaders','providerHubs','featureHubs'));
     }
 
-    public function show(AiModel $model, EntitySeoService $seoService, QuickFeedbackService $feedback, BenchmarkScoringService $benchmarkScoring, InternalLinkingService $internalLinks, ModelContentService $contentService, ModelConfidenceService $confidenceService)
+    public function show(AiModel $model, EntitySeoService $seoService, QuickFeedbackService $feedback, BenchmarkScoringService $benchmarkScoring, InternalLinkingService $internalLinks, ModelContentService $contentService, ModelConfidenceService $confidenceService, SeoContentQualityService $contentQuality)
     {
         abort_unless(in_array($model->status, ['active','preview','deprecated'], true), 404);
         $model->load(['company','tool.category','featureTerms','useCaseTerms','tagTerms','pricingSources','evidenceSources' => fn ($q) => $q->latest('verified_at'), 'benchmarkResults' => fn ($q) => $q->with('benchmark')->where('verified',true)->where('status','verified')->latest('tested_at')]);
@@ -122,11 +124,12 @@ class ModelController extends Controller
         $benchmarkPrimaryClass = $benchmarkScoring->primaryCompositeClass($model);
         $benchmarkClassComposites = $benchmarkScoring->classComposites($model);
         $modelConfidence = $confidenceService->build($model);
+        $seoQuality = $contentQuality->model($model, $modelConfidence);
         $evidenceSources = $model->evidenceSources->sortByDesc('verified_at')->values();
 
         $seo = $seoService->model($model);
         $seoSchemas = $seoService->schemas('model', $model, $seo);
 
-        return view('frontend.models.show', compact('model','relatedModels','relatedComparisons','relatedArticles','latestNews','lastUpdated','contentSeo','benchmarks','capabilities','labResults','labStats','quickRating','benchmarkPrimaryClass','benchmarkClassComposites','modelConfidence','evidenceSources','seo','seoSchemas'));
+        return view('frontend.models.show', compact('model','relatedModels','relatedComparisons','relatedArticles','latestNews','lastUpdated','contentSeo','benchmarks','capabilities','labResults','labStats','quickRating','benchmarkPrimaryClass','benchmarkClassComposites','modelConfidence','seoQuality','evidenceSources','seo','seoSchemas'));
     }
 }
