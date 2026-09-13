@@ -140,6 +140,8 @@
                     <button type="submit"><i data-lucide="search"></i> Search</button>
                 </form>
 
+                <p class="tools-finder-cta"><i data-lucide="wand-sparkles"></i> Not sure which product fits your task? <a href="{{ route('tool-finder.index') }}">Use the AI Tool Finder</a>.</p>
+
                 <div class="tools-hero-chips" aria-label="Popular AI tool categories">
                     @foreach($categories->take(7) as $category)
                         @php

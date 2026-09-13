@@ -432,3 +432,7 @@ body{background:#070b18}.tools-page-container{width:min(1460px,calc(100% - 48px)
   .seo-hub-links::-webkit-scrollbar{display:none}
   .seo-hub-links a{flex:0 0 auto}
 }
+
+/* AI Tool Finder contextual discovery link */
+.tools-finder-cta{display:flex;align-items:center;gap:6px;margin:10px 0 0;color:#8390aa;font-size:11px}.tools-finder-cta>svg{width:13px;height:13px;color:#9d87ff}.tools-finder-cta a{color:#b7a8ff;font-weight:800;text-decoration:none}.tools-finder-cta a:hover{color:#fff;text-decoration:underline}
+@media(max-width:640px){.tools-finder-cta{align-items:flex-start;font-size:10.5px;line-height:1.45}.tools-finder-cta>svg{flex:0 0 13px;margin-top:1px}}

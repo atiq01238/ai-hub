@@ -32,7 +32,7 @@
 
             <div class="home-hero-actions" aria-label="Primary homepage actions">
                 <a class="home-hero-primary" href="{{ route('tools.index') }}">Explore AI Tools <i data-lucide="arrow-right"></i></a>
-                <a class="home-hero-secondary" href="{{ route('comparisons.builder') }}">Compare AI <i data-lucide="git-compare-arrows"></i></a>
+                <a class="home-hero-secondary" href="{{ route('tool-finder.index') }}">Find My AI Tool <i data-lucide="wand-sparkles"></i></a>
             </div>
 
             @if($categories->isNotEmpty())

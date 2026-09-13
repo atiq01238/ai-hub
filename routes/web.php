@@ -60,6 +60,7 @@ use App\Http\Controllers\Admin\System\NotificationRuleController;
 use App\Http\Controllers\PublicReviewController;
 use App\Http\Controllers\Frontend\HomeController;
 use App\Http\Controllers\Frontend\ToolController as FrontendToolController;
+use App\Http\Controllers\Frontend\ToolFinderController as FrontendToolFinderController;
 use App\Http\Controllers\Frontend\ModelController as FrontendModelController;
 use App\Http\Controllers\Frontend\NewsController as FrontendNewsController;
 use App\Http\Controllers\Frontend\ComparisonController as FrontendComparisonController;
@@ -96,6 +97,13 @@ Route::get('/media/{path}', [PublicMediaController::class, 'show'])
     ->name('media.public');
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/ai-tools', [FrontendToolController::class, 'index'])->name('tools.index');
+Route::get('/ai-tool-finder', [FrontendToolFinderController::class, 'index'])->name('tool-finder.index');
+Route::post('/ai-tool-finder', [FrontendToolFinderController::class, 'find'])
+    ->middleware('throttle:30,1')
+    ->name('tool-finder.find');
+Route::post('/ai-tool-finder/click', [FrontendToolFinderController::class, 'click'])
+    ->middleware('throttle:120,1')
+    ->name('tool-finder.click');
 Route::get('/ai-tools/{tool:slug}', [FrontendToolController::class, 'show'])->name('tools.show');
 Route::get('/ai-models', [FrontendModelController::class, 'index'])->name('models.index');
 Route::get('/ai-models/{model:slug}', [FrontendModelController::class, 'show'])->name('models.show');

@@ -182,6 +182,59 @@
     </section>
     @endif
 
+    @if($tab==='search' && isset($finderMetrics))
+        @if($finderMetrics['ready'] ?? false)
+        <section class="an-live-strip">
+            @foreach([
+                ['Finder runs',$finderMetrics['runs'] ?? 0,'Completed AI Tool Finder searches','wand-sparkles'],
+                ['Unique inputs',$finderMetrics['unique_tasks'] ?? 0,'Distinct typed tasks and shortcut-only searches','text-cursor-input'],
+                ['Zero matches',$finderMetrics['zero_matches'] ?? 0,'Finder runs that returned no confident result','circle-x'],
+                ['Finder CTR',number_format((float)($finderMetrics['conversion'] ?? 0),1).'%',($finderMetrics['clicks'] ?? 0).' result clicks recorded','mouse-pointer-click'],
+            ] as [$label,$value,$help,$icon])
+            <article class="an-live-stat">
+                <span><i data-lucide="{{ $icon }}"></i></span>
+                <div><small>{{ $label }}</small><strong>{{ is_numeric($value) ? number_format((float)$value) : $value }}</strong><p>{{ $help }}</p></div>
+            </article>
+            @endforeach
+        </section>
+
+        @if(!empty($finderMetrics['top_tasks']))
+        <section class="card an-table-card">
+            <header class="an-card-head">
+                <div><span class="an-eyebrow">AI Tool Finder</span><h2>Top Finder Tasks</h2><p>Real Finder demand, result depth and click-through from this reporting window.</p></div>
+                <span class="an-record-count">{{ count($finderMetrics['top_tasks']) }} rows</span>
+            </header>
+            <div class="an-table-wrap">
+                <table class="an-table">
+                    <thead><tr><th>#</th><th>Task / Shortcut</th><th>Runs</th><th>Avg. Matches</th><th>CTR</th></tr></thead>
+                    <tbody>
+                    @foreach($finderMetrics['top_tasks'] as $rowIndex=>$row)
+                        <tr>
+                            <td><span class="an-rank">{{ str_pad($rowIndex+1,2,'0',STR_PAD_LEFT) }}</span></td>
+                            <td class="is-primary">{{ $row['task'] }}</td>
+                            <td>{{ $row['runs'] }}</td>
+                            <td>{{ $row['results'] }}</td>
+                            <td>{{ $row['conversion'] }}</td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        @endif
+        @else
+        <section class="an-readiness an-readiness--partial">
+            <span class="an-readiness__icon"><i data-lucide="wand-sparkles"></i></span>
+            <div class="an-readiness__copy">
+                <span class="an-eyebrow">AI Tool Finder</span>
+                <strong>Finder analytics pending migration</strong>
+                <p>Run the Phase 3 migration to start tracking Finder runs and result-click conversions. The public Finder continues to work before the migration.</p>
+            </div>
+            <span class="an-readiness__state">Pending</span>
+        </section>
+        @endif
+    @endif
+
     @if($tab==='content' && !empty($contentMetrics))
     <section class="card an-operations">
         <header class="an-card-head">

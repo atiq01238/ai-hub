@@ -12,6 +12,7 @@ use App\Models\Review;
 use App\Models\SearchEvent;
 use App\Models\SocialPost;
 use App\Models\Tool;
+use App\Models\ToolFinderEvent;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -401,6 +402,8 @@ class AnalyticsService
 
     private function search(Carbon $from, Carbon $to): array
     {
+        $finderMetrics = $this->toolFinderMetrics($from, $to);
+
         if (! Schema::hasTable('search_events')) {
             return [
                 'kpis' => [
@@ -416,6 +419,7 @@ class AnalyticsService
                     'title' => 'Search event table unavailable',
                     'message' => 'Search analytics will activate when the search_events migration is present.',
                 ],
+                'finderMetrics' => $finderMetrics,
             ];
         }
 
@@ -477,6 +481,59 @@ class AnalyticsService
                 'title' => 'Search analytics connected',
                 'message' => 'Public search queries, zero-result searches and result-click conversions are calculated from real search_events records.',
             ],
+            'finderMetrics' => $finderMetrics,
+        ];
+    }
+
+    private function toolFinderMetrics(Carbon $from, Carbon $to): array
+    {
+        if (! Schema::hasTable('tool_finder_events')) {
+            return [
+                'ready' => false,
+                'runs' => 0,
+                'unique_tasks' => 0,
+                'zero_matches' => 0,
+                'clicks' => 0,
+                'conversion' => 0.0,
+                'top_tasks' => [],
+            ];
+        }
+
+        $base = ToolFinderEvent::query()->whereBetween('created_at', [$from, $to]);
+        $runs = (clone $base)->count();
+        $zeroMatches = (clone $base)->where('result_count', 0)->count();
+        $clicks = (clone $base)->whereNotNull('clicked_action')->count();
+        $conversion = $runs > 0 ? round(($clicks / $runs) * 100, 1) : 0.0;
+
+        $typedTasks = (clone $base)->whereNotNull('task')->distinct('task')->count('task');
+        $shortcutOnly = (clone $base)->whereNull('task')->whereNotNull('shortcut')->distinct('shortcut')->count('shortcut');
+
+        $top = ToolFinderEvent::query()
+            ->whereBetween('created_at', [$from, $to])
+            ->selectRaw('task, shortcut, COUNT(*) as runs, AVG(result_count) as avg_results, SUM(CASE WHEN clicked_action IS NOT NULL THEN 1 ELSE 0 END) as clicks')
+            ->groupBy('task', 'shortcut')
+            ->orderByDesc('runs')
+            ->limit(10)
+            ->get();
+
+        return [
+            'ready' => true,
+            'runs' => $runs,
+            'unique_tasks' => $typedTasks + $shortcutOnly,
+            'zero_matches' => $zeroMatches,
+            'clicks' => $clicks,
+            'conversion' => $conversion,
+            'top_tasks' => $top->map(function ($row) {
+                $runCount = max(1, (int) $row->runs);
+                $label = $row->task ?: ('Shortcut: ' . ucfirst((string) $row->shortcut));
+
+                return [
+                    'task' => $label,
+                    'runs' => number_format((int) $row->runs),
+                    'results' => number_format((float) $row->avg_results, 1),
+                    'conversion' => number_format(((int) $row->clicks / $runCount) * 100, 1) . '%',
+                ];
+            })->all(),
         ];
     }
 

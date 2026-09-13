@@ -222,7 +222,7 @@ class SeoSitemapController extends Controller
     public function pages(): Response
     {
         $routes = [
-            'home', 'tools.index', 'models.index', 'news.index', 'comparisons.index',
+            'home', 'tools.index', 'tool-finder.index', 'models.index', 'news.index', 'comparisons.index',
             'companies.index', 'articles.index', 'pricing.index',
             'categories.index', 'features.index',
             'use-cases.index', 'topics.index', 'benchmarks.index', 'trending.index',
