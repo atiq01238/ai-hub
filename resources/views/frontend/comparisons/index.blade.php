@@ -7,7 +7,7 @@
         'sort',
     ]);
 
-    $comparisonsSeoTitle = 'Compare AI Models & Tools Side-by-Side (2026) — Free Tool';
+    $comparisonsSeoTitle = 'AI Model Comparison Tool — Compare Models Side by Side | AI Orbit';
 
     if (!$comparisonsHasFilters && $comparisons->currentPage() > 1) {
         $comparisonsSeoTitle = 'AI Comparisons — Page '
@@ -15,7 +15,7 @@
             . ' | AI Orbit';
     }
 
-    $comparisonsSeoDescription = 'Compare AI models and tools side-by-side on pricing, benchmarks and features. Pick the right AI tool in minutes — free comparison tool, updated 2026.';
+    $comparisonsSeoDescription = "Use AI Orbit's AI model comparison tool to compare AI models and tools side by side across pricing, benchmarks, context, capabilities and product details.";
 
     $comparisonsCanonical = route('comparisons.index');
 
@@ -81,8 +81,8 @@
 <section class="comparison-hero">
     <div class="comparison-hero-inner">
         <span class="comparison-kicker"><i data-lucide="scale"></i> Independent AI comparisons</span>
-        <h1>Compare AI products with <span>useful data.</span></h1>
-        <p>Side-by-side research for AI tools and models — benchmarks, pricing, capabilities, ratings and the details that actually matter.</p>
+        <h1>Compare AI Models &amp; Tools <span>Side by Side.</span></h1>
+        <p>Use AI Orbit's AI model comparison tool to compare models and tools side by side across pricing, benchmarks, capabilities, ratings and verified product details.</p>
         <div class="comparison-hero-actions">
             <a class="primary-compare-btn" href="{{ route('comparisons.builder') }}"><i data-lucide="git-compare-arrows"></i> Build a comparison</a>
             <a class="secondary-compare-btn" href="#comparison-library"><i data-lucide="library"></i> Browse comparisons</a>
@@ -95,6 +95,21 @@
         </div>
     </div>
 </section>
+
+@if(!$comparisonsHasFilters && $comparisons->currentPage() === 1)
+<section class="compare-section" aria-labelledby="compare-models-guide">
+    <div class="compare-container">
+        <div class="section-heading-row">
+            <div>
+                <span class="section-eyebrow">MODEL COMPARISON GUIDE</span>
+                <h2 id="compare-models-guide">How to compare AI models side by side</h2>
+                <p>Start with the factors that change a real buying or deployment decision: model capability, benchmark evidence, context window, pricing and provider details.</p>
+            </div>
+        </div>
+        <p>Use the comparison library below for direct matchups, then cross-check the <a href="{{ route('models.index') }}">AI models directory</a>, <a href="{{ route('benchmarks.index') }}">AI model benchmarks</a> and <a href="{{ route('pricing.index') }}">AI pricing intelligence</a> when you need deeper evidence before choosing a model or tool.</p>
+    </div>
+</section>
+@endif
 
 @if($featured->isNotEmpty())
 <section class="compare-section compare-featured-section">

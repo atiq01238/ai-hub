@@ -29,11 +29,25 @@
         $comparisonSeoTitle .= ' | AI Orbit';
     }
 
-    $comparisonSeoDescription = data_get($comparison, 'meta_description')
-        ?: data_get($comparison, 'summary')
-        ?: data_get($comparison, 'description')
-        ?: data_get($comparison, 'notes')
-        ?: 'Compare AI tools and models with detailed features, pricing, capabilities and insights on AI Orbit.';
+    $comparisonItemNames = collect($items ?? [])
+        ->pluck('name')
+        ->filter()
+        ->take(2)
+        ->values();
+
+    if ($comparisonItemNames->count() === 2) {
+        $comparisonSeoDescription = 'Compare '
+            . $comparisonItemNames[0]
+            . ' vs '
+            . $comparisonItemNames[1]
+            . ' side by side across pricing, benchmarks, capabilities and verified product data on AI Orbit.';
+    } else {
+        $comparisonSeoDescription = data_get($comparison, 'meta_description')
+            ?: data_get($comparison, 'summary')
+            ?: data_get($comparison, 'description')
+            ?: data_get($comparison, 'notes')
+            ?: 'Compare AI tools and models with detailed features, pricing, capabilities and insights on AI Orbit.';
+    }
 
     $comparisonSeoDescription = html_entity_decode(
         html_entity_decode(
@@ -45,7 +59,7 @@
         'UTF-8'
     );
 
-    $comparisonFaq = collect($comparison->seo_faq ?? [])
+    $comparisonFaq = collect(data_get($comparison, 'seo_faq', []))
         ->map(function ($faq) {
             return [
                 'question' => str_ireplace(
@@ -64,7 +78,23 @@
             $faq['question'] !== '' &&
             $faq['answer'] !== ''
         )
+        // Pair-specific stored FAQs can become stale when comparison items are
+        // edited. Rebuild that question from the currently resolved entities.
+        ->reject(function ($faq) {
+            $question = strtolower(trim((string) $faq['question']));
+            return str_starts_with($question, 'which is better:')
+                || str_starts_with($question, 'which is better ');
+        })
         ->values();
+
+    if ($comparisonItemNames->count() === 2) {
+        $freshPairFaq = [
+            'question' => 'How do ' . $comparisonItemNames[0] . ' and ' . $comparisonItemNames[1] . ' compare?',
+            'answer' => 'Compare the side-by-side pricing, benchmark, capability and product data on this page. The better fit depends on your use case and the verified evidence available for each product.',
+        ];
+
+        $comparisonFaq->prepend($freshPairFaq);
+    }
 
     $comparisonUrl = ($isPreview ?? false)
         ? request()->fullUrl()
@@ -267,7 +297,7 @@
         </div>
     </div>
 
-    @if(!$isPreview && $comparison->seo_faq)
+    @if(!$isPreview && $comparisonFaq->isNotEmpty())
     <div class="capability-comparison comparison-faq">
         <div class="table-title">
             <span><i data-lucide="circle-help"></i></span>

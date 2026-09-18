@@ -9,7 +9,7 @@ class AuditSeoHealth extends Command
 {
     protected $signature = 'seo:audit-health {--details : Show sparse entity and stored-pivot detail}';
 
-    protected $description = 'Audit Phase 1-4 SEO health: intent, metadata, semantic-link safety and relationship hygiene.';
+    protected $description = 'Audit SEO health through Phase 6: intent, metadata, semantic-link safety, focus targets and relationship hygiene.';
 
     public function handle(SeoHealthService $health): int
     {
@@ -17,7 +17,7 @@ class AuditSeoHealth extends Command
         $summary = $data['summary'];
         $semantic = $data['semantic'];
 
-        $this->info('AI Orbit SEO Health Audit — Phase 4');
+        $this->info('AI Orbit SEO Health Audit — Phase 6');
         $this->table(['Foundation check', 'Value'], [
             ['Current intent inventory', $summary['intent_total']],
             ['Persisted keyword targets', $summary['persisted_targets'].' ('.$summary['intent_coverage'].'%)'],
@@ -44,6 +44,21 @@ class AuditSeoHealth extends Command
                 $row['eligible'] > 0 ? number_format(($row['covered'] / $row['eligible']) * 100, 1).'%' : '—',
             ])->all()
         );
+
+        if (($data['focus']['configured'] ?? 0) > 0) {
+            $this->newLine();
+            $this->comment('GSC-driven focus targets are editorial crawl-priority signals, not ranking guarantees.');
+            $this->table(
+                ['Type', 'Entity', 'Slug', 'Ready', 'Explicit/supporting edges'],
+                $data['focus']['rows']->map(fn (array $row) => [
+                    $row['type'],
+                    $row['name'],
+                    $row['slug'],
+                    $row['ready'] ? 'yes' : 'NO',
+                    $row['edges'],
+                ])->all()
+            );
+        }
 
         $this->newLine();
         $this->table(['Relationship hygiene warning', 'Count'], [
@@ -82,11 +97,11 @@ class AuditSeoHealth extends Command
 
         $this->newLine();
         if ($summary['hard_conflicts'] === 0) {
-            $this->info('Phase 4 SEO health audit passed with no hard conflicts. Stored pivot/sparse-edge counts remain editorial cleanup signals only.');
+            $this->info('Phase 6 SEO health audit passed with no hard conflicts. Focus and sparse-edge counts remain editorial/crawl-priority signals only.');
             return self::SUCCESS;
         }
 
-        $this->error('Phase 4 SEO health audit found hard conflicts. Review before deployment.');
+        $this->error('Phase 6 SEO health audit found hard conflicts. Review before deployment.');
         return self::FAILURE;
     }
 }

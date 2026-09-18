@@ -125,6 +125,17 @@ class ToolController extends Controller
             ->take(8)
             ->values();
 
+        $focusToolSlugs = collect(config('seo.impression_focus_tool_slugs', []))->filter()->unique()->values();
+        $focusTools = $focusToolSlugs->isEmpty()
+            ? collect()
+            : Tool::query()
+                ->with(['company', 'category'])
+                ->where('status', 'published')
+                ->whereIn('slug', $focusToolSlugs)
+                ->get()
+                ->sortBy(fn (Tool $tool) => $focusToolSlugs->search($tool->slug))
+                ->values();
+
         return view('frontend.tools.index', compact(
             'tools',
             'categories',
@@ -135,6 +146,7 @@ class ToolController extends Controller
             'platformFilters',
             'categoryHubs',
             'featureHubs',
+            'focusTools',
         ));
     }
 

@@ -29,7 +29,7 @@ class CompanyController extends Controller
             // Keep the canonical company directory aligned with the company sitemap.
             // Thin placeholder profiles remain accessible by direct URL, but are not
             // promoted through crawlable discovery surfaces until they have enough value.
-            ->seoIndexable()
+            ->seoDiscoveryPriority()
             ->withCount([
                 'tools as published_tools_count' => fn ($q) => $q->where('status', 'published'),
                 'models as active_models_count' => fn ($q) => $q->whereIn('status', ['active', 'preview']),
@@ -68,14 +68,14 @@ class CompanyController extends Controller
         \App\Support\SeoPaginationGuard::enforce($companies, $request);
 
         $stats = [
-            'companies' => Company::query()->seoIndexable()->count(),
+            'companies' => Company::query()->seoDiscoveryPriority()->count(),
             'tools' => Tool::where('status', 'published')->count(),
             'models' => AiModel::whereIn('status', ['active', 'preview'])->count(),
             'news' => NewsItem::query()->publiclyVisible()->count(),
         ];
 
         $leaders = Company::query()
-            ->seoIndexable()
+            ->seoDiscoveryPriority()
             ->withCount([
                 'tools as published_tools_count' => fn ($q) => $q->where('status', 'published'),
                 'models as active_models_count' => fn ($q) => $q->whereIn('status', ['active', 'preview']),
@@ -86,7 +86,22 @@ class CompanyController extends Controller
             ->take(5)
             ->get();
 
-        return view('frontend.companies.index', compact('companies', 'stats', 'leaders'));
+        $focusCompanySlugs = collect(config('seo.impression_focus_company_slugs', []))->filter()->unique()->values();
+        $focusCompanies = $focusCompanySlugs->isEmpty()
+            ? collect()
+            : Company::query()
+                ->seoIndexable()
+                ->withCount([
+                    'tools as published_tools_count' => fn ($q) => $q->where('status', 'published'),
+                    'models as active_models_count' => fn ($q) => $q->whereIn('status', ['active', 'preview']),
+                    'newsItems as published_news_count' => fn ($q) => $q->publiclyVisible(),
+                ])
+                ->whereIn('slug', $focusCompanySlugs)
+                ->get()
+                ->sortBy(fn (Company $company) => $focusCompanySlugs->search($company->slug))
+                ->values();
+
+        return view('frontend.companies.index', compact('companies', 'stats', 'leaders', 'focusCompanies'));
     }
 
     public function show(Company $company, CompanySeoService $seoService, CompanyContentService $contentService, InternalLinkingService $internalLinks)
@@ -139,7 +154,7 @@ class CompanyController extends Controller
         $relatedComparisons = $internalLinks->comparisonsForCompany($company, 6);
 
         $relatedCompanies = Company::query()
-            ->seoIndexable()
+            ->seoDiscoveryPriority()
             ->withCount([
                 'tools as published_tools_count' => fn ($q) => $q->where('status', 'published'),
                 'models as active_models_count' => fn ($q) => $q->whereIn('status', ['active', 'preview']),

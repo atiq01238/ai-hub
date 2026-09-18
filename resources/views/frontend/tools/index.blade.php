@@ -187,7 +187,7 @@
     </div>
 </section>
 
-@if(!$toolsHasFilters && ($categoryHubs->isNotEmpty() || $featureHubs->isNotEmpty()))
+@if(!$toolsHasFilters && ($categoryHubs->isNotEmpty() || $featureHubs->isNotEmpty() || $focusTools->isNotEmpty()))
 <section class="tools-page-container seo-discovery-hubs" aria-label="Canonical AI discovery hubs">
     <div class="seo-hub-group">
         <div class="seo-hub-copy">
@@ -213,6 +213,20 @@
                 <a href="{{ route('features.show', $featureHub) }}">{{ $featureHub->name }} AI tools</a>
             @endforeach
             <a class="seo-hub-more" href="{{ route('features.index') }}">All AI features <i data-lucide="arrow-right"></i></a>
+        </div>
+    </div>
+    @endif
+
+    @if($focusTools->isNotEmpty())
+    <div class="seo-hub-group">
+        <div class="seo-hub-copy">
+            <span><i data-lucide="search-check"></i> Featured research profiles</span>
+            <p>Open detailed product profiles with company context, pricing coverage and related research where available.</p>
+        </div>
+        <div class="seo-hub-links">
+            @foreach($focusTools as $focusTool)
+                <a href="{{ route('tools.show', $focusTool) }}">{{ $focusTool->name }}@if($focusTool->company) · {{ $focusTool->company->name }}@endif</a>
+            @endforeach
         </div>
     </div>
     @endif

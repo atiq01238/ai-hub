@@ -106,6 +106,11 @@ class SeoSitemapController extends Controller
                     $model->updated_at,
                     $model->public_reviews_updated_at,
                     $model->verified_benchmarks_updated_at,
+                    $model->profile_verified_at,
+                    $model->pricing_verified_at,
+                    $model->identity_verified_at,
+                    $model->pricingSources->pluck('last_checked_at')->filter()->sortDesc()->first(),
+                    $model->evidenceSources->pluck('verified_at')->filter()->sortDesc()->first(),
                 ]);
             });
 
@@ -203,8 +208,7 @@ class SeoSitemapController extends Controller
     public function benchmarks(): Response
     {
         $items = Benchmark::query()
-            ->where('is_active', true)
-            ->whereHas('results', fn ($query) => $query->where('verified', true)->where('status', 'verified'))
+            ->seoDiscoveryPriority()
             ->select(['id', 'slug', 'updated_at'])
             ->withMax(['results as verified_results_updated_at' => fn ($query) => $query->where('verified', true)->where('status', 'verified')], 'updated_at')
             ->orderBy('name')

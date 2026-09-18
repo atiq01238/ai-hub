@@ -2,11 +2,15 @@
 
 @php
     $pricingDetailCanonical = route('pricing.show', $tool);
-    $pricingDetailTitle = $tool->name . ' Pricing and Plans | AI Orbit';
-    $pricingDetailDescription = \Illuminate\Support\Str::limit(
-        'Compare ' . $tool->name . ' pricing, plans, limits, API rates and published price history on AI Orbit.',
-        158,
-        ''
+    $pricingDetailTitle = html_entity_decode($pricingSeo['title'] ?? ($tool->name . ' Pricing and Plans | AI Orbit'), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $pricingDetailDescription = html_entity_decode(
+        $pricingSeo['description'] ?? \Illuminate\Support\Str::limit(
+            'Compare ' . $tool->name . ' pricing, plans, limits, API rates and published price history on AI Orbit.',
+            158,
+            ''
+        ),
+        ENT_QUOTES | ENT_HTML5,
+        'UTF-8'
     );
     $pricingSchemaImage = $tool->logo_url;
     if (!\Illuminate\Support\Str::startsWith($pricingSchemaImage, ['http://', 'https://'])) {
@@ -16,7 +20,7 @@
     $pricingPageSchema = [
         '@' . 'context' => 'https://schema.org',
         '@' . 'type' => 'WebPage',
-        'name' => $tool->name . ' Pricing and Plans',
+        'name' => $pricingDetailTitle,
         'description' => $pricingDetailDescription,
         'url' => $pricingDetailCanonical,
         'about' => [
@@ -27,6 +31,16 @@
             'applicationCategory' => $tool->category?->name ?: 'Artificial Intelligence',
         ],
     ];
+
+    $pricingPlansForSeo = $tool->pricingPlans ?? collect();
+    $pricingHasFreePlan = $pricingPlansForSeo->contains(
+        fn ($plan) => $plan->monthly_price !== null && (float) $plan->monthly_price === 0.0
+    );
+    $pricingPaidMonthly = $pricingPlansForSeo
+        ->filter(fn ($plan) => $plan->monthly_price !== null && (float) $plan->monthly_price > 0)
+        ->map(fn ($plan) => (float) $plan->monthly_price);
+    $pricingLowestPaidMonthly = $pricingPaidMonthly->isNotEmpty() ? $pricingPaidMonthly->min() : null;
+    $pricingPlanNames = $pricingPlansForSeo->pluck('plan_name')->filter()->unique()->values();
 
     $pricingBreadcrumbSchema = [
         '@' . 'context' => 'https://schema.org',
@@ -221,5 +235,55 @@
             @endforelse
         </section>
     </div>
+
+    @if($pricingPlansForSeo->isNotEmpty())
+    <section class="pi-panel" style="margin-top:18px;">
+        <div class="pi-panel-title">
+            <span><i data-lucide="circle-help"></i> {{ $tool->name }} pricing FAQ</span>
+        </div>
+
+        <div class="pi-history">
+            <span class="pi-change-icon"><i data-lucide="badge-dollar-sign"></i></span>
+            <div>
+                <b>How much does {{ $tool->name }} cost?</b>
+                <p>
+                    @if($pricingHasFreePlan && $pricingLowestPaidMonthly !== null)
+                        AI Orbit currently lists a free plan and paid plans starting at ${{ number_format($pricingLowestPaidMonthly, 2) }} per month. Check the plans above for limits, billing details and API pricing where available.
+                    @elseif($pricingHasFreePlan)
+                        AI Orbit currently lists a free plan for {{ $tool->name }}. Other pricing may be custom, usage-based or published without a standard monthly amount.
+                    @elseif($pricingLowestPaidMonthly !== null)
+                        AI Orbit currently lists paid {{ $tool->name }} plans starting at ${{ number_format($pricingLowestPaidMonthly, 2) }} per month. Check the plans above for limits and billing details.
+                    @else
+                        {{ $tool->name }} pricing is listed as custom, usage-based or without a standard monthly amount in the current AI Orbit dataset.
+                    @endif
+                </p>
+            </div>
+        </div>
+
+        <div class="pi-history">
+            <span class="pi-change-icon"><i data-lucide="gift"></i></span>
+            <div>
+                <b>Is {{ $tool->name }} free?</b>
+                <p>
+                    @if($pricingHasFreePlan)
+                        Yes. AI Orbit currently records at least one {{ $tool->name }} plan with a $0 monthly price. Review the plan limits above because free-tier allowances can differ from paid plans.
+                    @else
+                        AI Orbit does not currently record a $0 monthly {{ $tool->name }} plan. Pricing can change, so verify the latest offer with the provider before purchasing.
+                    @endif
+                </p>
+            </div>
+        </div>
+
+        @if($pricingPlanNames->isNotEmpty())
+        <div class="pi-history">
+            <span class="pi-change-icon"><i data-lucide="layers-3"></i></span>
+            <div>
+                <b>What {{ $tool->name }} pricing plans are listed?</b>
+                <p>AI Orbit currently lists {{ $pricingPlanNames->join(', ', ' and ') }}. The plan cards above show the stored monthly or yearly price, limits, credits and API rate details where available.</p>
+            </div>
+        </div>
+        @endif
+    </section>
+    @endif
 </section>
 @endsection

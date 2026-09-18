@@ -20,7 +20,7 @@ use App\Services\ModelConfidenceService;
 
 class ModelController extends Controller
 {
-    public function index(Request $request, TaxonomyNormalizer $taxonomy)
+    public function index(Request $request, TaxonomyNormalizer $taxonomy, SeoContentQualityService $contentQuality)
     {
         $filters = $request->validate([
             'q' => ['nullable','string','max:100'], 'company' => ['nullable','string','max:100'],
@@ -88,7 +88,23 @@ class ModelController extends Controller
         $providerHubs = $companies->take(8)->values();
         $featureHubs = $capabilities->take(8)->values();
 
-        return view('frontend.models.index', compact('models','companies','capabilities','stats','leaders','providerHubs','featureHubs'));
+        $focusSlugs = collect(config('seo.crawl_focus_model_slugs', []))
+            ->merge(config('seo.impression_focus_model_slugs', []))
+            ->filter()
+            ->unique()
+            ->values();
+        $focusModels = $focusSlugs->isEmpty()
+            ? collect()
+            : AiModel::query()
+                ->with(['company', 'featureTerms', 'useCaseTerms', 'pricingSources', 'evidenceSources', 'benchmarkResults' => fn ($query) => $query->where('verified', true)->where('status', 'verified')])
+                ->whereIn('status', ['active', 'preview'])
+                ->whereIn('slug', $focusSlugs)
+                ->get()
+                ->filter(fn (AiModel $model) => $contentQuality->model($model)['indexable'])
+                ->sortBy(fn (AiModel $model) => $focusSlugs->search($model->slug))
+                ->values();
+
+        return view('frontend.models.index', compact('models','companies','capabilities','stats','leaders','providerHubs','featureHubs','focusModels'));
     }
 
     public function show(AiModel $model, EntitySeoService $seoService, QuickFeedbackService $feedback, BenchmarkScoringService $benchmarkScoring, InternalLinkingService $internalLinks, ModelContentService $contentService, ModelConfidenceService $confidenceService, SeoContentQualityService $contentQuality)

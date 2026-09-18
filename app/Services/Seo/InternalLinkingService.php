@@ -154,6 +154,8 @@ class InternalLinkingService
             ->limit(80)
             ->get();
 
+        $focusModelSlugs = collect($this->focusModelSlugs());
+
         return $candidates
             ->map(function (AiModel $candidate) use ($model, $featureIds, $useCaseIds) {
                 $score = 0;
@@ -171,6 +173,7 @@ class InternalLinkingService
             ->filter(fn (AiModel $candidate) => (int) $candidate->semantic_link_score > 0)
             ->sortByDesc(fn (AiModel $candidate) =>
                 ((int) $candidate->semantic_link_score * 1000000000000)
+                + ($focusModelSlugs->contains($candidate->slug) ? 100000000000 : 0)
                 + ((int) round(((float) ($candidate->benchmark_score ?? -1) + 1) * 1000000000))
                 + ($candidate->release_date?->timestamp ?? 0)
             )
@@ -402,7 +405,10 @@ class InternalLinkingService
                 if ($article->category_id) {
                     $query->orWhere('category_id', $article->category_id);
                 }
-            })
+            });
+
+        $this->orderByFocusSlugs($fallback, $this->focusToolSlugs());
+        $fallback = $fallback
             ->orderByDesc('popularity')
             ->limit($limit - $explicit->count())
             ->get();
@@ -425,7 +431,10 @@ class InternalLinkingService
             ->with('company')
             ->whereIn('status', ['active', 'preview'])
             ->whereNotIn('id', $explicit->pluck('id'))
-            ->when($article->company_id, fn (Builder $query) => $query->where('company_id', $article->company_id), fn (Builder $query) => $query->whereRaw('1 = 0'))
+            ->when($article->company_id, fn (Builder $query) => $query->where('company_id', $article->company_id), fn (Builder $query) => $query->whereRaw('1 = 0'));
+
+        $this->orderByFocusSlugs($fallback, $this->focusModelSlugs());
+        $fallback = $fallback
             ->orderByDesc('benchmark_score')
             ->limit($limit - $explicit->count())
             ->get();
@@ -487,9 +496,11 @@ class InternalLinkingService
             return $explicit->take($limit)->values();
         }
 
-        $companyTools = Tool::query()->with('company')->where('status', 'published')
+        $companyToolsQuery = Tool::query()->with('company')->where('status', 'published')
             ->where('company_id', $news->company_id)
-            ->whereNotIn('id', $explicit->pluck('id'))
+            ->whereNotIn('id', $explicit->pluck('id'));
+        $this->orderByFocusSlugs($companyToolsQuery, $this->focusToolSlugs());
+        $companyTools = $companyToolsQuery
             ->orderByDesc('popularity')->take($limit - $explicit->count())->get();
 
         return $explicit->concat($companyTools)->unique('id')->take($limit)->values();
@@ -504,9 +515,11 @@ class InternalLinkingService
             return $explicit->take($limit)->values();
         }
 
-        $companyModels = AiModel::query()->with('company')->whereIn('status', ['active', 'preview'])
+        $companyModelsQuery = AiModel::query()->with('company')->whereIn('status', ['active', 'preview'])
             ->where('company_id', $news->company_id)
-            ->whereNotIn('id', $explicit->pluck('id'))
+            ->whereNotIn('id', $explicit->pluck('id'));
+        $this->orderByFocusSlugs($companyModelsQuery, $this->focusModelSlugs());
+        $companyModels = $companyModelsQuery
             ->orderByDesc('benchmark_score')->take($limit - $explicit->count())->get();
 
         return $explicit->concat($companyModels)->unique('id')->take($limit)->values();
@@ -604,6 +617,42 @@ class InternalLinkingService
             report($e);
             return collect();
         }
+    }
+
+    private function focusToolSlugs(): array
+    {
+        return collect(config('seo.impression_focus_tool_slugs', []))
+            ->filter(fn ($slug) => is_string($slug) && trim($slug) !== '')
+            ->map(fn ($slug) => trim($slug))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function focusModelSlugs(): array
+    {
+        return collect(config('seo.crawl_focus_model_slugs', []))
+            ->merge(config('seo.impression_focus_model_slugs', []))
+            ->filter(fn ($slug) => is_string($slug) && trim($slug) !== '')
+            ->map(fn ($slug) => trim($slug))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function orderByFocusSlugs(Builder $query, array $slugs): Builder
+    {
+        $slugs = collect($slugs)->filter()->unique()->values()->all();
+        if ($slugs === []) {
+            return $query;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($slugs), '?'));
+
+        return $query->orderByRaw(
+            'CASE WHEN slug IN ('.$placeholders.') THEN 0 ELSE 1 END',
+            $slugs
+        );
     }
 
     private function storedIds(Comparison $comparison): Collection

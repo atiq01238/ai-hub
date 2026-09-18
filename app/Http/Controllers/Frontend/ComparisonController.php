@@ -185,8 +185,9 @@ class ComparisonController extends Controller
         // old links. Consolidate those aliases with a permanent redirect rather
         // than serving a second 200 URL with only a canonical hint.
         $requestedSlug = rawurldecode((string) basename($request->path()));
-        if ($requestedSlug !== (string) $comparison->slug) {
-            return redirect()->route('comparisons.show', $comparison, 301);
+        $canonicalSlug = (string) $comparison->canonicalSlug();
+        if ($requestedSlug !== $canonicalSlug) {
+            return redirect()->route('comparisons.show', $canonicalSlug, 301);
         }
 
         // Views are analytics, not editorial content. Updating the model with

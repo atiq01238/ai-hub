@@ -100,9 +100,86 @@ class Comparison extends Model
     }
 
     /**
-     * Preserve saved comparison URLs after title/order cleanup.
-     * Exact stored slugs win. Fallback aliases are derived only from the saved
-     * title or the currently resolved pair, so unrelated comparisons cannot bind.
+     * Return the public slug that matches the comparison's current pair.
+     *
+     * Existing slugs are preserved when they still describe the same two
+     * entities. When an admin has replaced one of the compared items but kept
+     * the historical slug, use the current title/pair for the public URL while
+     * resolveRouteBinding() keeps the old slug working as a redirect alias.
+     */
+    public function canonicalSlug(): string
+    {
+        $stored = trim((string) $this->slug);
+
+        try {
+            $resolvedItems = $this->relationLoaded('resolved_items')
+                ? collect($this->getRelation('resolved_items'))
+                : $this->items();
+            $names = $resolvedItems->pluck('name')->filter()->take(2)->values();
+        } catch (\Throwable $e) {
+            report($e);
+            return $stored;
+        }
+
+        if ($names->count() !== 2) {
+            return $stored;
+        }
+
+        $forward = Str::slug($names[0] . '-vs-' . $names[1]);
+        $reverse = Str::slug($names[1] . '-vs-' . $names[0]);
+
+        // Do not churn URLs when the saved slug still represents the current pair.
+        if (in_array($stored, [$forward, $reverse], true)) {
+            return $stored;
+        }
+
+        // Prefer the editorial title order when it names the same current pair.
+        $titleParts = $this->pairParts((string) $this->title, false);
+        if ($titleParts->count() === 2) {
+            $titleNames = $titleParts->map(fn ($part) => Str::slug($part))->sort()->values();
+            $currentNames = $names->map(fn ($name) => Str::slug($name))->sort()->values();
+
+            if ($titleNames->all() === $currentNames->all()) {
+                $titleSlug = Str::slug($titleParts[0] . '-vs-' . $titleParts[1]);
+                if ($this->publicSlugIsAvailable($titleSlug)) {
+                    return $titleSlug;
+                }
+            }
+        }
+
+        return $this->publicSlugIsAvailable($forward) ? ($forward ?: $stored) : $stored;
+    }
+
+
+    /**
+     * Avoid redirecting one comparison onto another comparison's stored slug.
+     */
+    private function publicSlugIsAvailable(?string $slug): bool
+    {
+        $slug = trim((string) $slug);
+        if ($slug === '') {
+            return false;
+        }
+
+        return ! static::query()
+            ->where('slug', $slug)
+            ->when($this->exists, fn ($query) => $query->whereKeyNot($this->getKey()))
+            ->exists();
+    }
+
+    /**
+     * Frontend route generation should always point at the canonical current
+     * comparison URL. Admin routes pass IDs explicitly and are unaffected.
+     */
+    public function getRouteKey()
+    {
+        return $this->canonicalSlug();
+    }
+
+    /**
+     * Resolve exact stored slugs plus safe aliases derived from the current
+     * title/items. This lets historical links continue to bind so the frontend
+     * controller can permanently redirect them to canonicalSlug().
      */
     public function resolveRouteBinding($value, $field = null)
     {

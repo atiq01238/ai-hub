@@ -135,6 +135,38 @@ class SeoIntentMapService
         return compact('created', 'updated', 'locked');
     }
 
+    /**
+     * Delete only stale auto-generated targets that are no longer present in
+     * the current indexable inventory. Manual or locked research is preserved.
+     */
+    public function pruneStale(Collection $inventory): array
+    {
+        if (! Schema::hasTable('seo_targets')) {
+            throw new \RuntimeException('seo_targets table does not exist. Run php artisan migrate first.');
+        }
+
+        $liveKeys = $inventory->pluck('target_key')->filter()->unique()->values();
+        if ($liveKeys->isEmpty()) {
+            throw new \RuntimeException('Refusing to prune SEO targets because the live intent inventory is empty.');
+        }
+
+        $stale = SeoTarget::query()
+            ->whereNotIn('target_key', $liveKeys)
+            ->get();
+
+        $deletable = $stale->filter(fn (SeoTarget $target) => ! $target->is_locked && $target->source === 'auto');
+        $preserved = $stale->reject(fn (SeoTarget $target) => $deletable->contains('id', $target->id));
+
+        if ($deletable->isNotEmpty()) {
+            SeoTarget::query()->whereIn('id', $deletable->pluck('id'))->delete();
+        }
+
+        return [
+            'deleted' => $deletable->count(),
+            'preserved' => $preserved->count(),
+        ];
+    }
+
     public function normalizeKeyword(?string $keyword): string
     {
         $keyword = Str::lower(trim(strip_tags((string) $keyword)));
@@ -152,11 +184,11 @@ class SeoIntentMapService
     private function staticPages(): Collection
     {
         $definitions = [
-            ['home', 'home', 'AI tools and models', ['best AI tools', 'AI models', 'AI comparisons'], 'commercial_investigation', 'AI Discovery'],
+            ['home', 'home', 'AI tools and models', ['best AI tools', 'discover AI models', 'AI comparisons'], 'commercial_investigation', 'AI Discovery'],
             ['tools.index', 'tools_directory', 'AI tools directory', ['best AI tools', 'AI software', 'AI apps'], 'commercial_investigation', 'AI Tools'],
             ['models.index', 'models_directory', 'AI models', ['LLM models', 'multimodal AI models', 'reasoning models'], 'commercial_investigation', 'AI Models'],
             ['news.index', 'news_directory', 'AI news', ['artificial intelligence news', 'AI product updates', 'AI model releases'], 'fresh_information', 'AI News'],
-            ['comparisons.index', 'comparisons_directory', 'AI comparisons', ['AI tool comparisons', 'AI model comparisons', 'compare AI tools'], 'comparison', 'AI Comparisons'],
+            ['comparisons.index', 'comparisons_directory', 'AI model comparison tool', ['compare AI models', 'compare AI models side by side', 'AI comparison tool', 'AI tool comparisons'], 'comparison', 'AI Comparisons'],
             ['companies.index', 'companies_directory', 'AI companies', ['AI model companies', 'AI tool companies', 'artificial intelligence companies'], 'commercial_investigation', 'AI Companies'],
             ['articles.index', 'articles_directory', 'AI guides and analysis', ['AI articles', 'AI guides', 'AI analysis'], 'informational', 'AI Editorial'],
             ['reviews.index', 'reviews_directory', 'AI tool and model reviews', ['AI tool reviews', 'AI model reviews'], 'commercial_investigation', 'AI Reviews'],

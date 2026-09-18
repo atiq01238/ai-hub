@@ -11,7 +11,7 @@ class CompanySitemapController extends Controller
     public function __invoke()
     {
         $companies = Company::query()
-            ->seoIndexable()
+            ->seoDiscoveryPriority()
             ->withMax(['tools as tools_updated_at' => fn ($q) => $q->where('status', 'published')], 'updated_at')
             ->withMax(['models as models_updated_at' => fn ($q) => $q->whereIn('status', ['active', 'preview'])], 'updated_at')
             ->withMax(['newsItems as news_updated_at' => fn ($q) => $q->publiclyVisible()], 'updated_at')

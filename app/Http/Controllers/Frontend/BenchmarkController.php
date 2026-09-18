@@ -23,12 +23,16 @@ class BenchmarkController extends Controller
 
         $query = Benchmark::query()
             ->where('is_active', true)
+            ->withCount(['results as verified_results_count' => fn ($query) => $query
+                ->where('verified', true)
+                ->where('status', 'verified')])
             ->with(['results' => function ($query) use ($verifiedOnly) {
                 if ($verifiedOnly) {
                     $query->where('verified', true)->where('status', 'verified');
                 }
                 $query->with('benchmarkable');
             }])
+            ->orderByDesc('verified_results_count')
             ->orderBy('benchmark_class')
             ->orderBy('category')
             ->orderBy('name');

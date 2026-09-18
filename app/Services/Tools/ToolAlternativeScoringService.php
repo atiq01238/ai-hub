@@ -40,6 +40,8 @@ class ToolAlternativeScoringService
             $candidates = $candidates->concat($fallback);
         }
 
+        $focusSlugs = collect(config('seo.impression_focus_tool_slugs', []))->filter()->unique();
+
         return $candidates
             ->map(function (Tool $candidate) use ($tool) {
                 [$score, $reasons] = $this->score($tool, $candidate);
@@ -48,7 +50,11 @@ class ToolAlternativeScoringService
                 return $candidate;
             })
             ->filter(fn (Tool $candidate) => (float) $candidate->alternative_match_score > 0)
-            ->sortByDesc('alternative_match_score')
+            ->sortByDesc(fn (Tool $candidate) =>
+                ((int) round((float) $candidate->alternative_match_score * 1000000))
+                + ($focusSlugs->contains($candidate->slug) ? 1000 : 0)
+                + min((int) $candidate->popularity, 999)
+            )
             ->take($limit)
             ->values();
     }

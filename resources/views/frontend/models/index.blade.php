@@ -130,7 +130,7 @@
 </section>
 @endif
 
-@if(!$modelsHasFilters && ($providerHubs->isNotEmpty() || $featureHubs->isNotEmpty()))
+@if(!$modelsHasFilters && ($providerHubs->isNotEmpty() || $featureHubs->isNotEmpty() || $focusModels->isNotEmpty()))
 <section class="model-canonical-hubs" aria-label="AI model provider and capability hubs">
     <div class="model-wrap">
         @if($providerHubs->isNotEmpty())
@@ -159,6 +159,20 @@
                     <a href="{{ route('features.show', $featureHub) }}">{{ $featureHub->name }} AI models</a>
                 @endforeach
                 <a class="model-hub-more" href="{{ route('features.index') }}">All AI features <i data-lucide="arrow-right"></i></a>
+            </div>
+        </div>
+        @endif
+
+        @if($focusModels->isNotEmpty())
+        <div class="model-hub-group">
+            <div class="model-hub-copy">
+                <span><i data-lucide="badge-check"></i> Recently verified model profiles</span>
+                <p>Review evidence-backed model profiles with official sources, verified specifications and supporting benchmark data where available.</p>
+            </div>
+            <div class="model-hub-links">
+                @foreach($focusModels as $focusModel)
+                    <a href="{{ route('models.show', $focusModel) }}">{{ $focusModel->name }}@if($focusModel->company) · {{ $focusModel->company->name }}@endif</a>
+                @endforeach
             </div>
         </div>
         @endif

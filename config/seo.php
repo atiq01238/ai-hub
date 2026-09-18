@@ -12,6 +12,33 @@ return [
 
     // Only these public directory/detail hubs may expose crawlable ?page=N URLs.
     // Any other query-string variant is noindexed globally by the SEO head partial.
+    // Temporary GSC-driven crawl focus. Keep this list small and only add
+    // evidence-complete model profiles that are already eligible for indexing.
+    // Remove slugs once indexing stabilizes so this never becomes a permanent
+    // ranking shortcut or a substitute for normal internal linking.
+    'crawl_focus_model_slugs' => [
+        'deepseek-r1',
+        'deepseek-v3-1',
+        'gemma-3-27b',
+    ],
+
+    // Temporary GSC-driven impression focus. These are not ranking overrides.
+    // They are used only to surface already-relevant entities from canonical hubs
+    // and to break ties inside existing semantic-link candidate sets.
+    'impression_focus_tool_slugs' => [
+        'akool',
+        'codex',
+        'ltx-studio',
+    ],
+
+    'impression_focus_model_slugs' => [
+        'gpt-4-1',
+    ],
+
+    'impression_focus_company_slugs' => [
+        'omnisale',
+    ],
+
     'indexable_pagination_routes' => [
         'tools.index',
         'models.index',

@@ -65,6 +65,39 @@ class Company extends Model
             });
     }
 
+    /**
+     * Higher-signal company profiles promoted through discovery surfaces.
+     *
+     * This is intentionally stricter than seoIndexable(): lower-signal profiles
+     * remain public and can stay indexable when reached from a real product/model,
+     * but the company directory and sitemap should not give hundreds of profiles
+     * identical crawl priority.
+     */
+    public function scopeSeoDiscoveryPriority($query)
+    {
+        return $query
+            ->seoIndexable()
+            ->where(function ($query) {
+                $query->whereHas('models', fn ($q) => $q->whereIn('status', ['active', 'preview']))
+                    ->orWhereHas('tools', fn ($q) => $q->where('status', 'published'), '>=', 2)
+                    ->orWhereHas('articles', fn ($q) => $q
+                        ->where('status', 'published')
+                        ->where('approval_status', 'approved'), '>=', 2)
+                    ->orWhereHas('newsItems', fn ($q) => $q
+                        ->where('status', 'published')
+                        ->whereNull('duplicate_of_id')
+                        ->where(fn ($news) => $news
+                            ->whereNull('duplicate_status')
+                            ->orWhere('duplicate_status', '!=', 'duplicate')), '>=', 3)
+                    ->orWhere(function ($profile) {
+                        $profile->whereHas('tools', fn ($q) => $q->where('status', 'published'))
+                            ->whereNotNull('website')
+                            ->whereNotNull('description')
+                            ->whereRaw('CHAR_LENGTH(TRIM(description)) >= 240');
+                    });
+            });
+    }
+
     public function getLogoUrlAttribute(): string
     {
         return MediaUrl::resolve($this->logo_path, 'favicon.ico') ?: MediaUrl::placeholder();

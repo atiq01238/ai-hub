@@ -6,6 +6,7 @@ use App\Models\AiModel;
 use App\Models\Article;
 use App\Models\Benchmark;
 use App\Models\Comparison;
+use App\Models\Company;
 use App\Models\NewsItem;
 use App\Models\SeoTarget;
 use App\Models\Tool;
@@ -81,6 +82,7 @@ class SeoHealthService
             ->filter(fn (Collection $group, string $title) => $title !== '' && $group->count() > 1);
 
         $semantic = $this->semanticSnapshot($inventory);
+        $focus = $this->impressionFocusSnapshot();
 
         $hardConflictCount = $missingPrimary
             + $collisionGroups->count()
@@ -116,6 +118,7 @@ class SeoHealthService
                 'status' => $hardConflictCount === 0 ? 'healthy' : 'attention',
             ],
             'semantic' => $semantic,
+            'focus' => $focus,
             'metadata_warnings' => $metadataRows
                 ->filter(fn (array $row) => ! $row['aligned'] || $row['title'] === '' || $row['description'] === '' || filled($row['error']))
                 ->take(20)
@@ -202,6 +205,100 @@ class SeoHealthService
             'unsafe_comparison_links' => $unsafeComparisonLinks,
             'comparison_count' => $comparisons->count(),
         ];
+    }
+
+    private function impressionFocusSnapshot(): array
+    {
+        $toolSlugs = collect(config('seo.impression_focus_tool_slugs', []))->filter()->unique()->values();
+        $modelSlugs = collect(config('seo.crawl_focus_model_slugs', []))
+            ->merge(config('seo.impression_focus_model_slugs', []))
+            ->filter()->unique()->values();
+        $companySlugs = collect(config('seo.impression_focus_company_slugs', []))->filter()->unique()->values();
+
+        $comparisons = $this->validComparisons();
+        $rows = collect();
+
+        foreach ($toolSlugs as $slug) {
+            $tool = Tool::query()->where('slug', $slug)->first(['id', 'name', 'slug', 'status']);
+            if (! $tool) {
+                $rows->push(['type' => 'tool', 'slug' => $slug, 'name' => '—', 'ready' => false, 'edges' => 0]);
+                continue;
+            }
+
+            $comparisonEdges = $comparisons
+                ->filter(fn (Comparison $comparison) => $comparison->comparable_type === 'tool' && $comparison->getRelation('resolved_items')->pluck('id')->contains((int) $tool->id))
+                ->count();
+
+            $rows->push([
+                'type' => 'tool',
+                'slug' => $tool->slug,
+                'name' => $tool->name,
+                'ready' => $tool->status === 'published',
+                'edges' => $this->pivotCount('article_tool', 'tool_id', $tool->id)
+                    + $this->pivotCount('news_item_tool', 'tool_id', $tool->id)
+                    + $comparisonEdges,
+            ]);
+        }
+
+        foreach ($modelSlugs as $slug) {
+            $model = AiModel::query()->where('slug', $slug)->first(['id', 'name', 'slug', 'status']);
+            if (! $model) {
+                $rows->push(['type' => 'model', 'slug' => $slug, 'name' => '—', 'ready' => false, 'edges' => 0]);
+                continue;
+            }
+
+            $comparisonEdges = $comparisons
+                ->filter(fn (Comparison $comparison) => $comparison->comparable_type === 'model' && $comparison->getRelation('resolved_items')->pluck('id')->contains((int) $model->id))
+                ->count();
+
+            $rows->push([
+                'type' => 'model',
+                'slug' => $model->slug,
+                'name' => $model->name,
+                'ready' => in_array($model->status, ['active', 'preview'], true),
+                'edges' => $this->pivotCount('ai_model_article', 'ai_model_id', $model->id)
+                    + $this->pivotCount('ai_model_news_item', 'ai_model_id', $model->id)
+                    + $comparisonEdges,
+            ]);
+        }
+
+        foreach ($companySlugs as $slug) {
+            $company = Company::query()->where('slug', $slug)->first();
+            if (! $company) {
+                $rows->push(['type' => 'company', 'slug' => $slug, 'name' => '—', 'ready' => false, 'edges' => 0]);
+                continue;
+            }
+
+            $isIndexable = Company::query()->whereKey($company->id)->seoIndexable()->exists();
+            $catalogEdges = $company->tools()->where('status', 'published')->count()
+                + $company->models()->whereIn('status', ['active', 'preview'])->count()
+                + $company->articles()->where('status', 'published')->where('approval_status', 'approved')->count()
+                + $company->newsItems()->publiclyVisible()->count();
+
+            $rows->push([
+                'type' => 'company',
+                'slug' => $company->slug,
+                'name' => $company->name,
+                'ready' => $company->status !== 'inactive' && $isIndexable,
+                'edges' => $catalogEdges,
+            ]);
+        }
+
+        return [
+            'rows' => $rows,
+            'configured' => $rows->count(),
+            'ready' => $rows->where('ready', true)->count(),
+            'missing_or_ineligible' => $rows->where('ready', false)->count(),
+        ];
+    }
+
+    private function pivotCount(string $table, string $column, int $id): int
+    {
+        if (! Schema::hasTable($table)) {
+            return 0;
+        }
+
+        return DB::table($table)->where($column, $id)->count();
     }
 
     private function publicNews()

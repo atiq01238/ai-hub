@@ -13,6 +13,7 @@ class AuditSeoIntentMap extends Command
 {
     protected $signature = 'seo:audit-intent-map
         {--sync : Persist/update unlocked auto-generated targets before auditing}
+        {--prune-stale : Delete stale unlocked auto-generated targets after sync; manual/locked rows are preserved}
         {--details : Show sample duplicate/conflict/stale target records}';
 
     protected $description = 'Audit AI Orbit page-level search intent, keyword ownership and cannibalization risks without changing live titles or frontend content.';
@@ -22,6 +23,11 @@ class AuditSeoIntentMap extends Command
         $this->info('AI Orbit SEO Intent Map & Cannibalization Audit — Phase 1');
 
         $inventory = $service->inventory();
+
+        if ($this->option('prune-stale') && ! $this->option('sync')) {
+            $this->error('--prune-stale requires --sync so the current inventory is rebuilt before anything is deleted.');
+            return self::FAILURE;
+        }
 
         if ($this->option('sync')) {
             if (! Schema::hasTable('seo_targets')) {
@@ -37,6 +43,16 @@ class AuditSeoIntentMap extends Command
                 $result['locked'],
             ));
             $this->newLine();
+
+            if ($this->option('prune-stale')) {
+                $pruned = $service->pruneStale($inventory);
+                $this->line(sprintf(
+                    'Stale target prune: %d unlocked auto rows deleted, %d manual/locked stale rows preserved.',
+                    $pruned['deleted'],
+                    $pruned['preserved'],
+                ));
+                $this->newLine();
+            }
         }
 
         $resolved = $service->resolvedInventory($inventory);

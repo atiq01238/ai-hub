@@ -1,19 +1,18 @@
 @extends('frontend.layouts.app')
 
 @php
-    $companySeoName = trim($company->name);
-
-    // If company name already ends in "AI" (OpenAI, Mistral AI, xAI),
-    // don't append another "AI".
-    $companySeoNameForTitle = \Illuminate\Support\Str::endsWith(
-        \Illuminate\Support\Str::lower($companySeoName),
-        'ai'
-    )
-        ? $companySeoName
-        : $companySeoName . ' AI';
-
-    $companySeoTitle = $companySeoNameForTitle
-        . ' Company Profile: Models, Tools & Latest News | AI Orbit';
+    // CompanySeoService already resolves the persisted SEO intent owner. Keep the
+    // rendered title aligned with that single source of truth instead of rebuilding
+    // a second title template in the Blade view.
+    $companySeoTitle = html_entity_decode(
+        html_entity_decode(
+            $seo['title'],
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8'
+        ),
+        ENT_QUOTES | ENT_HTML5,
+        'UTF-8'
+    );
 
     $companySeoDescription = html_entity_decode(
         html_entity_decode(
@@ -151,7 +150,7 @@
                     </div>
                     <div class="company-knowledge-summary">
                         <div class="company-knowledge-copy">
-                            <h3>What does {{ $company->name }} do?</h3>
+                            <h3>What is {{ $company->name }}?</h3>
                             <p>{{ $contentSeo['intro'] }}</p>
                             <p>{{ $contentSeo['portfolio_summary'] }}</p>
                             @if($contentSeo['focus_summary'])

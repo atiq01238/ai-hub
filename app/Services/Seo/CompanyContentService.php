@@ -59,7 +59,7 @@ class CompanyContentService
 
         $faq = [];
         $faq[] = [
-            'question' => 'What does '.$company->name.' do?',
+            'question' => 'What is '.$company->name.'?',
             'answer' => $intro.' '.$portfolioSummary,
         ];
 

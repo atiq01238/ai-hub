@@ -117,6 +117,19 @@
         </div>
     </aside>
     @endif
+
+
+    @if($focusCompanies->isNotEmpty())
+    <aside class="company-leaders company-leaders-wide" aria-label="Featured company research profiles">
+        <div class="company-leader-title"><i data-lucide="search-check"></i><div><strong>Featured company research</strong><small>Detailed profiles with linked AI products and current catalog coverage</small></div></div>
+        <div class="company-leader-grid">
+            @foreach($focusCompanies as $focusCompany)
+                @php $logo=$focusCompany->logo_url; @endphp
+                <a href="{{ route('companies.show',$focusCompany) }}"><span><i data-lucide="building-2"></i></span><img src="{{ $logo }}" alt=""><div><strong>{{ $focusCompany->name }}</strong><small>{{ $focusCompany->active_models_count }} models · {{ $focusCompany->published_tools_count }} tools · {{ $focusCompany->published_news_count }} news</small></div><i data-lucide="chevron-right"></i></a>
+            @endforeach
+        </div>
+    </aside>
+    @endif
 </div></section>
 @endsection
 @push('scripts')<script src="{{ asset('js/frontend/companies.js') }}"></script>@endpush

@@ -104,7 +104,11 @@
             <div class="tool-hero-actions">
                 <button type="button" class="detail-secondary-btn" data-save-item data-save-type="tool" data-save-id="{{ $tool->id }}" aria-pressed="false"><i data-lucide="bookmark"></i><span data-save-label data-default-label="Save">Save</span></button>
                 <a href="{{ route('comparisons.builder', ['type' => 'tool', 'item' => $tool->id]) }}" class="detail-secondary-btn"><i data-lucide="scale"></i><span>Compare</span></a>
-                <a href="#pricing" class="detail-secondary-btn tool-pricing-action"><i data-lucide="badge-dollar-sign"></i><span>Pricing</span></a>
+                @if($pricingPlans->isNotEmpty())
+                    <a href="{{ route('pricing.show', $tool) }}" class="detail-secondary-btn tool-pricing-action"><i data-lucide="badge-dollar-sign"></i><span>Pricing &amp; plans</span></a>
+                @else
+                    <a href="#pricing" class="detail-secondary-btn tool-pricing-action"><i data-lucide="badge-dollar-sign"></i><span>Pricing</span></a>
+                @endif
                 @if($tool->website)<a href="{{ $tool->website }}" target="_blank" rel="noopener noreferrer nofollow" class="detail-primary-btn">Visit Website<i data-lucide="arrow-up-right"></i></a>@endif
             </div>
         </div>
@@ -307,7 +311,7 @@
         @endif
 
         <section class="detail-panel" id="pricing">
-            <div class="detail-section-head"><div><span>Pricing</span><h2>{{ $tool->name }} pricing plans</h2><p>Pricing stored in AI Orbit's pricing database. Always verify final rates on the provider website.</p></div><i data-lucide="badge-dollar-sign"></i></div>
+            <div class="detail-section-head"><div><span>Pricing</span><h2>Pricing overview</h2><p>Pricing stored in AI Orbit's pricing database. Always verify final rates on the provider website.</p></div><i data-lucide="badge-dollar-sign"></i></div>
             @if($pricingPlans->isNotEmpty())
             <div class="pricing-detail-grid">
                 @foreach($pricingPlans as $plan)
@@ -324,6 +328,9 @@
                 </article>
                 @endforeach
             </div>
+            <a class="detail-secondary-btn" href="{{ route('pricing.show', $tool) }}" style="margin-top:14px; width:max-content;">
+                View full {{ $tool->name }} pricing, plans &amp; price history <i data-lucide="arrow-up-right"></i>
+            </a>
             @else
             <div class="pricing-fallback"><div><i data-lucide="wallet-cards"></i></div><div><h3>{{ $priceLabel }}</h3><p>Detailed plan-level pricing has not been added yet.</p></div></div>
             @endif

@@ -79,6 +79,35 @@ class Benchmark extends Model
         return self::classLabel($this->benchmark_class);
     }
 
+    /**
+     * Benchmarks worth actively promoting to crawlers.
+     *
+     * A benchmark remains public even when it does not qualify here. The gate
+     * only reduces low-evidence sitemap inventory: two verified results are
+     * enough, while a single-result benchmark needs meaningful description and
+     * an official/methodology source to be promoted.
+     */
+    public function scopeSeoDiscoveryPriority($query)
+    {
+        $verified = fn ($q) => $q->where('verified', true)->where('status', 'verified');
+
+        return $query
+            ->where('is_active', true)
+            ->whereHas('results', $verified)
+            ->where(function ($query) use ($verified) {
+                $query->whereHas('results', $verified, '>=', 2)
+                    ->orWhere(function ($richSingleResult) {
+                        $richSingleResult
+                            ->whereNotNull('description')
+                            ->whereRaw('CHAR_LENGTH(TRIM(description)) >= 160')
+                            ->where(function ($source) {
+                                $source->whereNotNull('official_url')
+                                    ->orWhereNotNull('methodology_url');
+                            });
+                    });
+            });
+    }
+
     public function results(): HasMany
     {
         return $this->hasMany(BenchmarkResult::class);

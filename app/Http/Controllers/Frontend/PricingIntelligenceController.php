@@ -8,6 +8,7 @@ use App\Models\PricingPlan;
 use App\Models\Tool;
 use Illuminate\Http\Request;
 use App\Services\Frontend\QuickFeedbackService;
+use App\Services\Seo\SeoMetadataService;
 
 class PricingIntelligenceController extends Controller
 {
@@ -61,15 +62,26 @@ class PricingIntelligenceController extends Controller
         return view('frontend.pricing.index', compact('tools','recentChanges','stats','filters','type','sort'));
     }
 
-    public function show(Tool $tool, QuickFeedbackService $feedback)
+    public function show(Tool $tool, QuickFeedbackService $feedback, SeoMetadataService $metadata)
     {
         abort_unless($tool->status === 'published', 404);
-        $tool->load(['company','pricingPlans.sources']);
+        $tool->load(['company','category','pricingPlans.sources']);
         $history = PricingHistory::where('tool_id',$tool->id)->latest()->limit(20)->get();
         $alternatives = Tool::where('status','published')->whereKeyNot($tool->id)
             ->whereHas('pricingPlans')->with('pricingPlans')->orderByDesc('rating')->limit(4)->get();
         $pricingFeedback = $feedback->voteSummary('pricing', $tool->id, auth()->user());
-        return view('frontend.pricing.show', compact('tool','history','alternatives','pricingFeedback'));
+
+        $pricingSeo = $metadata->forKey(
+            'pricing.show:'.$tool->id,
+            $tool->name.' Pricing and Plans | AI Orbit',
+            \Illuminate\Support\Str::limit(
+                'Compare '.$tool->name.' pricing, plans, limits, API rates and published price history on AI Orbit.',
+                158,
+                ''
+            )
+        );
+
+        return view('frontend.pricing.show', compact('tool','history','alternatives','pricingFeedback','pricingSeo'));
     }
 
     private function valueScore(Tool $tool): float
