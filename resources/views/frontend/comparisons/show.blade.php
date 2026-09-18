@@ -374,37 +374,191 @@
         </label>
     </div>
 
+    @php
+        $missingComparisonValue = 'No verified data yet';
+        $profileRows = [];
+        $addProfileRow = function (string $label, array $cells, string $kind = 'text') use (&$profileRows) {
+            $show = collect($cells)->contains(fn ($cell) => (bool) ($cell['available'] ?? false));
+            $profileRows[] = compact('label', 'cells', 'kind', 'show');
+        };
+
+        $addProfileRow('Provider', $items->map(function ($item) {
+            $value = trim((string) ($item->company?->name ?? ''));
+            return ['available' => $value !== '', 'display' => $value];
+        })->all());
+
+        if ($comparisonType === 'tool') {
+            $addProfileRow('Rating', $items->map(function ($item) {
+                $rating = (float) ($item->rating ?? 0);
+                return ['available' => $rating > 0, 'display' => $rating > 0 ? number_format($rating, 1).'/5' : ''];
+            })->all(), 'rating');
+
+            $addProfileRow('Popularity', $items->map(function ($item) {
+                $popularity = (int) ($item->popularity ?? 0);
+                return ['available' => $popularity > 0, 'display' => $popularity > 0 ? number_format($popularity) : ''];
+            })->all());
+
+            $addProfileRow('Category', $items->map(function ($item) {
+                $value = trim((string) ($item->category?->name ?? ''));
+                return ['available' => $value !== '', 'display' => $value];
+            })->all());
+
+            $addProfileRow('Pricing model', $items->map(function ($item) {
+                $values = collect((array) ($item->pricing_models ?? []))->filter()->map(fn ($value) => ucfirst((string) $value))->values()->all();
+                return ['available' => count($values) > 0, 'values' => $values];
+            })->all(), 'chips');
+
+            $addProfileRow('Starting monthly price', $items->map(function ($item) use ($pricingIntel) {
+                $row = $pricingIntel[(int) $item->id] ?? [];
+                $available = array_key_exists('starting', $row) && $row['starting'] !== null;
+                return ['available' => $available, 'display' => $available ? '$'.number_format((float) $row['starting'], 2) : ''];
+            })->all());
+
+            $addProfileRow('Free plan', $items->map(function ($item) use ($pricingIntel) {
+                $row = $pricingIntel[(int) $item->id] ?? [];
+                $available = (bool) ($row['verified'] ?? false);
+                return [
+                    'available' => $available,
+                    'display' => $available ? (!empty($row['free_plan']) ? 'Yes' : 'No free plan listed') : '',
+                ];
+            })->all());
+
+            $addProfileRow('Platforms', $items->map(function ($item) {
+                $values = collect((array) ($item->platforms ?? []))->filter()->values()->all();
+                return ['available' => count($values) > 0, 'values' => $values];
+            })->all(), 'chips');
+
+            $addProfileRow('API access', $items->map(function ($item) {
+                $profile = $item->technicalProfile;
+                $status = $profile?->api_status;
+                $available = $profile && $status && $status !== 'unknown';
+                return [
+                    'available' => $available,
+                    'display' => $available ? (\App\Models\ToolTechnicalProfile::API_STATUSES[$status] ?? ucfirst(str_replace('_', ' ', $status))) : '',
+                ];
+            })->all());
+
+            $addProfileRow('Open source', $items->map(function ($item) {
+                $profile = $item->technicalProfile;
+                $status = $profile?->open_source_status;
+                $available = $profile && $status && $status !== 'unknown';
+                return [
+                    'available' => $available,
+                    'display' => $available ? (\App\Models\ToolTechnicalProfile::OPEN_SOURCE_STATUSES[$status] ?? ucfirst(str_replace('_', ' ', $status))) : '',
+                ];
+            })->all());
+
+            $addProfileRow('Self-hosting', $items->map(function ($item) {
+                $profile = $item->technicalProfile;
+                $status = $profile?->self_hosting_status;
+                $available = $profile && $status && $status !== 'unknown';
+                return [
+                    'available' => $available,
+                    'display' => $available ? (\App\Models\ToolTechnicalProfile::SELF_HOSTING_STATUSES[$status] ?? ucfirst(str_replace('_', ' ', $status))) : '',
+                ];
+            })->all());
+
+            $addProfileRow('Deployment', $items->map(function ($item) {
+                $values = collect((array) ($item->technicalProfile?->deployment_modes ?? []))->filter()->values()->all();
+                return ['available' => count($values) > 0, 'values' => $values];
+            })->all(), 'chips');
+
+            $addProfileRow('Launch date', $items->map(function ($item) {
+                return ['available' => (bool) $item->launch_date, 'display' => $item->launch_date?->format('M Y') ?? ''];
+            })->all());
+        } else {
+            $addProfileRow('Version', $items->map(function ($item) {
+                $value = trim((string) ($item->version ?? ''));
+                return ['available' => $value !== '', 'display' => $value];
+            })->all());
+
+            $addProfileRow('Context window', $items->map(function ($item) {
+                $value = trim((string) ($item->context_window ?? ''));
+                return ['available' => $value !== '', 'display' => $value];
+            })->all(), 'strong');
+
+            $addProfileRow('Input / 1M tokens', $items->map(function ($item) {
+                $available = $item->input_price_per_million !== null;
+                return ['available' => $available, 'display' => $available ? '$'.number_format((float) $item->input_price_per_million, 2) : ''];
+            })->all());
+
+            $addProfileRow('Output / 1M tokens', $items->map(function ($item) {
+                $available = $item->output_price_per_million !== null;
+                return ['available' => $available, 'display' => $available ? '$'.number_format((float) $item->output_price_per_million, 2) : ''];
+            })->all());
+
+            $addProfileRow('Pricing verification', $items->map(function ($item) use ($pricingIntel) {
+                $row = $pricingIntel[(int) $item->id] ?? [];
+                $status = (string) ($item->pricing_verification_status ?? '');
+                $available = in_array($status, ['verified', 'verified_structure', 'verified_specialized', 'verified_unit_only', 'provider_dependent', 'regional', 'not_applicable'], true);
+                return [
+                    'available' => $available,
+                    'display' => $available ? ($row['verification_label'] ?? $item->pricing_verification_label) : '',
+                    'note' => $available && !empty($row['verified_at']) ? $row['verified_at']->format('M j, Y') : null,
+                ];
+            })->all(), 'verification');
+
+            $addProfileRow('Status', $items->map(function ($item) {
+                $value = trim((string) ($item->status ?? ''));
+                return ['available' => $value !== '', 'display' => $value, 'class' => $value];
+            })->all(), 'status');
+
+            $addProfileRow('Release date', $items->map(function ($item) {
+                return ['available' => (bool) $item->release_date, 'display' => $item->release_date?->format('M Y') ?? ''];
+            })->all());
+        }
+
+        $shownProfileRows = collect($profileRows)->where('show', true)->values();
+        $hiddenProfileRowCount = collect($profileRows)->where('show', false)->count();
+    @endphp
+
     <div class="comparison-table-card" data-difference-scope>
-        <div class="table-title"><span><i data-lucide="table-2"></i></span><div><h2>Side-by-side comparison</h2><p>Comparable profile facts. Missing fields are shown explicitly instead of being guessed.</p></div></div>
+        <div class="table-title"><span><i data-lucide="table-2"></i></span><div><h2>Side-by-side comparison</h2><p>Only useful comparison fields are shown. Missing data is never guessed or treated as zero.</p></div></div>
         <div class="comparison-table-scroll">
             <table class="comparison-table">
                 <thead><tr><th>Metric</th>@foreach($items as $item)<th>{{ $item->name }}</th>@endforeach</tr></thead>
                 <tbody>
-                    <tr data-difference-row><th>Provider</th>@foreach($items as $item)<td>{{ $item->company->name ?? 'Not verified' }}</td>@endforeach</tr>
-                    @if($comparisonType === 'tool')
-                        <tr data-difference-row><th>Rating</th>@foreach($items as $item)<td><span class="rating-cell"><i data-lucide="star"></i>{{ (float)$item->rating > 0 ? number_format((float)$item->rating,1).'/5' : 'Not rated' }}</span></td>@endforeach</tr>
-                        <tr data-difference-row><th>Popularity</th>@foreach($items as $item)<td>{{ (int)$item->popularity > 0 ? number_format((int)$item->popularity) : 'Not available' }}</td>@endforeach</tr>
-                        <tr data-difference-row><th>Category</th>@foreach($items as $item)<td>{{ $item->category->name ?? 'Not verified' }}</td>@endforeach</tr>
-                        <tr data-difference-row><th>Pricing model</th>@foreach($items as $item)<td>@forelse((array)$item->pricing_models as $price)<span class="data-chip">{{ ucfirst((string)$price) }}</span>@empty<span class="muted">Not verified</span>@endforelse</td>@endforeach</tr>
-                        <tr data-difference-row><th>Starting monthly price</th>@foreach($items as $item)@php($priceRow=$pricingIntel[(int)$item->id]??[])<td>{{ array_key_exists('starting',$priceRow) && $priceRow['starting'] !== null ? '$'.number_format((float)$priceRow['starting'],2) : 'Not verified' }}</td>@endforeach</tr>
-                        <tr data-difference-row><th>Free plan</th>@foreach($items as $item)@php($priceRow=$pricingIntel[(int)$item->id]??[])<td>{{ !empty($priceRow['free_plan']) ? 'Yes' : (($priceRow['verified']??false) ? 'No free plan listed' : 'Not verified') }}</td>@endforeach</tr>
-                        <tr data-difference-row><th>Platforms</th>@foreach($items as $item)<td>@forelse((array)$item->platforms as $platform)<span class="data-chip">{{ $platform }}</span>@empty<span class="muted">Not verified</span>@endforelse</td>@endforeach</tr>
-                        <tr data-difference-row><th>API access</th>@foreach($items as $item)@php($profile=$item->technicalProfile)<td>{{ $profile ? (\App\Models\ToolTechnicalProfile::API_STATUSES[$profile->api_status ?: 'unknown'] ?? 'Not yet verified') : 'Not verified' }}</td>@endforeach</tr>
-                        <tr data-difference-row><th>Open source</th>@foreach($items as $item)@php($profile=$item->technicalProfile)<td>{{ $profile ? (\App\Models\ToolTechnicalProfile::OPEN_SOURCE_STATUSES[$profile->open_source_status ?: 'unknown'] ?? 'Not yet verified') : 'Not verified' }}</td>@endforeach</tr>
-                        <tr data-difference-row><th>Self-hosting</th>@foreach($items as $item)@php($profile=$item->technicalProfile)<td>{{ $profile ? (\App\Models\ToolTechnicalProfile::SELF_HOSTING_STATUSES[$profile->self_hosting_status ?: 'unknown'] ?? 'Not yet verified') : 'Not verified' }}</td>@endforeach</tr>
-                        <tr data-difference-row><th>Deployment</th>@foreach($items as $item)@php($modes=(array)($item->technicalProfile?->deployment_modes??[]))<td>@forelse($modes as $mode)<span class="data-chip">{{ $mode }}</span>@empty<span class="muted">Not verified</span>@endforelse</td>@endforeach</tr>
-                        <tr data-difference-row><th>Launch date</th>@foreach($items as $item)<td>{{ $item->launch_date?->format('M Y') ?? 'Not verified' }}</td>@endforeach</tr>
-                    @else
-                        <tr data-difference-row><th>Version</th>@foreach($items as $item)<td>{{ $item->version ?: 'Not verified' }}</td>@endforeach</tr>
-                        <tr data-difference-row><th>Context window</th>@foreach($items as $item)<td><strong>{{ $item->context_window ?: 'Not verified' }}</strong></td>@endforeach</tr>
-                        <tr data-difference-row><th>Input / 1M tokens</th>@foreach($items as $item)<td>{{ $item->input_price_per_million !== null ? '$'.number_format((float)$item->input_price_per_million,2) : 'Not verified' }}</td>@endforeach</tr>
-                        <tr data-difference-row><th>Output / 1M tokens</th>@foreach($items as $item)<td>{{ $item->output_price_per_million !== null ? '$'.number_format((float)$item->output_price_per_million,2) : 'Not verified' }}</td>@endforeach</tr>
-                        <tr data-difference-row><th>Pricing verification</th>@foreach($items as $item)@php($priceRow=$pricingIntel[(int)$item->id]??[])<td>{{ $priceRow['verification_label'] ?? 'Not verified' }}@if(!empty($priceRow['verified_at']))<small class="comparison-cell-note">{{ $priceRow['verified_at']->format('M j, Y') }}</small>@endif</td>@endforeach</tr>
-                        <tr data-difference-row><th>Status</th>@foreach($items as $item)<td><span class="status-chip {{ $item->status }}">{{ ucfirst($item->status) }}</span></td>@endforeach</tr>
-                        <tr data-difference-row><th>Release date</th>@foreach($items as $item)<td>{{ $item->release_date?->format('M Y') ?? 'Not verified' }}</td>@endforeach</tr>
-                    @endif
+                    @foreach($shownProfileRows as $row)
+                        <tr data-difference-row>
+                            <th>{{ $row['label'] }}</th>
+                            @foreach($row['cells'] as $cell)
+                                <td>
+                                    @if(!($cell['available'] ?? false))
+                                        <span class="comparison-unverified-value">{{ $missingComparisonValue }}</span>
+                                    @elseif($row['kind'] === 'chips')
+                                        @foreach(($cell['values'] ?? []) as $value)<span class="data-chip">{{ $value }}</span>@endforeach
+                                    @elseif($row['kind'] === 'rating')
+                                        <span class="rating-cell"><i data-lucide="star"></i>{{ $cell['display'] }}</span>
+                                    @elseif($row['kind'] === 'strong')
+                                        <strong>{{ $cell['display'] }}</strong>
+                                    @elseif($row['kind'] === 'status')
+                                        <span class="status-chip {{ $cell['class'] ?? '' }}">{{ ucfirst((string) $cell['display']) }}</span>
+                                    @elseif($row['kind'] === 'verification')
+                                        {{ $cell['display'] }}
+                                        @if(!empty($cell['note']))<small class="comparison-cell-note">{{ $cell['note'] }}</small>@endif
+                                    @else
+                                        {{ $cell['display'] }}
+                                    @endif
+                                </td>
+                            @endforeach
+                        </tr>
+                    @endforeach
                 </tbody>
             </table>
+        </div>
+        <div class="comparison-data-coverage">
+            <i data-lucide="shield-check"></i>
+            <div>
+                <strong>Data coverage: {{ $shownProfileRows->count() }} comparison fields shown.</strong>
+                <span>
+                    @if($hiddenProfileRowCount > 0)
+                        {{ $hiddenProfileRowCount }} {{ \Illuminate\Support\Str::plural('field', $hiddenProfileRowCount) }} hidden because none of the selected items currently has reliable data.
+                    @else
+                        No empty comparison fields were hidden.
+                    @endif
+                    If only one side is missing, it is labeled “{{ $missingComparisonValue }}”.
+                </span>
+            </div>
         </div>
         <div class="comparison-empty-differences" data-no-differences hidden>No differing rows are visible in this section.</div>
     </div>
@@ -716,7 +870,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let visible = 0;
             scope.querySelectorAll('[data-difference-row]').forEach(row => {
                 const values = [...row.querySelectorAll('td')].map(normalizeCell);
-                const meaningful = values.filter(value => value && value !== 'not verified' && value !== 'not available' && value !== '—');
+                const meaningful = values.filter(value => value && value !== 'not verified' && value !== 'not yet verified' && value !== 'no verified data yet' && value !== 'not available' && value !== 'not rated' && value !== '—');
                 const allSame = values.length > 1 && new Set(values).size === 1;
                 const noComparableData = meaningful.length === 0;
                 const shouldHide = onlyDifferences && (allSame || noComparableData);
