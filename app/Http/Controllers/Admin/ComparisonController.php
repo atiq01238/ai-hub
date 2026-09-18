@@ -109,6 +109,17 @@ class ComparisonController extends Controller
         $chosen = $toolIds ?: $modelIds;
         if (count($chosen) < 2 || count($chosen) > 4) throw ValidationException::withMessages(['tool_ids'=>'Select between 2 and 4 unique items.']);
 
+        // Public/indexable comparison pages are curated head-to-head pairs.
+        // Drafts may temporarily hold 3–4 items while editors research them,
+        // but publishing requires exactly two entities. Custom 2–4 item user
+        // comparisons belong to the public noindex preview builder instead.
+        if ($data['status'] === 'published' && count($chosen) !== 2) {
+            $field = $toolIds ? 'tool_ids' : 'model_ids';
+            throw ValidationException::withMessages([
+                $field => 'Published SEO comparisons must contain exactly 2 items. Use the public builder for 3–4 item custom comparisons.',
+            ]);
+        }
+
         $type = $toolIds ? 'tool' : 'model';
         $chosen = array_map('intval', $chosen);
         $duplicate = $this->semanticDuplicate($type, $chosen, $comparison?->id);

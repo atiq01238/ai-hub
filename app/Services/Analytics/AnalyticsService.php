@@ -316,37 +316,137 @@ class AnalyticsService
 
     private function comparisons(Carbon $from, Carbon $to, Carbon $previousFrom, Carbon $previousTo): array
     {
-        $views = (int) Comparison::where('status', 'published')->sum('views');
+        $publishedRows = Comparison::query()
+            ->where('status', 'published')
+            ->orderByDesc('views')
+            ->get();
+
+        $seoReady = $publishedRows->filter(fn (Comparison $comparison) => $comparison->isSeoIndexable());
+        $published = $publishedRows->count();
+        $drafts = Comparison::where('status', 'draft')->count();
         $built = Comparison::whereBetween('created_at', [$from, $to])->count();
         $previousBuilt = Comparison::whereBetween('created_at', [$previousFrom, $previousTo])->count();
-        $published = Comparison::where('status', 'published')->count();
-        $drafts = Comparison::where('status', 'draft')->count();
+        $lifetimeViews = (int) $publishedRows->sum('views');
+
+        if ($this->visitorAnalyticsReady()) {
+            $base = AnalyticsPageView::query()
+                ->where('entity_type', 'comparison')
+                ->whereNotNull('entity_id');
+
+            $periodViews = (clone $base)->whereBetween('viewed_at', [$from, $to])->count();
+            $previousViews = (clone $base)->whereBetween('viewed_at', [$previousFrom, $previousTo])->count();
+            $uniqueVisitors = (clone $base)
+                ->whereBetween('viewed_at', [$from, $to])
+                ->distinct('visitor_id')
+                ->count('visitor_id');
+            $entryViews = (clone $base)
+                ->whereBetween('viewed_at', [$from, $to])
+                ->where('is_entry', true)
+                ->count();
+
+            $dailyRows = AnalyticsPageView::query()
+                ->where('entity_type', 'comparison')
+                ->whereBetween('viewed_at', [$from, $to])
+                ->selectRaw('DATE(viewed_at) as day, COUNT(*) as aggregate')
+                ->groupBy('day')
+                ->orderBy('day')
+                ->get()
+                ->keyBy('day');
+
+            $trend = [];
+            $cursor = $from->copy()->startOfDay();
+            $end = $to->copy()->startOfDay();
+            while ($cursor->lte($end)) {
+                $row = $dailyRows->get($cursor->format('Y-m-d'));
+                $trend[] = ['label' => $cursor->format('M j'), 'value' => (int) ($row->aggregate ?? 0)];
+                $cursor->addDay();
+            }
+
+            $topRows = AnalyticsPageView::query()
+                ->where('entity_type', 'comparison')
+                ->whereBetween('viewed_at', [$from, $to])
+                ->whereNotNull('entity_id')
+                ->selectRaw('entity_id, COUNT(*) as views, COUNT(DISTINCT visitor_id) as visitors, SUM(CASE WHEN is_entry = 1 THEN 1 ELSE 0 END) as entries')
+                ->groupBy('entity_id')
+                ->orderByDesc('views')
+                ->limit(10)
+                ->get();
+
+            $comparisonMap = Comparison::query()
+                ->whereIn('id', $topRows->pluck('entity_id'))
+                ->get()
+                ->keyBy('id');
+
+            return [
+                'kpis' => [
+                    $this->kpi('Comparison Page Views', $periodViews, 'eye', $this->delta($periodViews, $previousViews)),
+                    $this->kpi('Unique Visitors', $uniqueVisitors, 'users', null),
+                    $this->kpi('SEO-ready Pairs', $seoReady->count(), 'search-check', null),
+                    $this->kpi('Entry Views', $entryViews, 'log-in', null),
+                ],
+                'chart' => ['title' => 'Comparison Traffic Trend', 'series_label' => 'Page views', 'points' => $trend],
+                'table' => [
+                    'title' => 'Top Comparison Pages',
+                    'headers' => ['Comparison', 'Views', 'Visitors', 'Entries', 'SEO'],
+                    'rows' => $topRows->map(function ($row) use ($comparisonMap) {
+                        /** @var Comparison|null $comparison */
+                        $comparison = $comparisonMap->get((int) $row->entity_id);
+                        return [
+                            'comparison' => $comparison?->title ?? 'Comparison #'.$row->entity_id,
+                            'views' => number_format((int) $row->views),
+                            'visitors' => number_format((int) $row->visitors),
+                            'entries' => number_format((int) $row->entries),
+                            'seo' => $comparison?->isSeoIndexable() ? 'Indexable pair' : 'Utility / review',
+                        ];
+                    })->all(),
+                ],
+                'readiness' => [
+                    'level' => 'good',
+                    'title' => 'Comparison traffic analytics connected',
+                    'message' => 'Human comparison page views, unique visitors and entry views are measured from native visitor analytics. SEO-ready pair status comes from the same comparison quality gate used by sitemaps and internal linking.',
+                ],
+                'comparisonMetrics' => [
+                    'published' => $published,
+                    'drafts' => $drafts,
+                    'seo_ready' => $seoReady->count(),
+                    'built_this_period' => $built,
+                    'lifetime_views' => $lifetimeViews,
+                ],
+            ];
+        }
 
         $trend = $this->dailyTrend($from, $to, fn (Carbon $date) => Comparison::whereDate('created_at', $date)->count());
-        $top = Comparison::where('status', 'published')->orderByDesc('views')->limit(8)->get();
+        $top = $publishedRows->take(8);
 
         return [
             'kpis' => [
-                $this->kpi('Recorded Views', $views, 'eye', null),
+                $this->kpi('Recorded Views', $lifetimeViews, 'eye', null),
                 $this->kpi('Built This Period', $built, 'square-stack', $this->delta($built, $previousBuilt)),
-                $this->kpi('Published Comparisons', $published, 'circle-check', null),
+                $this->kpi('SEO-ready Pairs', $seoReady->count(), 'search-check', null),
                 $this->kpi('Draft Comparisons', $drafts, 'file-clock', null),
             ],
             'chart' => ['title' => 'Comparison Creation Trend', 'series_label' => 'Comparisons created', 'points' => $trend],
             'table' => [
                 'title' => 'Most Viewed Comparisons',
-                'headers' => ['Comparison', 'Type', 'Views', 'Status'],
+                'headers' => ['Comparison', 'Type', 'Lifetime Views', 'SEO'],
                 'rows' => $top->map(fn (Comparison $comparison) => [
                     'comparison' => $comparison->title,
                     'type' => ucfirst($comparison->comparable_type),
                     'views' => number_format((int) $comparison->views),
-                    'status' => ucfirst($comparison->status),
+                    'seo' => $comparison->isSeoIndexable() ? 'Indexable pair' : 'Utility / review',
                 ])->all(),
             ],
             'readiness' => [
-                'level' => 'good',
-                'title' => 'Comparison analytics are partially event-backed',
-                'message' => 'Total comparison views are stored. Shares, dwell time and per-period view history are not currently persisted, so they are intentionally not fabricated.',
+                'level' => 'partial',
+                'title' => 'Comparison SEO metrics ready; visitor analytics unavailable',
+                'message' => 'SEO-ready pair counts and lifetime comparison views are live. Run the visitor analytics migration to add period page views, unique visitors and entry traffic.',
+            ],
+            'comparisonMetrics' => [
+                'published' => $published,
+                'drafts' => $drafts,
+                'seo_ready' => $seoReady->count(),
+                'built_this_period' => $built,
+                'lifetime_views' => $lifetimeViews,
             ],
         ];
     }

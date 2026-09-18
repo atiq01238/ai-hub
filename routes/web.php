@@ -112,14 +112,13 @@ Route::redirect('/news', '/ai-news', 301);
 
 Route::get('/ai-news', [FrontendNewsController::class, 'index'])->name('news.index');
 Route::get('/ai-news/{news:slug}', [FrontendNewsController::class, 'show'])->name('news.show');
-// Published comparisons remain public for discovery/SEO. Creating a custom
-// comparison is an authenticated user action. Keep static routes before the
-// dynamic slug route so /compare/builder cannot be captured as a slug.
+// Comparison research is public. Guests can build and share a custom 2–4
+// item comparison; authentication is required only for personal actions such
+// as saving a comparison. Keep static routes before the dynamic slug route so
+// /compare/builder and /compare/preview cannot be captured as comparison slugs.
 Route::get('/compare', [FrontendComparisonController::class, 'index'])->name('comparisons.index');
-Route::middleware(['auth', 'verified', EnsureAccountIsActive::class])->group(function () {
-    Route::get('/compare/builder', [FrontendComparisonController::class, 'builder'])->name('comparisons.builder');
-    Route::get('/compare/preview', [FrontendComparisonController::class, 'preview'])->name('comparisons.preview');
-});
+Route::get('/compare/builder', [FrontendComparisonController::class, 'builder'])->name('comparisons.builder');
+Route::get('/compare/preview', [FrontendComparisonController::class, 'preview'])->name('comparisons.preview');
 Route::get('/compare/{comparison:slug}', [FrontendComparisonController::class, 'show'])->name('comparisons.show');
 Route::get('/sitemap.xml', [SeoSitemapController::class, 'index'])->name('sitemap.index');
 Route::get('/sitemap-companies.xml', CompanySitemapController::class)->name('sitemap.companies');

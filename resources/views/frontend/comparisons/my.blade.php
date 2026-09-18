@@ -8,6 +8,12 @@
     <p>Comparisons you chose to keep for later research.</p>
 </div></section>
 <section class="comparison-detail-body"><div class="compare-container">
+    <nav class="comparison-account-nav" aria-label="Comparison research navigation">
+        <a class="active" href="{{ route('user.comparisons.index') }}"><i data-lucide="bookmark-check"></i> Saved comparisons</a>
+        <a class="" href="{{ route('user.comparisons.history') }}"><i data-lucide="history"></i> History</a>
+        <a href="{{ route('comparisons.builder') }}"><i data-lucide="plus"></i> New comparison</a>
+        <a href="{{ route('comparisons.index') }}"><i data-lucide="library"></i> Browse library</a>
+    </nav>
     <div class="section-heading-row"><div><span class="section-eyebrow">PERSONAL RESEARCH</span><h2>{{ number_format($comparisons->total()) }} saved comparisons</h2></div><a href="{{ route('comparisons.builder') }}">Build comparison <i data-lucide="plus"></i></a></div>
     <div class="related-comparison-grid">
         @forelse($comparisons as $item)

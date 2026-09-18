@@ -99,6 +99,28 @@ class Comparison extends Model
             ->values();
     }
 
+
+    /**
+     * Curated, indexable comparison pages are intentionally pair-only.
+     *
+     * The public builder may compare 2–4 items, but those ad-hoc combinations
+     * live on /compare/preview and stay noindex. Persisted three/four-item
+     * legacy rows can still be viewed directly, but they are not SEO inventory.
+     */
+    public function isSeoPair(): bool
+    {
+        if ($this->status !== 'published') {
+            return false;
+        }
+
+        try {
+            return $this->publicItems()->count() === 2;
+        } catch (\Throwable $e) {
+            report($e);
+            return false;
+        }
+    }
+
     /**
      * Return the public slug that matches the comparison's current pair.
      *
@@ -115,7 +137,16 @@ class Comparison extends Model
             $resolvedItems = $this->relationLoaded('resolved_items')
                 ? collect($this->getRelation('resolved_items'))
                 : $this->items();
-            $names = $resolvedItems->pluck('name')->filter()->take(2)->values();
+
+            // Only curated head-to-head pairs receive an entity-derived SEO
+            // slug. Legacy 3–4 item persisted rows keep their stored URL and
+            // are served as noindex utilities instead of pretending to be a
+            // two-item comparison.
+            if ($resolvedItems->count() !== 2) {
+                return $stored;
+            }
+
+            $names = $resolvedItems->pluck('name')->filter()->values();
         } catch (\Throwable $e) {
             report($e);
             return $stored;
@@ -216,6 +247,190 @@ class Comparison extends Model
 
                 return $aliases->filter()->unique()->contains($needle);
             });
+    }
+
+    /**
+     * Stable unordered identity for a two-item comparison.
+     *
+     * Custom 2–4 item previews never call this model method because they are
+     * intentionally noindex utilities. Persisted pair pages use it to prevent
+     * duplicate X-vs-Y / Y-vs-X SEO inventory.
+     */
+    public function pairKey(): ?string
+    {
+        try {
+            $items = $this->relationLoaded('resolved_items')
+                ? collect($this->getRelation('resolved_items'))
+                : $this->publicItems();
+        } catch (\Throwable $e) {
+            report($e);
+            return null;
+        }
+
+        return $this->pairKeyFromItems($items);
+    }
+
+    /**
+     * Conservative SEO quality gate for curated comparison pages.
+     *
+     * A page must be a public two-item pair, be the canonical persisted record
+     * for that unordered pair, and contain at least one real editorial signal.
+     * This keeps skeletal/duplicate records out of sitemaps and internal-link
+     * discovery without deleting them or making the public utility unavailable.
+     */
+    public function seoAssessment(): array
+    {
+        $reasons = [];
+        $warnings = [];
+
+        if ($this->status !== 'published') {
+            $reasons[] = 'not_published';
+        }
+
+        try {
+            $items = $this->relationLoaded('resolved_items')
+                ? collect($this->getRelation('resolved_items'))
+                : $this->publicItems();
+        } catch (\Throwable $e) {
+            report($e);
+            $items = collect();
+        }
+
+        if ($items->count() !== 2) {
+            $reasons[] = 'not_pair';
+        }
+
+        $pairKey = $this->pairKeyFromItems($items);
+        $canonicalId = $pairKey ? (self::seoCanonicalPairMap()[$pairKey] ?? null) : null;
+        if ($canonicalId && (int) $canonicalId !== (int) $this->getKey()) {
+            $reasons[] = 'duplicate_pair';
+        }
+
+        $summaryChars = mb_strlen(trim(strip_tags((string) $this->summary)));
+        $faqCount = collect($this->seo_faq ?? [])
+            ->filter(fn ($faq) => is_array($faq)
+                && trim((string) ($faq['question'] ?? '')) !== ''
+                && trim((string) ($faq['answer'] ?? '')) !== '')
+            ->count();
+        $hasIntent = trim((string) $this->primary_intent) !== '';
+        $hasVerification = $this->last_verified_at !== null;
+
+        // At least one non-boilerplate editorial/verification signal is needed.
+        $contentReady = $summaryChars >= 80 || $faqCount > 0 || $hasIntent || $hasVerification;
+        if (! $contentReady) {
+            $reasons[] = 'thin_editorial_context';
+        }
+
+        if (! $hasVerification) {
+            $warnings[] = 'verification_date_missing';
+        } elseif ($this->last_verified_at->lt(now()->subYear())) {
+            $warnings[] = 'verification_older_than_12_months';
+        }
+
+        if ($summaryChars > 0 && $summaryChars < 80) {
+            $warnings[] = 'short_summary';
+        }
+
+        return [
+            'indexable' => $reasons === [],
+            'pair_key' => $pairKey,
+            'canonical_id' => $canonicalId,
+            'reasons' => $reasons,
+            'warnings' => $warnings,
+            'signals' => [
+                'summary_chars' => $summaryChars,
+                'faq_count' => $faqCount,
+                'has_intent' => $hasIntent,
+                'has_verification' => $hasVerification,
+            ],
+        ];
+    }
+
+    public function isSeoIndexable(): bool
+    {
+        return (bool) ($this->seoAssessment()['indexable'] ?? false);
+    }
+
+    private function pairKeyFromItems(Collection $items): ?string
+    {
+        if ($items->count() !== 2 || ! in_array($this->comparable_type, ['tool', 'model'], true)) {
+            return null;
+        }
+
+        $ids = $items->pluck('id')
+            ->filter(fn ($id) => is_numeric($id))
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->sort()
+            ->values();
+
+        if ($ids->count() !== 2) {
+            return null;
+        }
+
+        return $this->comparable_type.':'.$ids[0].':'.$ids[1];
+    }
+
+    /** @return array<string,int> */
+    private static function seoCanonicalPairMap(): array
+    {
+        static $cache = null;
+        if (is_array($cache)) {
+            return $cache;
+        }
+
+        $groups = [];
+        foreach (static::query()->where('status', 'published')->get() as $comparison) {
+            try {
+                $items = $comparison->publicItems();
+            } catch (\Throwable $e) {
+                report($e);
+                continue;
+            }
+
+            $key = $comparison->pairKeyFromItems($items);
+            if (! $key) {
+                continue;
+            }
+
+            $names = $items->pluck('name')->filter()->values();
+            $forward = $names->count() === 2 ? Str::slug($names[0].'-vs-'.$names[1]) : '';
+            $reverse = $names->count() === 2 ? Str::slug($names[1].'-vs-'.$names[0]) : '';
+            $faqCount = collect($comparison->seo_faq ?? [])
+                ->filter(fn ($faq) => is_array($faq)
+                    && trim((string) ($faq['question'] ?? '')) !== ''
+                    && trim((string) ($faq['answer'] ?? '')) !== '')
+                ->count();
+
+            $groups[$key][] = [
+                'id' => (int) $comparison->getKey(),
+                'stored_slug_matches_pair' => in_array((string) $comparison->slug, [$forward, $reverse], true) ? 1 : 0,
+                'manual' => $comparison->auto_generated ? 0 : 1,
+                'verified_at' => $comparison->last_verified_at?->getTimestamp() ?? 0,
+                'content' => mb_strlen(trim(strip_tags((string) $comparison->summary)))
+                    + ($faqCount * 80)
+                    + (trim((string) $comparison->primary_intent) !== '' ? 80 : 0),
+                'views' => (int) $comparison->views,
+            ];
+        }
+
+        $cache = [];
+        foreach ($groups as $key => $candidates) {
+            usort($candidates, function (array $a, array $b): int {
+                foreach (['stored_slug_matches_pair', 'manual', 'verified_at', 'content', 'views'] as $field) {
+                    if ($a[$field] !== $b[$field]) {
+                        return $b[$field] <=> $a[$field];
+                    }
+                }
+
+                // When every quality signal ties, keep the older stable record.
+                return $a['id'] <=> $b['id'];
+            });
+
+            $cache[$key] = (int) $candidates[0]['id'];
+        }
+
+        return $cache;
     }
 
     private function pairParts(string $value, bool $alreadySlugged): Collection

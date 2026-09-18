@@ -183,7 +183,7 @@ class SeoSitemapController extends Controller
         $items = Comparison::query()
             ->where('status', 'published')
             ->whereNotNull('slug')
-            ->select(['id', 'title', 'slug', 'comparable_type', 'item_ids', 'updated_at', 'last_verified_at'])
+            ->select(['id', 'title', 'slug', 'comparable_type', 'item_ids', 'status', 'summary', 'primary_intent', 'auto_generated', 'seo_faq', 'views', 'updated_at', 'created_at', 'last_verified_at'])
             ->orderByDesc('updated_at')
             ->get()
             ->each(function (Comparison $comparison) {
@@ -192,14 +192,7 @@ class SeoSitemapController extends Controller
                     $comparison->last_verified_at,
                 ]);
             })
-            ->filter(function (Comparison $comparison) {
-                try {
-                    return $comparison->publicItems()->count() >= 2;
-                } catch (\Throwable $e) {
-                    report($e);
-                    return false;
-                }
-            })
+            ->filter(fn (Comparison $comparison) => $comparison->isSeoIndexable())
             ->values();
 
         return $this->xml($items, fn ($item) => route('comparisons.show', $item));

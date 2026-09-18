@@ -103,7 +103,7 @@
             </div>
             <div class="tool-hero-actions">
                 <button type="button" class="detail-secondary-btn" data-save-item data-save-type="tool" data-save-id="{{ $tool->id }}" aria-pressed="false"><i data-lucide="bookmark"></i><span data-save-label data-default-label="Save">Save</span></button>
-                <a href="{{ route('comparisons.builder', ['type' => 'tool', 'item' => $tool->id]) }}" class="detail-secondary-btn"><i data-lucide="scale"></i><span>Compare</span></a>
+                <a href="{{ route('comparisons.builder', ['type' => 'tool', 'item' => $tool->id]) }}" class="detail-secondary-btn"><i data-lucide="scale"></i><span>Compare with...</span></a>
                 @if($pricingPlans->isNotEmpty())
                     <a href="{{ route('pricing.show', $tool) }}" class="detail-secondary-btn tool-pricing-action"><i data-lucide="badge-dollar-sign"></i><span>Pricing &amp; plans</span></a>
                 @else

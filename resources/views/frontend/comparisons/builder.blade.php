@@ -2,6 +2,8 @@
 
 @section('title', 'Build an AI Comparison | AI Orbit')
 @section('meta_description', 'Select 2–4 AI tools or models and compare their pricing, capabilities, benchmark performance and product details side by side.')
+@section('canonical', route('comparisons.builder'))
+@section('robots', 'noindex,follow')
 
 @push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/comparisons.css') }}">@endpush
 @push('scripts')<script src="{{ asset('js/frontend/comparisons.js') }}" defer></script>@endpush
@@ -12,6 +14,7 @@
         <span class="comparison-kicker"><i data-lucide="git-compare-arrows"></i> Comparison builder</span>
         <h1>Choose what you want to compare.</h1>
         <p>Select between 2 and 4 products. AI Orbit will build a clean side-by-side research view using the data already in your database.</p>
+        <div class="builder-public-note"><i data-lucide="unlock"></i><span>No account is required to compare or share. Sign in only if you want to save the comparison to your AI Orbit account.</span></div>
     </div>
 </section>
 

@@ -599,11 +599,14 @@ class InternalLinkingService
         return $candidates
             ->filter(function (Comparison $comparison) {
                 $items = $this->safePublicItems($comparison);
-                if ($items->count() < 2) {
+                // Related comparison discovery should reinforce only the
+                // canonical SEO-ready pair record. Thin/duplicate rows remain
+                // directly available but are intentionally not promoted.
+                if ($items->count() !== 2) {
                     return false;
                 }
                 $comparison->setRelation('resolved_items', $items);
-                return true;
+                return $comparison->isSeoIndexable();
             })
             ->take($limit)
             ->values();

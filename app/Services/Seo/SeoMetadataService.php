@@ -237,7 +237,7 @@ class SeoMetadataService
             'tool_pricing' => $primary.': Plans, Costs & Billing',
             'model_detail' => $this->modelTitle($primary, $entity),
             'company_detail' => $this->companyTitle($primary, $entity),
-            'comparison_detail' => $primary.': Features, Pricing & Key Differences',
+            'comparison_detail' => $primary.': Pricing, Benchmarks & Key Differences',
             'benchmark_detail' => $primary.': Scores, Results & Leaderboard',
             'category_detail', 'subcategory_detail' => $primary.': Compare Top Products',
             'feature_detail', 'use_case_detail' => $primary.': Compare Tools & Models',
@@ -445,6 +445,15 @@ class SeoMetadataService
     private function comparisonDescription(string $primary, ?Model $entity, string $fallback): string
     {
         if ($entity instanceof Comparison) {
+            try {
+                $names = $entity->publicItems()->pluck('name')->filter()->take(2)->values();
+                if ($names->count() === 2) {
+                    return 'Compare '.$names[0].' vs '.$names[1].' across pricing, verified benchmarks, capabilities and key product differences. Review evidence freshness and side-by-side data on AI Orbit.';
+                }
+            } catch (\Throwable $e) {
+                report($e);
+            }
+
             $summary = $this->clean($entity->summary);
             if ($summary !== '') {
                 return $summary;
@@ -453,7 +462,7 @@ class SeoMetadataService
 
         return $fallback !== ''
             ? $fallback
-            : 'Compare '.$primary.' across pricing, capabilities, benchmarks and practical product differences on AI Orbit.';
+            : 'Compare '.$primary.' across pricing, verified benchmarks, capabilities and practical product differences on AI Orbit.';
     }
 
     private function benchmarkDescription(string $primary, ?Model $entity, string $fallback): string

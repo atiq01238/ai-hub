@@ -324,14 +324,7 @@ class SeoIntentMapService
             ->whereNotNull('slug')
             ->orderBy('id')
             ->get()
-            ->filter(function (Comparison $comparison) {
-                try {
-                    return $comparison->publicItems()->count() >= 2;
-                } catch (\Throwable $e) {
-                    report($e);
-                    return false;
-                }
-            })
+            ->filter(fn (Comparison $comparison) => $comparison->isSeoIndexable())
             ->map(function (Comparison $comparison) {
                 $items = $comparison->publicItems()->pluck('name')->filter()->take(2)->values();
                 $pair = $items->count() === 2

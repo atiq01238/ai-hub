@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AiModel;
 use App\Models\Comparison;
 use App\Models\Tool;
+use App\Models\UserComparison;
 use App\Services\Frontend\ComparisonHistoryService;
 use App\Services\Frontend\QuickFeedbackService;
 use App\Services\ComparisonIntelligenceService;
@@ -61,7 +62,10 @@ class ComparisonController extends Controller
                 report($e);
                 $comparison->setRelation('resolved_items', collect());
             }
-        })->filter(fn (Comparison $comparison) => $comparison->getRelation('resolved_items')->count() >= 2)->values();
+        })->filter(function (Comparison $comparison) {
+            return $comparison->getRelation('resolved_items')->count() === 2
+                && $comparison->isSeoIndexable();
+        })->values();
 
         $perPage = 9;
         $currentPage = LengthAwarePaginator::resolveCurrentPage();
@@ -87,10 +91,52 @@ class ComparisonController extends Controller
                     $comparison->setRelation('resolved_items', collect());
                 }
             })
-            ->filter(fn (Comparison $comparison) => $comparison->getRelation('resolved_items')->count() >= 2)
+            ->filter(function (Comparison $comparison) {
+                return $comparison->getRelation('resolved_items')->count() === 2
+                    && $comparison->isSeoIndexable();
+            })
             ->values();
 
         $featured = $allPublic->take(3)->values();
+        $featuredIds = $featured->pluck('id')->all();
+        $recent = $allPublic
+            ->reject(fn (Comparison $comparison) => in_array($comparison->id, $featuredIds, true))
+            ->sortByDesc(function (Comparison $comparison) {
+                $date = $comparison->last_verified_at ?: $comparison->updated_at ?: $comparison->created_at;
+                return $date?->getTimestamp() ?? 0;
+            })
+            ->take(4)
+            ->values();
+
+        // Keep the quick-start catalog lightweight but complete enough for the
+        // public two-item selector. The full 2–4 item workflow stays in Builder.
+        $quickTools = Tool::query()
+            ->with('company:id,name')
+            ->where('status', 'published')
+            ->orderByDesc('rating')
+            ->orderBy('name')
+            ->get(['id', 'company_id', 'name', 'slug', 'rating']);
+
+        $quickModels = AiModel::query()
+            ->with('company:id,name')
+            ->whereIn('status', ['active', 'preview'])
+            ->orderByDesc('benchmark_score')
+            ->orderBy('name')
+            ->get(['id', 'company_id', 'name', 'slug', 'benchmark_score', 'status']);
+
+        $personalStats = null;
+        if ($request->user()) {
+            $personalStats = [
+                'saved' => UserComparison::query()
+                    ->where('user_id', $request->user()->id)
+                    ->where('is_saved', true)
+                    ->count(),
+                'history' => UserComparison::query()
+                    ->where('user_id', $request->user()->id)
+                    ->whereNotNull('last_viewed_at')
+                    ->count(),
+            ];
+        }
 
         $stats = [
             'published' => $allPublic->count(),
@@ -100,7 +146,8 @@ class ComparisonController extends Controller
         ];
 
         return view('frontend.comparisons.index', compact(
-            'comparisons', 'featured', 'stats', 'type', 'search', 'sort'
+            'comparisons', 'featured', 'recent', 'quickTools', 'quickModels',
+            'personalStats', 'stats', 'type', 'search', 'sort'
         ));
     }
 
@@ -137,6 +184,11 @@ class ComparisonController extends Controller
         $rows = $modelClass::query()
             ->with('company')
             ->whereIn('id', $data['items'])
+            ->when(
+                $data['type'] === 'tool',
+                fn ($query) => $query->where('status', 'published'),
+                fn ($query) => $query->whereIn('status', ['active', 'preview'])
+            )
             ->get()
             ->keyBy('id');
 
@@ -156,10 +208,15 @@ class ComparisonController extends Controller
         $relatedArticles = collect();
         $isPreview = true;
         $intelligence = $this->safeIntelligence($items, $comparisonType);
-        $winner = data_get($intelligence, 'overall');
+        $winner = null;
         $labComparison = ['stats' => collect(), 'shared' => collect(), 'has_data' => false];
         // Preview comparisons do not have a persisted comparison ID to rate.
         $quickRating = null;
+        $comparisonSeoAssessment = [
+            'indexable' => false,
+            'reasons' => ['custom_preview'],
+            'warnings' => [],
+        ];
 
         if ($request->user()) {
             $this->userHistory->fromPreview(
@@ -173,7 +230,7 @@ class ComparisonController extends Controller
 
         return view('frontend.comparisons.show', compact(
             'comparison', 'comparisonType', 'items', 'winner', 'title',
-            'relatedComparisons', 'relatedArticles', 'isPreview', 'intelligence', 'labComparison', 'quickRating'
+            'relatedComparisons', 'relatedArticles', 'isPreview', 'intelligence', 'labComparison', 'quickRating', 'comparisonSeoAssessment'
         ));
     }
 
@@ -190,14 +247,6 @@ class ComparisonController extends Controller
             return redirect()->route('comparisons.show', $canonicalSlug, 301);
         }
 
-        // Views are analytics, not editorial content. Updating the model with
-        // Eloquent's increment() can advance updated_at, which would make sitemap
-        // lastmod look fresh on every visit. Increment directly instead.
-        DB::table($comparison->getTable())
-            ->where($comparison->getKeyName(), $comparison->getKey())
-            ->increment('views');
-        $comparison->views = (int) $comparison->views + 1;
-
         try {
             $items = $comparison->publicItems();
         } catch (\Throwable $e) {
@@ -209,13 +258,33 @@ class ComparisonController extends Controller
         // can be recovered. Comparison::items() includes stale-ID recovery.
         abort_if($items->count() < 2, 404);
 
+        // Resolve quality/duplicate ownership against the exact public pair. A
+        // duplicate persisted X-vs-Y row permanently consolidates to the single
+        // canonical comparison record instead of creating competing SEO URLs.
+        $comparison->setRelation('resolved_items', $items);
+        $comparisonSeoAssessment = $comparison->seoAssessment();
+        $canonicalComparisonId = (int) ($comparisonSeoAssessment['canonical_id'] ?? 0);
+        if ($canonicalComparisonId > 0 && $canonicalComparisonId !== (int) $comparison->getKey()) {
+            $canonicalComparison = Comparison::query()->find($canonicalComparisonId);
+            if ($canonicalComparison && $canonicalComparison->status === 'published') {
+                return redirect()->route('comparisons.show', $canonicalComparison, 301);
+            }
+        }
+
+        // Views are analytics, not editorial content. Count only the canonical
+        // comparison page after duplicate/alias redirects have been resolved.
+        DB::table($comparison->getTable())
+            ->where($comparison->getKeyName(), $comparison->getKey())
+            ->increment('views');
+        $comparison->views = (int) $comparison->views + 1;
+
         $this->hydrateForDisplay($items, $comparison->comparable_type);
 
         $comparisonType = $comparison->comparable_type;
         $title = $comparison->title;
         $isPreview = false;
         $intelligence = $this->safeIntelligence($items, $comparisonType);
-        $winner = data_get($intelligence, 'overall');
+        $winner = null;
         $labComparison = ['stats' => collect(), 'shared' => collect(), 'has_data' => false];
 
         // Quick feedback is optional UI. A feedback-table/config problem must
@@ -239,16 +308,17 @@ class ComparisonController extends Controller
 
         return view('frontend.comparisons.show', compact(
             'comparison', 'comparisonType', 'items', 'winner', 'title',
-            'relatedComparisons', 'relatedArticles', 'isPreview', 'intelligence', 'labComparison', 'quickRating'
+            'relatedComparisons', 'relatedArticles', 'isPreview', 'intelligence', 'labComparison', 'quickRating', 'comparisonSeoAssessment'
         ));
     }
 
     private function hydrateForDisplay(Collection $items, string $type): void
     {
         foreach ($items as $item) {
-            $relations = ['company'];
+            $relations = ['company', 'useCaseTerms'];
             if ($type === 'tool') {
                 $relations[] = 'category';
+                $relations[] = 'technicalProfile';
             }
 
             try {
@@ -270,14 +340,27 @@ class ComparisonController extends Controller
             // presentation-safe fallback only; it never fabricates benchmark data.
             return [
                 'benchmarkMatrix' => [],
+                'sharedBenchmarkMatrix' => [],
+                'additionalBenchmarkMatrix' => [],
                 'benchmarkMeta' => [],
+                'benchmarkGroups' => [],
                 'sharedBenchmarkKeys' => [],
                 'benchmarkLeaders' => [],
                 'wins' => [],
-                'weightedWins' => [],
+                'ties' => [],
                 'verifiedBenchmarkItemIds' => [],
-                'verifiedComposite' => [],
                 'pricing' => [],
+                'sharedBenchmarkCount' => 0,
+                'decisionSignals' => [],
+                'capabilityCoverage' => ['shared' => [], 'unique' => []],
+                'useCaseCoverage' => ['shared' => [], 'unique' => []],
+                'itemEvidence' => [],
+                'snapshot' => [
+                    ['label' => 'Items compared', 'value' => (string) $items->count(), 'detail' => 'Public catalog profiles', 'icon' => 'columns-3'],
+                    ['label' => 'Shared benchmarks', 'value' => '0', 'detail' => 'Verified benchmark evidence unavailable', 'icon' => 'gauge'],
+                    ['label' => 'Pricing coverage', 'value' => '0 / '.$items->count(), 'detail' => 'Structured pricing temporarily unavailable', 'icon' => 'badge-dollar-sign'],
+                    ['label' => 'Evidence freshness', 'value' => 'Profile data', 'detail' => 'Comparison evidence temporarily unavailable', 'icon' => 'calendar-check-2'],
+                ],
                 'overall' => null,
                 'overallVerdict' => [
                     'winner_id' => null,

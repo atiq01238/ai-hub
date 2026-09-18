@@ -235,6 +235,22 @@
         @endif
     @endif
 
+    @if($tab==='comparisons' && !empty($comparisonMetrics))
+    <section class="an-live-strip">
+        @foreach([
+            ['Published pairs',$comparisonMetrics['published'] ?? 0,'Published persisted comparison records','columns-3'],
+            ['SEO-ready',$comparisonMetrics['seo_ready'] ?? 0,'Canonical pair pages eligible for sitemap/internal discovery','search-check'],
+            ['Drafts',$comparisonMetrics['drafts'] ?? 0,'Comparison records still in editorial draft','file-clock'],
+            ['Lifetime views',$comparisonMetrics['lifetime_views'] ?? 0,'Legacy + current recorded comparison views','eye'],
+        ] as [$label,$value,$help,$icon])
+        <article class="an-live-stat">
+            <span><i data-lucide="{{ $icon }}"></i></span>
+            <div><small>{{ $label }}</small><strong>{{ number_format((int)$value) }}</strong><p>{{ $help }}</p></div>
+        </article>
+        @endforeach
+    </section>
+    @endif
+
     @if($tab==='content' && !empty($contentMetrics))
     <section class="card an-operations">
         <header class="an-card-head">

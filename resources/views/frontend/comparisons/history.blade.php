@@ -8,6 +8,12 @@
     <p>Recently viewed tool and model comparisons while signed in.</p>
 </div></section>
 <section class="comparison-detail-body"><div class="compare-container">
+    <nav class="comparison-account-nav" aria-label="Comparison research navigation">
+        <a class="" href="{{ route('user.comparisons.index') }}"><i data-lucide="bookmark-check"></i> Saved comparisons</a>
+        <a class="active" href="{{ route('user.comparisons.history') }}"><i data-lucide="history"></i> History</a>
+        <a href="{{ route('comparisons.builder') }}"><i data-lucide="plus"></i> New comparison</a>
+        <a href="{{ route('comparisons.index') }}"><i data-lucide="library"></i> Browse library</a>
+    </nav>
     <div class="related-comparison-grid">
         @forelse($comparisons as $item)
             @php($params = http_build_query(['type'=>$item->comparable_type,'items'=>$item->item_ids]))
