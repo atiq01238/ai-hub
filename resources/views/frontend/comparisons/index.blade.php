@@ -74,10 +74,10 @@
 @endpush
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('css/frontend/comparisons.css') }}">
+<link rel="stylesheet" href="{{ asset('css/frontend/comparisons.css') }}?v={{ @filemtime(public_path('css/frontend/comparisons.css')) ?: '20260918-compare4' }}">
 @endpush
 @push('scripts')
-<script src="{{ asset('js/frontend/comparisons.js') }}" defer></script>
+<script src="{{ asset('js/frontend/comparisons.js') }}?v={{ @filemtime(public_path('js/frontend/comparisons.js')) ?: '20260918-compare4' }}" defer></script>
 @endpush
 
 @section('content')

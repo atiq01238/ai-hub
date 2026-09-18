@@ -198,7 +198,7 @@
 )
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('css/frontend/comparisons.css') }}">
+<link rel="stylesheet" href="{{ asset('css/frontend/comparisons.css') }}?v={{ @filemtime(public_path('css/frontend/comparisons.css')) ?: '20260918-compare4' }}">
 @endpush
 @if($comparisonIsSeoPair)
 

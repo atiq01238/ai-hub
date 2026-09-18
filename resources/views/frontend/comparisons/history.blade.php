@@ -1,6 +1,6 @@
 @extends('frontend.layouts.app')
 @section('title','Comparison History | AI Orbit')
-@push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/comparisons.css') }}">@endpush
+@push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/comparisons.css') }}?v={{ @filemtime(public_path('css/frontend/comparisons.css')) ?: '20260918-compare4' }}">@endpush
 @section('content')
 <section class="builder-hero"><div class="compare-container builder-hero-inner">
     <span class="comparison-kicker"><i data-lucide="history"></i> ACCOUNT HISTORY</span>

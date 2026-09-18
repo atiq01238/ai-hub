@@ -1,3 +1,4 @@
+/* AI Orbit comparisons asset: production cache-bust fix 2026-09-18 */
 document.addEventListener('DOMContentLoaded', () => {
   const initBuilder = () => {
     const root = document.querySelector('[data-comparison-builder]');
