@@ -18,7 +18,7 @@ return [
     // ranking shortcut or a substitute for normal internal linking.
     'crawl_focus_model_slugs' => [
         'deepseek-r1',
-        'deepseek-v3-1',
+        'deepseek-v31',
         'gemma-3-27b',
     ],
 
@@ -32,7 +32,7 @@ return [
     ],
 
     'impression_focus_model_slugs' => [
-        'gpt-4-1',
+        'gpt-41-multimodal',
     ],
 
     'impression_focus_company_slugs' => [
@@ -52,5 +52,6 @@ return [
         'features.show',
         'use-cases.show',
         'topics.show',
+        'pricing.index',
     ],
 ];
