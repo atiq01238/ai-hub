@@ -1,3 +1,4 @@
+// AI Orbit pricing UI bundle: 2026-09-19 cache refresh
 (() => {
     'use strict';
 

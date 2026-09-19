@@ -107,7 +107,7 @@
 @endpush
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/frontend/pricing-intelligence.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/frontend/pricing-intelligence.css') }}?v={{ is_file(public_path('css/frontend/pricing-intelligence.css')) ? filemtime(public_path('css/frontend/pricing-intelligence.css')) : '20260919' }}">
 @endpush
 
 @section('content')
