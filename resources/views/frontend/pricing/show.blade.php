@@ -293,90 +293,170 @@
         <section class="pi-panel pi-plan-comparison-panel">
             <div class="pi-panel-title pi-panel-title-stack-mobile">
                 <span><i data-lucide="table-properties"></i> Plan comparison</span>
-                <small>Published values only — blanks mean the provider has not supplied a comparable field.</small>
+                <small>Adaptive view — rows without useful comparable data are hidden. Hover over — for missing-value context.</small>
             </div>
+
+            @php
+                $comparisonPlans = $tool->pricingPlans;
+                $hasMonthlyValues = $comparisonPlans->contains(fn ($plan) => $plan->monthly_price !== null);
+                $annualValueCount = $comparisonPlans->filter(fn ($plan) => $plan->yearly_price !== null)->count();
+                $annualEquivalentCount = $comparisonPlans->filter(fn ($plan) => $plan->annual_monthly_equivalent !== null)->count();
+                $annualSavingCount = $comparisonPlans->filter(fn ($plan) => $plan->annual_savings_percent !== null)->count();
+                $hasApiValues = $comparisonPlans->contains(fn ($plan) => filled($plan->api_price_label));
+                $hasCreditValues = $comparisonPlans->contains(fn ($plan) => filled($plan->credits));
+                $hasLimitValues = $comparisonPlans->contains(fn ($plan) => filled($plan->limits));
+                $hasBillingValues = $comparisonPlans->contains(fn ($plan) => filled($plan->billing_type) || filled($plan->billing_unit));
+                $missingComparableLabel = 'No comparable value published in the current AI Orbit pricing data.';
+
+                // Secondary annual rows only help when there is enough comparable evidence.
+                $showAnnualRow = $annualValueCount > 0;
+                $showAnnualEquivalentRow = $annualEquivalentCount >= 2;
+                $showAnnualSavingRow = $annualSavingCount >= 2;
+            @endphp
 
             <div class="pi-plan-table-wrap">
                 <table class="pi-plan-table">
                     <thead>
                         <tr>
                             <th>Detail</th>
-                            @foreach($tool->pricingPlans as $plan)
+                            @foreach($comparisonPlans as $plan)
                                 <th>{{ $plan->plan_name }}</th>
                             @endforeach
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <th>Monthly</th>
-                            @foreach($tool->pricingPlans as $plan)
-                                <td>
-                                    @if($plan->monthly_price === null)
-                                        —
-                                    @elseif((float)$plan->monthly_price === 0.0)
-                                        <strong>Free</strong>
-                                    @else
-                                        {{ $money($plan->monthly_price, $plan->currency) }}
-                                    @endif
-                                </td>
-                            @endforeach
-                        </tr>
-                        <tr>
-                            <th>Annual</th>
-                            @foreach($tool->pricingPlans as $plan)
-                                <td>
-                                    @if($plan->yearly_price === null)
-                                        —
-                                    @elseif((float)$plan->yearly_price === 0.0)
-                                        <strong>Free</strong>
-                                    @else
-                                        {{ $money($plan->yearly_price, $plan->currency) }}
-                                    @endif
-                                </td>
-                            @endforeach
-                        </tr>
-                        <tr>
-                            <th>Annual monthly equivalent</th>
-                            @foreach($tool->pricingPlans as $plan)
-                                <td>{{ $plan->annual_monthly_equivalent ? $money($plan->annual_monthly_equivalent, $plan->currency) : '—' }}</td>
-                            @endforeach
-                        </tr>
-                        <tr>
-                            <th>Annual saving</th>
-                            @foreach($tool->pricingPlans as $plan)
-                                <td>{{ $plan->annual_savings_percent ? number_format((float)$plan->annual_savings_percent, 1).'%' : '—' }}</td>
-                            @endforeach
-                        </tr>
-                        <tr>
-                            <th>API pricing</th>
-                            @foreach($tool->pricingPlans as $plan)
-                                <td>{{ $plan->api_price_label ?: '—' }}</td>
-                            @endforeach
-                        </tr>
-                        <tr>
-                            <th>Credits</th>
-                            @foreach($tool->pricingPlans as $plan)
-                                <td>{{ $plan->credits ?: '—' }}</td>
-                            @endforeach
-                        </tr>
-                        <tr>
-                            <th>Limits</th>
-                            @foreach($tool->pricingPlans as $plan)
-                                <td>{{ $plan->limits ?: '—' }}</td>
-                            @endforeach
-                        </tr>
-                        <tr>
-                            <th>Billing</th>
-                            @foreach($tool->pricingPlans as $plan)
-                                <td>
-                                    {{ $plan->billing_type ? \Illuminate\Support\Str::headline((string)$plan->billing_type) : '—' }}
-                                    @if($plan->billing_unit)<small>{{ $plan->billing_unit }}</small>@endif
-                                </td>
-                            @endforeach
-                        </tr>
+                        @if($hasMonthlyValues)
+                            <tr>
+                                <th>Monthly</th>
+                                @foreach($comparisonPlans as $plan)
+                                    <td>
+                                        @if($plan->monthly_price === null)
+                                            <span title="{{ $missingComparableLabel }}" aria-label="{{ $missingComparableLabel }}">—</span>
+                                        @elseif((float)$plan->monthly_price === 0.0)
+                                            <strong>Free</strong>
+                                        @else
+                                            {{ $money($plan->monthly_price, $plan->currency) }}
+                                        @endif
+                                    </td>
+                                @endforeach
+                            </tr>
+                        @endif
+
+                        @if($showAnnualRow)
+                            <tr>
+                                <th>Annual</th>
+                                @foreach($comparisonPlans as $plan)
+                                    <td>
+                                        @if($plan->yearly_price === null)
+                                            <span title="{{ $missingComparableLabel }}" aria-label="{{ $missingComparableLabel }}">—</span>
+                                        @elseif((float)$plan->yearly_price === 0.0)
+                                            <strong>Free</strong>
+                                        @else
+                                            {{ $money($plan->yearly_price, $plan->currency) }}
+                                        @endif
+                                    </td>
+                                @endforeach
+                            </tr>
+                        @endif
+
+                        @if($showAnnualEquivalentRow)
+                            <tr>
+                                <th>Annual monthly equivalent</th>
+                                @foreach($comparisonPlans as $plan)
+                                    <td>
+                                        @if($plan->annual_monthly_equivalent !== null)
+                                            {{ $money($plan->annual_monthly_equivalent, $plan->currency) }}
+                                        @else
+                                            <span title="{{ $missingComparableLabel }}" aria-label="{{ $missingComparableLabel }}">—</span>
+                                        @endif
+                                    </td>
+                                @endforeach
+                            </tr>
+                        @endif
+
+                        @if($showAnnualSavingRow)
+                            <tr>
+                                <th>Annual saving</th>
+                                @foreach($comparisonPlans as $plan)
+                                    <td>
+                                        @if($plan->annual_savings_percent !== null)
+                                            {{ number_format((float)$plan->annual_savings_percent, 1) }}%
+                                        @else
+                                            <span title="{{ $missingComparableLabel }}" aria-label="{{ $missingComparableLabel }}">—</span>
+                                        @endif
+                                    </td>
+                                @endforeach
+                            </tr>
+                        @endif
+
+                        @if($hasApiValues)
+                            <tr>
+                                <th>API / usage pricing</th>
+                                @foreach($comparisonPlans as $plan)
+                                    <td>
+                                        @if(filled($plan->api_price_label))
+                                            {{ $plan->api_price_label }}
+                                        @else
+                                            <span title="{{ $missingComparableLabel }}" aria-label="{{ $missingComparableLabel }}">—</span>
+                                        @endif
+                                    </td>
+                                @endforeach
+                            </tr>
+                        @endif
+
+                        @if($hasCreditValues)
+                            <tr>
+                                <th>Credits</th>
+                                @foreach($comparisonPlans as $plan)
+                                    <td>
+                                        @if(filled($plan->credits))
+                                            {{ $plan->credits }}
+                                        @else
+                                            <span title="{{ $missingComparableLabel }}" aria-label="{{ $missingComparableLabel }}">—</span>
+                                        @endif
+                                    </td>
+                                @endforeach
+                            </tr>
+                        @endif
+
+                        @if($hasLimitValues)
+                            <tr>
+                                <th>Limits</th>
+                                @foreach($comparisonPlans as $plan)
+                                    <td>
+                                        @if(filled($plan->limits))
+                                            {{ $plan->limits }}
+                                        @else
+                                            <span title="{{ $missingComparableLabel }}" aria-label="{{ $missingComparableLabel }}">—</span>
+                                        @endif
+                                    </td>
+                                @endforeach
+                            </tr>
+                        @endif
+
+                        @if($hasBillingValues)
+                            <tr>
+                                <th>Billing</th>
+                                @foreach($comparisonPlans as $plan)
+                                    <td>
+                                        @if(filled($plan->billing_type) || filled($plan->billing_unit))
+                                            @if(filled($plan->billing_type))
+                                                {{ \Illuminate\Support\Str::headline((string)$plan->billing_type) }}
+                                            @endif
+                                            @if(filled($plan->billing_unit))
+                                                <small>{{ $plan->billing_unit }}</small>
+                                            @endif
+                                        @else
+                                            <span title="{{ $missingComparableLabel }}" aria-label="{{ $missingComparableLabel }}">—</span>
+                                        @endif
+                                    </td>
+                                @endforeach
+                            </tr>
+                        @endif
+
                         <tr>
                             <th>Verification</th>
-                            @foreach($tool->pricingPlans as $plan)
+                            @foreach($comparisonPlans as $plan)
                                 <td>
                                     <span class="pi-freshness {{ $plan->freshness }}">
                                         {{ match($plan->freshness) {
