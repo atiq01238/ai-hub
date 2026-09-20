@@ -8,6 +8,12 @@
             $frontUnread = \App\Models\AppNotification::where('user_id', auth()->id())->unread()->count();
         } catch (\Throwable $e) {}
     }
+
+    $googleAnalyticsMeasurementId = trim((string) config('analytics.google_measurement_id', ''));
+    $googleAnalyticsAllowed = (bool) config('analytics.google_enabled', false)
+        && $googleAnalyticsMeasurementId !== ''
+        && (! config('analytics.exclude_admins', true) || ! $frontHasAdminAccess)
+        && (! config('analytics.respect_dnt', true) || request()->header('DNT') !== '1');
 @endphp
 <!doctype html>
 <html lang="en">
@@ -23,6 +29,16 @@
     <meta name="search-click-url" content="{{ route('search.click') }}">
     <meta name="auth-status" content="{{ auth()->check() ? '1' : '0' }}">
     @include('frontend.partials.seo')
+    @if($googleAnalyticsAllowed)
+        <!-- Google tag (gtag.js) -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id={{ rawurlencode($googleAnalyticsMeasurementId) }}"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', @json($googleAnalyticsMeasurementId));
+        </script>
+    @endif
     <link rel="icon" type="image/png" sizes="32x32" href="{{ asset(config('brand.assets.favicon_32')) }}">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ asset(config('brand.assets.favicon_16')) }}">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset(config('brand.assets.apple_touch_icon')) }}">
