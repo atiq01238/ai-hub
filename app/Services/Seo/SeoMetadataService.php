@@ -234,10 +234,10 @@ class SeoMetadataService
             'trending_directory' => $primary.': What Is Popular Now',
 
             'tool_detail' => $primary.': Features, Use Cases & Alternatives',
-            'tool_pricing' => $primary.': Plans, Costs & Billing',
+            'tool_pricing' => $this->pricingTitle($primary, $entity),
             'model_detail' => $this->modelTitle($primary, $entity),
             'company_detail' => $this->companyTitle($primary, $entity),
-            'comparison_detail' => $primary.': Pricing, Benchmarks & Key Differences',
+            'comparison_detail' => $this->comparisonTitle($primary, $entity),
             'benchmark_detail' => $primary.': Scores, Results & Leaderboard',
             'category_detail', 'subcategory_detail' => $primary.': Compare Top Products',
             'feature_detail', 'use_case_detail' => $primary.': Compare Tools & Models',
@@ -246,6 +246,35 @@ class SeoMetadataService
 
             default => $this->preferredOrPrimary($fallbackTitle, $primary),
         };
+    }
+
+    private function pricingTitle(string $primary, ?Model $entity): string
+    {
+        if (! $entity instanceof Tool) {
+            return $primary.': Plans, Cost & Billing';
+        }
+
+        $hasApiPricing = $entity->pricingPlans()->whereNotNull('api_price_label')->exists();
+        $hasAnnualPricing = $entity->pricingPlans()->whereNotNull('yearly_price')->exists();
+
+        if ($hasApiPricing) {
+            return $primary.': Plans, Cost & API Rates';
+        }
+
+        if ($hasAnnualPricing) {
+            return $primary.': Plans, Cost & Annual Billing';
+        }
+
+        return $primary.': Plans, Cost & Billing';
+    }
+
+    private function comparisonTitle(string $primary, ?Model $entity): string
+    {
+        if ($entity instanceof Comparison && $entity->comparable_type === 'tool') {
+            return $primary.': Pricing, Features & Differences';
+        }
+
+        return $primary.': Pricing, Benchmarks & Differences';
     }
 
     private function modelTitle(string $primary, ?Model $entity): string
@@ -390,10 +419,29 @@ class SeoMetadataService
     private function pricingDescription(string $primary, ?Model $entity): string
     {
         $name = $entity instanceof Tool ? $entity->name : preg_replace('/\s+pricing$/i', '', $primary);
-        $planCount = $entity instanceof Tool ? $entity->pricingPlans()->count() : 0;
 
-        return 'Compare '.$name.' pricing'.($planCount > 0 ? ' across '.$planCount.' listed plan'.($planCount === 1 ? '' : 's') : '').
-            ', costs, billing units, limits, verification dates and official pricing evidence on AI Orbit.';
+        if (! $entity instanceof Tool) {
+            return 'Compare '.$name.' pricing, plans, costs, billing terms, limits and published pricing evidence on AI Orbit.';
+        }
+
+        $plans = $entity->pricingPlans()
+            ->get(['monthly_price', 'yearly_price', 'api_price_label']);
+        $planCount = $plans->count();
+        $signals = collect([
+            $plans->contains(fn ($plan) => $plan->monthly_price !== null && (float) $plan->monthly_price === 0.0) ? 'free tier' : null,
+            $plans->contains(fn ($plan) => $plan->yearly_price !== null) ? 'annual billing' : null,
+            $plans->contains(fn ($plan) => filled($plan->api_price_label)) ? 'API rates' : null,
+        ])->filter()->values();
+
+        $description = 'Compare '.$name.' pricing';
+        if ($planCount > 0) {
+            $description .= ' across '.$planCount.' listed plan'.($planCount === 1 ? '' : 's');
+        }
+        if ($signals->isNotEmpty()) {
+            $description .= ', including '.$signals->join(', ', ' and ');
+        }
+
+        return $description.'. Review costs, limits, billing terms and verified pricing evidence on AI Orbit.';
     }
 
     private function modelDescription(string $primary, ?Model $entity): string
@@ -448,7 +496,11 @@ class SeoMetadataService
             try {
                 $names = $entity->publicItems()->pluck('name')->filter()->take(2)->values();
                 if ($names->count() === 2) {
-                    return 'Compare '.$names[0].' vs '.$names[1].' across pricing, verified benchmarks, capabilities and key product differences. Review evidence freshness and side-by-side data on AI Orbit.';
+                    if ($entity->comparable_type === 'tool') {
+                        return 'Compare '.$names[0].' vs '.$names[1].' across pricing, features, use cases and key product differences. Review evidence freshness and side-by-side structured data on AI Orbit.';
+                    }
+
+                    return 'Compare '.$names[0].' vs '.$names[1].' across pricing, verified benchmarks, context and capabilities. Review evidence freshness and side-by-side model data on AI Orbit.';
                 }
             } catch (\Throwable $e) {
                 report($e);
@@ -462,7 +514,7 @@ class SeoMetadataService
 
         return $fallback !== ''
             ? $fallback
-            : 'Compare '.$primary.' across pricing, verified benchmarks, capabilities and practical product differences on AI Orbit.';
+            : 'Compare '.$primary.' across pricing, capabilities and practical product differences on AI Orbit.';
     }
 
     private function benchmarkDescription(string $primary, ?Model $entity, string $fallback): string

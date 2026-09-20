@@ -41,6 +41,81 @@
         ->map(fn ($plan) => (float) $plan->monthly_price);
     $pricingLowestPaidMonthly = $pricingPaidMonthly->isNotEmpty() ? $pricingPaidMonthly->min() : null;
     $pricingPlanNames = $pricingPlansForSeo->pluck('plan_name')->filter()->unique()->values();
+    $pricingHasApiPricing = $pricingPlansForSeo->contains(fn ($plan) => filled($plan->api_price_label));
+    $pricingHasAnnualPricing = $pricingPlansForSeo->contains(fn ($plan) => $plan->yearly_price !== null);
+
+    $pricingFaq = collect();
+    if ($pricingPlansForSeo->isNotEmpty()) {
+        if ($pricingHasFreePlan && $pricingLowestPaidMonthly !== null) {
+            $costAnswer = 'AI Orbit currently lists a free '.$tool->name.' plan and paid plans starting at $'.number_format($pricingLowestPaidMonthly, 2).' per month. Review the plan table for limits and billing terms.';
+        } elseif ($pricingHasFreePlan) {
+            $costAnswer = 'AI Orbit currently lists a free '.$tool->name.' plan. Other pricing may be custom, usage-based or published without a standard monthly amount.';
+        } elseif ($pricingLowestPaidMonthly !== null) {
+            $costAnswer = 'AI Orbit currently lists paid '.$tool->name.' plans starting at $'.number_format($pricingLowestPaidMonthly, 2).' per month. Review the plan table for limits and billing terms.';
+        } else {
+            $costAnswer = $tool->name.' pricing is currently listed as custom, usage-based or without a standard monthly amount in AI Orbit\'s structured data.';
+        }
+
+        $pricingFaq->push([
+            'question' => 'How much does '.$tool->name.' cost?',
+            'answer' => $costAnswer,
+        ]);
+
+        $pricingFaq->push([
+            'question' => 'Is '.$tool->name.' free?',
+            'answer' => $pricingHasFreePlan
+                ? 'Yes. AI Orbit currently records at least one '.$tool->name.' plan with a $0 monthly price. Free-tier limits can differ from paid plans, so review the plan details above.'
+                : 'AI Orbit does not currently record a $0 monthly '.$tool->name.' plan. Pricing can change, so check the latest provider source before purchasing.',
+        ]);
+
+        if ($pricingPlanNames->isNotEmpty()) {
+            $pricingFaq->push([
+                'question' => 'What '.$tool->name.' pricing plans are listed?',
+                'answer' => 'AI Orbit currently lists '.$pricingPlanNames->join(', ', ' and ').'. The plan table shows stored monthly or yearly prices, limits, credits and usage pricing where available.',
+            ]);
+        }
+
+        if ($pricingHasApiPricing) {
+            $pricingFaq->push([
+                'question' => 'Does '.$tool->name.' have API or usage pricing?',
+                'answer' => 'Yes. At least one '.$tool->name.' plan currently includes published API or usage-pricing information in AI Orbit\'s dataset. Review the plan details above for the recorded rate or billing basis.',
+            ]);
+        }
+
+        if ($pricingHasAnnualPricing) {
+            $pricingFaq->push([
+                'question' => 'Does '.$tool->name.' offer annual pricing?',
+                'answer' => 'AI Orbit currently records annual pricing for at least one '.$tool->name.' plan. Use the annual view above to compare the published yearly price and monthly equivalent where available.',
+            ]);
+        }
+
+        $pricingFaq = $pricingFaq->unique('question')->take(5)->values();
+    }
+
+    $pricingHeroSignals = collect([
+        $pricingPlansForSeo->count() ? $pricingPlansForSeo->count().' listed plan'.($pricingPlansForSeo->count() === 1 ? '' : 's') : null,
+        $pricingHasFreePlan ? 'free tier' : null,
+        $pricingHasAnnualPricing ? 'annual billing' : null,
+        $pricingHasApiPricing ? 'API or usage pricing' : null,
+    ])->filter()->values();
+    $pricingHeroSummary = $pricingHeroSignals->isNotEmpty()
+        ? 'Compare '.$tool->name.' pricing across '.$pricingHeroSignals->join(', ', ' and ').', with verification dates and published price history.'
+        : 'Compare '.$tool->name.' pricing, billing details, verification evidence and published price history.';
+
+    $pricingFaqSchema = $pricingFaq->isNotEmpty()
+        ? [
+            '@' . 'context' => 'https://schema.org',
+            '@' . 'type' => 'FAQPage',
+            'mainEntity' => $pricingFaq->map(fn ($faq) => [
+                '@' . 'type' => 'Question',
+                'name' => $faq['question'],
+                'acceptedAnswer' => [
+                    '@' . 'type' => 'Answer',
+                    'text' => $faq['answer'],
+                ],
+            ])->all(),
+        ]
+        : null;
 
     $pricingBreadcrumbSchema = [
         '@' . 'context' => 'https://schema.org',
@@ -104,6 +179,12 @@
     $pricingBreadcrumbSchema,
     JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
 ) !!}</script>
+@if($pricingFaqSchema)
+<script type="application/ld+json">{!! json_encode(
+    $pricingFaqSchema,
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+) !!}</script>
+@endif
 @endpush
 
 @push('styles')
@@ -125,7 +206,7 @@
             <div class="pi-detail-copy">
                 <span class="pi-kicker">{{ $tool->company?->name ?? 'AI Tool' }}</span>
                 <h1>{{ $tool->name }} pricing</h1>
-                <p>Plans, billing options, API pricing and published price history.</p>
+                <p>{{ $pricingHeroSummary }}</p>
 
                 <div class="pi-verification-strip">
                     <span class="pi-freshness {{ $pricingSummary['freshness'] ?? 'unverified' }}">
@@ -592,56 +673,40 @@
             @empty
                 <div class="pi-panel-empty">No pricing alternatives available yet.</div>
             @endforelse
+
+            @if(($pricingComparisons ?? collect())->isNotEmpty())
+                <div class="pi-panel-title pi-alt-title">
+                    <span><i data-lucide="git-compare-arrows"></i> Compare {{ $tool->name }}</span>
+                </div>
+
+                @foreach($pricingComparisons as $relatedComparison)
+                    <a class="pi-alt" href="{{ route('comparisons.show', $relatedComparison) }}">
+                        <div>
+                            <b>{{ $relatedComparison->title }}</b>
+                            <small>Pricing, features and side-by-side evidence</small>
+                        </div>
+                        <i data-lucide="chevron-right"></i>
+                    </a>
+                @endforeach
+            @endif
         </section>
     </div>
 
-    @if($pricingPlansForSeo->isNotEmpty())
+    @if($pricingFaq->isNotEmpty())
     <section class="pi-panel pi-faq-panel">
         <div class="pi-panel-title">
             <span><i data-lucide="circle-help"></i> {{ $tool->name }} pricing FAQ</span>
         </div>
 
-        <div class="pi-history">
-            <span class="pi-change-icon"><i data-lucide="badge-dollar-sign"></i></span>
-            <div>
-                <b>How much does {{ $tool->name }} cost?</b>
-                <p>
-                    @if($pricingHasFreePlan && $pricingLowestPaidMonthly !== null)
-                        AI Orbit currently lists a free plan and paid plans starting at ${{ number_format($pricingLowestPaidMonthly, 2) }} per month. Check the plans above for limits, billing details and API pricing where available.
-                    @elseif($pricingHasFreePlan)
-                        AI Orbit currently lists a free plan for {{ $tool->name }}. Other pricing may be custom, usage-based or published without a standard monthly amount.
-                    @elseif($pricingLowestPaidMonthly !== null)
-                        AI Orbit currently lists paid {{ $tool->name }} plans starting at ${{ number_format($pricingLowestPaidMonthly, 2) }} per month. Check the plans above for limits and billing details.
-                    @else
-                        {{ $tool->name }} pricing is listed as custom, usage-based or without a standard monthly amount in the current AI Orbit dataset.
-                    @endif
-                </p>
+        @foreach($pricingFaq as $faq)
+            <div class="pi-history">
+                <span class="pi-change-icon"><i data-lucide="circle-help"></i></span>
+                <div>
+                    <b>{{ $faq['question'] }}</b>
+                    <p>{{ $faq['answer'] }}</p>
+                </div>
             </div>
-        </div>
-
-        <div class="pi-history">
-            <span class="pi-change-icon"><i data-lucide="gift"></i></span>
-            <div>
-                <b>Is {{ $tool->name }} free?</b>
-                <p>
-                    @if($pricingHasFreePlan)
-                        Yes. AI Orbit currently records at least one {{ $tool->name }} plan with a $0 monthly price. Review the plan limits above because free-tier allowances can differ from paid plans.
-                    @else
-                        AI Orbit does not currently record a $0 monthly {{ $tool->name }} plan. Pricing can change, so verify the latest offer with the provider before purchasing.
-                    @endif
-                </p>
-            </div>
-        </div>
-
-        @if($pricingPlanNames->isNotEmpty())
-        <div class="pi-history">
-            <span class="pi-change-icon"><i data-lucide="layers-3"></i></span>
-            <div>
-                <b>What {{ $tool->name }} pricing plans are listed?</b>
-                <p>AI Orbit currently lists {{ $pricingPlanNames->join(', ', ' and ') }}. The plan cards and comparison table above show the stored monthly or yearly price, limits, credits and API rate details where available.</p>
-            </div>
-        </div>
-        @endif
+        @endforeach
     </section>
     @endif
 </section>

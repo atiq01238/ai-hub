@@ -8,13 +8,14 @@ use App\Models\PricingHistory;
 use App\Models\PricingPlan;
 use App\Models\Tool;
 use App\Services\Frontend\QuickFeedbackService;
+use App\Services\Seo\InternalLinkingService;
 use App\Services\Seo\SeoMetadataService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 class PricingIntelligenceController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, SeoMetadataService $metadata)
     {
         $filters = $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
@@ -137,6 +138,13 @@ class PricingIntelligenceController extends Controller
             'changes' => PricingHistory::where('created_at', '>=', now()->subDays(30))->count(),
         ];
 
+        $pricingIndexSeo = $metadata->forKey(
+            'static:pricing.index',
+            'AI Pricing: Compare Tool Plans and API Costs | AI Orbit',
+            'Compare AI pricing across tool plans, free and paid options, API costs, verification dates and published price changes on AI Orbit.',
+            ['page' => max(1, (int) $tools->currentPage())]
+        );
+
         return view('frontend.pricing.index', compact(
             'tools',
             'recentChanges',
@@ -147,11 +155,12 @@ class PricingIntelligenceController extends Controller
             'price',
             'freshness',
             'sort',
-            'categories'
+            'categories',
+            'pricingIndexSeo'
         ));
     }
 
-    public function show(Request $request, Tool $tool, QuickFeedbackService $feedback, SeoMetadataService $metadata)
+    public function show(Request $request, Tool $tool, QuickFeedbackService $feedback, SeoMetadataService $metadata, InternalLinkingService $internalLinks)
     {
         abort_unless($tool->status === 'published', 404);
 
@@ -181,7 +190,12 @@ class PricingIntelligenceController extends Controller
             ->whereKeyNot($tool->id)
             ->whereHas('pricingPlans')
             ->with('pricingPlans')
+            ->when($tool->category_id, fn ($query) => $query->orderByRaw(
+                'CASE WHEN category_id = ? THEN 0 ELSE 1 END',
+                [(int) $tool->category_id]
+            ))
             ->orderByDesc('rating')
+            ->orderBy('name')
             ->limit(4)
             ->get();
 
@@ -245,6 +259,11 @@ class PricingIntelligenceController extends Controller
             )
         );
 
+        // Link pricing research to curated head-to-head pages that actually
+        // contain this tool. This creates a commercial-intent path in both
+        // directions without manufacturing new comparison URLs.
+        $pricingComparisons = $internalLinks->comparisonsForTool($tool, 4);
+
         return view('frontend.pricing.show', compact(
             'tool',
             'history',
@@ -252,7 +271,8 @@ class PricingIntelligenceController extends Controller
             'pricingFeedback',
             'pricingSeo',
             'billingView',
-            'pricingSummary'
+            'pricingSummary',
+            'pricingComparisons'
         ));
     }
 

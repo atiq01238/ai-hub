@@ -1,7 +1,7 @@
 @extends('frontend.layouts.app')
 
 @php
-    $comparisonSeoTitle = data_get($comparison, 'meta_title')
+    $comparisonSeoTitle = data_get($comparisonSeo ?? [], 'title')
         ?: data_get($comparison, 'title')
         ?: $title
         ?: 'AI Comparison';
@@ -34,17 +34,14 @@
         ->filter()
         ->values();
 
-    if ($comparisonItemNames->count() === 2) {
-        $comparisonSeoDescription = 'Compare '
-            . $comparisonItemNames[0]
-            . ' vs '
-            . $comparisonItemNames[1]
-            . ' side by side across pricing, benchmarks, capabilities and verified product data on AI Orbit.';
-    } else {
-        $comparisonSeoDescription = data_get($comparison, 'meta_description')
-            ?: data_get($comparison, 'summary')
-            ?: data_get($comparison, 'description')
-            ?: data_get($comparison, 'notes')
+    $comparisonSeoDescription = data_get($comparisonSeo ?? [], 'description');
+
+    if (!$comparisonSeoDescription && $comparisonItemNames->count() === 2) {
+        $comparisonSeoDescription = $comparisonType === 'tool'
+            ? 'Compare '.$comparisonItemNames[0].' vs '.$comparisonItemNames[1].' across pricing, features, use cases and verified product data on AI Orbit.'
+            : 'Compare '.$comparisonItemNames[0].' vs '.$comparisonItemNames[1].' across pricing, benchmarks, context and capabilities on AI Orbit.';
+    } elseif (!$comparisonSeoDescription) {
+        $comparisonSeoDescription = data_get($comparison, 'summary')
             ?: 'Compare AI tools and models with detailed features, pricing, capabilities and insights on AI Orbit.';
     }
 
@@ -121,6 +118,13 @@
     $benchmarkLeaders = $intelligence['benchmarkLeaders'] ?? [];
     $benchmarkGroups = $intelligence['benchmarkGroups'] ?? [];
     $evidenceAsOf = $intelligence['evidenceAsOf'] ?? null;
+
+    $comparisonHeroDescription = 'A practical side-by-side comparison of pricing, capabilities and product fit.';
+    if ($comparisonItemNames->count() === 2) {
+        $comparisonHeroDescription = $comparisonType === 'tool'
+            ? 'Compare '.$comparisonItemNames[0].' vs '.$comparisonItemNames[1].' pricing, features, use cases and verified product data side by side.'
+            : 'Compare '.$comparisonItemNames[0].' vs '.$comparisonItemNames[1].' pricing, benchmarks, context and capabilities side by side.';
+    }
 
     // Visible FAQ content and FAQ schema must describe the same current pair.
     // Add only factual questions that can be answered from structured data on
@@ -284,7 +288,7 @@
             <div>
                 <span class="comparison-kicker"><i data-lucide="scale"></i> {{ $isPreview ? 'Live comparison' : 'AI Orbit comparison' }}</span>
                 <h1>{{ $title }}</h1>
-                <p>A practical side-by-side look at performance, pricing, capabilities and product fit.</p>
+                <p>{{ $comparisonHeroDescription }}</p>
             </div>
             <div class="detail-actions">
                 <a href="{{ $editComparisonUrl }}"><i data-lucide="sliders-horizontal"></i> Edit selection</a>
@@ -309,6 +313,9 @@
                     <h2>{{ $item->name }}</h2>
                     <p>{{ $comparisonType === 'tool' ? ($item->short_description ?: Str::limit($item->overview,150)) : Str::limit($item->overview,170) }}</p>
                     <a href="{{ $comparisonType === 'tool' ? route('tools.show',$item) : route('models.show',$item) }}">View profile <i data-lucide="arrow-up-right"></i></a>
+                    @if($comparisonType === 'tool' && (bool) data_get($pricingIntel, (int) $item->id.'.verified', false))
+                        <a href="{{ route('pricing.show', $item) }}">View pricing <i data-lucide="badge-dollar-sign"></i></a>
+                    @endif
                 </div>
             @endforeach
         </div>

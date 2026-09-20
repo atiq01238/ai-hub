@@ -11,6 +11,7 @@ use App\Services\Frontend\ComparisonHistoryService;
 use App\Services\Frontend\QuickFeedbackService;
 use App\Services\ComparisonIntelligenceService;
 use App\Services\Seo\InternalLinkingService;
+use App\Services\Seo\SeoMetadataService;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -24,6 +25,7 @@ class ComparisonController extends Controller
         private readonly ComparisonIntelligenceService $intelligence,
         private readonly QuickFeedbackService $feedback,
         private readonly InternalLinkingService $internalLinks,
+        private readonly SeoMetadataService $metadata,
     ) {
     }
 
@@ -145,9 +147,16 @@ class ComparisonController extends Controller
             'views' => (int) $allPublic->sum('views'),
         ];
 
+        $comparisonIndexSeo = $this->metadata->forKey(
+            'static:comparisons.index',
+            'AI Model Comparison Tool — Compare Models Side by Side | AI Orbit',
+            "Use AI Orbit's AI model comparison tool to compare AI models and tools side by side across pricing, benchmarks, context, capabilities and product details.",
+            ['page' => max(1, (int) $comparisons->currentPage())]
+        );
+
         return view('frontend.comparisons.index', compact(
             'comparisons', 'featured', 'recent', 'quickTools', 'quickModels',
-            'personalStats', 'stats', 'type', 'search', 'sort'
+            'personalStats', 'stats', 'type', 'search', 'sort', 'comparisonIndexSeo'
         ));
     }
 
@@ -217,6 +226,10 @@ class ComparisonController extends Controller
             'reasons' => ['custom_preview'],
             'warnings' => [],
         ];
+        $comparisonSeo = [
+            'title' => $title.' Comparison | AI Orbit',
+            'description' => 'Compare '.$title.' side by side across pricing, capabilities and structured product data on AI Orbit.',
+        ];
 
         if ($request->user()) {
             $this->userHistory->fromPreview(
@@ -230,7 +243,7 @@ class ComparisonController extends Controller
 
         return view('frontend.comparisons.show', compact(
             'comparison', 'comparisonType', 'items', 'winner', 'title',
-            'relatedComparisons', 'relatedArticles', 'isPreview', 'intelligence', 'labComparison', 'quickRating', 'comparisonSeoAssessment'
+            'relatedComparisons', 'relatedArticles', 'isPreview', 'intelligence', 'labComparison', 'quickRating', 'comparisonSeoAssessment', 'comparisonSeo'
         ));
     }
 
@@ -306,9 +319,18 @@ class ComparisonController extends Controller
         $relatedComparisons = $this->internalLinks->relatedComparisons($comparison, 4);
         $relatedArticles = $this->internalLinks->articlesForComparison($comparison, 3);
 
+        $pairNames = $items->pluck('name')->filter()->take(2)->values();
+        $comparisonSeo = $this->metadata->forKey(
+            'comparisons.show:'.$comparison->id,
+            ($pairNames->count() === 2 ? $pairNames[0].' vs '.$pairNames[1] : $comparison->title).' | AI Orbit',
+            $pairNames->count() === 2
+                ? 'Compare '.$pairNames[0].' vs '.$pairNames[1].' across pricing, capabilities and structured evidence on AI Orbit.'
+                : (string) ($comparison->summary ?: 'Compare AI products side by side on AI Orbit.')
+        );
+
         return view('frontend.comparisons.show', compact(
             'comparison', 'comparisonType', 'items', 'winner', 'title',
-            'relatedComparisons', 'relatedArticles', 'isPreview', 'intelligence', 'labComparison', 'quickRating', 'comparisonSeoAssessment'
+            'relatedComparisons', 'relatedArticles', 'isPreview', 'intelligence', 'labComparison', 'quickRating', 'comparisonSeoAssessment', 'comparisonSeo'
         ));
     }
 

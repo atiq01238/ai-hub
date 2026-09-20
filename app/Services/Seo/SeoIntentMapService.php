@@ -188,11 +188,11 @@ class SeoIntentMapService
             ['tools.index', 'tools_directory', 'AI tools directory', ['best AI tools', 'AI software', 'AI apps'], 'commercial_investigation', 'AI Tools'],
             ['models.index', 'models_directory', 'AI models', ['LLM models', 'multimodal AI models', 'reasoning models'], 'commercial_investigation', 'AI Models'],
             ['news.index', 'news_directory', 'AI news', ['artificial intelligence news', 'AI product updates', 'AI model releases'], 'fresh_information', 'AI News'],
-            ['comparisons.index', 'comparisons_directory', 'AI model comparison tool', ['compare AI models', 'compare AI models side by side', 'AI comparison tool', 'AI tool comparisons'], 'comparison', 'AI Comparisons'],
+            ['comparisons.index', 'comparisons_directory', 'AI model comparison tool', ['compare AI models', 'AI model comparison', 'compare AI models side by side', 'AI comparison tool', 'AI tool comparison', 'AI tool comparisons', 'AI comparison site', 'AI comparison chart'], 'comparison', 'AI Comparisons'],
             ['companies.index', 'companies_directory', 'AI companies', ['AI model companies', 'AI tool companies', 'artificial intelligence companies'], 'commercial_investigation', 'AI Companies'],
             ['articles.index', 'articles_directory', 'AI guides and analysis', ['AI articles', 'AI guides', 'AI analysis'], 'informational', 'AI Editorial'],
             ['reviews.index', 'reviews_directory', 'AI tool and model reviews', ['AI tool reviews', 'AI model reviews'], 'commercial_investigation', 'AI Reviews'],
-            ['pricing.index', 'pricing_directory', 'AI pricing', ['AI tool pricing', 'AI API pricing', 'AI software pricing'], 'commercial_investigation', 'AI Pricing'],
+            ['pricing.index', 'pricing_directory', 'AI pricing', ['AI tool pricing', 'AI pricing comparison', 'AI tool pricing comparison', 'compare AI tool prices', 'AI software pricing', 'AI API pricing', 'AI subscription pricing', 'AI pricing plans'], 'commercial_investigation', 'AI Pricing'],
             ['categories.index', 'categories_directory', 'AI tool categories', ['AI tools by category', 'AI software categories'], 'commercial_investigation', 'AI Taxonomy'],
             ['features.index', 'features_directory', 'AI tool features', ['AI capabilities', 'AI tools by feature'], 'commercial_investigation', 'AI Taxonomy'],
             ['use-cases.index', 'use_cases_directory', 'AI use cases', ['AI tools by use case', 'AI for work use cases'], 'commercial_investigation', 'AI Taxonomy'],
@@ -303,6 +303,7 @@ class SeoIntentMapService
         return Tool::query()
             ->where('status', 'published')
             ->whereHas('pricingPlans')
+            ->with(['pricingPlans:id,tool_id,plan_name,billing_type,billing_unit,monthly_price,yearly_price,api_price_label'])
             ->orderBy('id')
             ->get(['id', 'name'])
             ->map(fn (Tool $tool) => $this->target(
@@ -310,7 +311,7 @@ class SeoIntentMapService
                 'pricing.show',
                 'tool_pricing',
                 $tool->name.' pricing',
-                [$tool->name.' pricing plans', $tool->name.' plans', $tool->name.' price', $tool->name.' cost'],
+                $this->pricingKeywordCluster($tool),
                 'commercial_investigation',
                 'AI Pricing',
                 $tool,
@@ -332,8 +333,8 @@ class SeoIntentMapService
                     : trim((string) $comparison->title);
 
                 $primary = $pair !== '' ? $pair : trim((string) $comparison->title);
-                $secondary = $pair !== ''
-                    ? [$pair.' pricing', $pair.' features', $pair.' benchmarks']
+                $secondary = $items->count() === 2
+                    ? $this->comparisonKeywordCluster($comparison, $items)
                     : [];
 
                 return $this->target(
@@ -554,6 +555,126 @@ class SeoIntentMapService
                     $topic,
                 );
             });
+    }
+
+
+    /**
+     * Build one commercial-intent cluster for an existing tool-pricing URL.
+     * These are keyword variants owned by the same page; they never create
+     * additional routes or crawlable URLs. Conditional terms are included only
+     * when the structured pricing data can support the corresponding intent.
+     */
+    public function pricingKeywordCluster(Tool $tool): array
+    {
+        $plans = $tool->relationLoaded('pricingPlans')
+            ? $tool->pricingPlans
+            : $tool->pricingPlans()->get();
+
+        $name = $this->cleanPhrase($tool->name);
+        $keywords = [
+            $name.' price',
+            $name.' cost',
+            $name.' plans',
+            $name.' pricing plans',
+        ];
+
+        $hasSubscription = $plans->contains(function ($plan) {
+            return in_array(mb_strtolower(trim((string) $plan->billing_type)), ['subscription', 'per_seat'], true)
+                || $plan->monthly_price !== null
+                || $plan->yearly_price !== null;
+        });
+
+        $hasFreePlan = $plans->contains(function ($plan) {
+            $billingType = mb_strtolower(trim((string) $plan->billing_type));
+            if (in_array($billingType, ['usage', 'custom'], true)) {
+                return false;
+            }
+
+            if (str_contains(mb_strtolower((string) $plan->plan_name), 'free')) {
+                return true;
+            }
+
+            return $billingType === 'subscription'
+                && $plan->monthly_price !== null
+                && (float) $plan->monthly_price === 0.0
+                && ($plan->yearly_price === null || (float) $plan->yearly_price === 0.0)
+                && blank($plan->api_price_label);
+        });
+
+        $hasAnnual = $plans->contains(fn ($plan) => $plan->yearly_price !== null && (float) $plan->yearly_price > 0);
+
+        $hasApiPricing = $plans->contains(function ($plan) {
+            $haystack = mb_strtolower(trim(implode(' ', [
+                (string) $plan->plan_name,
+                (string) $plan->billing_unit,
+                (string) $plan->api_price_label,
+            ])));
+
+            return filled($plan->api_price_label)
+                || (bool) preg_match('/\b(api|token|tokens|request|requests|million tokens|1m tokens)\b/u', $haystack);
+        });
+
+        if ($hasSubscription) {
+            $keywords[] = $name.' subscription';
+        }
+        if ($hasFreePlan) {
+            $keywords[] = 'is '.$name.' free';
+        }
+        if ($hasAnnual) {
+            $keywords[] = $name.' annual pricing';
+        }
+        if ($hasApiPricing) {
+            $keywords[] = $name.' API pricing';
+        }
+
+        return collect($keywords)
+            ->map(fn ($keyword) => $this->cleanPhrase($keyword))
+            ->filter()
+            ->unique(fn ($keyword) => $this->normalizeKeyword($keyword))
+            ->take(8)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Build query variants for one canonical two-item comparison URL. Reverse
+     * order is a search phrase, not a second page, so one canonical pair owns
+     * both A-vs-B and B-vs-A intent.
+     */
+    public function comparisonKeywordCluster(Comparison $comparison, ?Collection $names = null): array
+    {
+        $names ??= $comparison->publicItems()->pluck('name')->filter()->take(2)->values();
+        $names = collect($names)->map(fn ($name) => $this->cleanPhrase((string) $name))->filter()->take(2)->values();
+
+        if ($names->count() !== 2) {
+            return [];
+        }
+
+        $pair = $names[0].' vs '.$names[1];
+        $reverse = $names[1].' vs '.$names[0];
+
+        $keywords = [
+            $reverse,
+            $pair.' comparison',
+            $pair.' pricing',
+            $pair.' features',
+            $pair.' differences',
+        ];
+
+        if ($comparison->comparable_type === 'model') {
+            $keywords[] = $pair.' benchmarks';
+            $keywords[] = $pair.' context window';
+        } else {
+            $keywords[] = $pair.' plans';
+        }
+
+        return collect($keywords)
+            ->map(fn ($keyword) => $this->cleanPhrase($keyword))
+            ->filter()
+            ->unique(fn ($keyword) => $this->normalizeKeyword($keyword))
+            ->take(8)
+            ->values()
+            ->all();
     }
 
     private function target(

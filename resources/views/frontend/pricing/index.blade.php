@@ -9,8 +9,16 @@
         || !in_array((string) request('sort', 'updated'), ['', 'updated'], true);
 
     $pricingPage = max(1, (int) $tools->currentPage());
-    $pricingSeoTitle = 'AI Tool Pricing Compared (2026) — 50+ Tools, Live Price Tracker';
-    $pricingSeoDescription = 'Compare pricing for 50+ AI tools side-by-side. Free vs paid plans, API rates, and every price change tracked in real time — updated daily.';
+    $pricingSeoTitle = html_entity_decode(
+        data_get($pricingIndexSeo ?? [], 'title', 'AI Pricing: Compare Tool Plans and API Costs | AI Orbit'),
+        ENT_QUOTES | ENT_HTML5,
+        'UTF-8'
+    );
+    $pricingSeoDescription = html_entity_decode(
+        data_get($pricingIndexSeo ?? [], 'description', 'Compare AI pricing across tool plans, free and paid options, API costs, verification dates and published price changes on AI Orbit.'),
+        ENT_QUOTES | ENT_HTML5,
+        'UTF-8'
+    );
     $pricingCanonical = (!$pricingHasFilters && $pricingPage > 1)
         ? route('pricing.index', ['page' => $pricingPage])
         : route('pricing.index');
@@ -91,8 +99,8 @@
 <section class="pi-hero">
     <div class="pi-wrap">
         <span class="pi-kicker"><i data-lucide="radar"></i> Pricing Intelligence</span>
-        <h1>Know what AI really costs.</h1>
-        <p>Compare plans, spot free tiers, review API pricing and follow verified pricing changes from one research dashboard.</p>
+        <h1>AI Pricing Comparison</h1>
+        <p>Compare AI tool pricing, plans, free tiers, API costs and verified price changes from one research dashboard.</p>
 
         <div class="pi-stats">
             <div><b>{{ number_format((int) $stats['tools']) }}</b><span>Tools tracked</span></div>

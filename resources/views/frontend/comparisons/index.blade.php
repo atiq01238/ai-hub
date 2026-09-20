@@ -7,15 +7,17 @@
         'sort',
     ]);
 
-    $comparisonsSeoTitle = 'AI Model Comparison Tool — Compare Models Side by Side | AI Orbit';
+    $comparisonsSeoTitle = html_entity_decode(
+        data_get($comparisonIndexSeo ?? [], 'title', 'AI Model Comparison Tool — Compare Models Side by Side | AI Orbit'),
+        ENT_QUOTES | ENT_HTML5,
+        'UTF-8'
+    );
 
-    if (!$comparisonsHasFilters && $comparisons->currentPage() > 1) {
-        $comparisonsSeoTitle = 'AI Comparisons — Page '
-            . $comparisons->currentPage()
-            . ' | AI Orbit';
-    }
-
-    $comparisonsSeoDescription = "Use AI Orbit's AI model comparison tool to compare AI models and tools side by side across pricing, benchmarks, context, capabilities and product details.";
+    $comparisonsSeoDescription = html_entity_decode(
+        data_get($comparisonIndexSeo ?? [], 'description', "Use AI Orbit's AI model comparison tool to compare AI models and tools side by side across pricing, benchmarks, context, capabilities and product details."),
+        ENT_QUOTES | ENT_HTML5,
+        'UTF-8'
+    );
 
     $comparisonsCanonical = route('comparisons.index');
 
@@ -84,8 +86,8 @@
 <section class="comparison-hero">
     <div class="comparison-hero-inner">
         <span class="comparison-kicker"><i data-lucide="scale"></i> Independent AI comparisons</span>
-        <h1>Compare AI Models &amp; Tools <span>Side by Side.</span></h1>
-        <p>Use AI Orbit's AI model comparison tool to compare models and tools side by side across pricing, benchmarks, capabilities, ratings and verified product details.</p>
+        <h1>AI Model Comparison Tool <span>— Compare Side by Side.</span></h1>
+        <p>Compare AI models and tools side by side across pricing, benchmarks, capabilities, context and verified product details.</p>
         <div class="comparison-hero-actions">
             <a class="primary-compare-btn" href="{{ route('comparisons.builder') }}"><i data-lucide="git-compare-arrows"></i> Build a comparison</a>
             <a class="secondary-compare-btn" href="#comparison-library"><i data-lucide="library"></i> Browse comparisons</a>
