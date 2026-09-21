@@ -23,9 +23,22 @@
         <strong>{{ $label }}</strong>
         <small data-feedback-summary>
             @if($isArticleFeedback)
-                {{ (int) $counts->get('helpful', 0) }} helpful {{ \Illuminate\Support\Str::plural('vote', (int) $counts->get('helpful', 0)) }}
+                @php $helpfulCount = (int) $counts->get('helpful', 0); @endphp
+                @if($helpfulCount > 0)
+                    {{ $helpfulCount }} helpful {{ \Illuminate\Support\Str::plural('vote', $helpfulCount) }}
+                @else
+                    Reader feedback is open
+                @endif
             @else
-                {{ (int) $counts->get('accurate', 0) }} confirmations · {{ (int) $counts->get('outdated', 0) }} outdated reports
+                @php
+                    $accurateCount = (int) $counts->get('accurate', 0);
+                    $outdatedCount = (int) $counts->get('outdated', 0);
+                @endphp
+                @if(($accurateCount + $outdatedCount) > 0)
+                    {{ $accurateCount }} confirmations · {{ $outdatedCount }} outdated reports
+                @else
+                    Community check is open
+                @endif
             @endif
         </small>
     </div>

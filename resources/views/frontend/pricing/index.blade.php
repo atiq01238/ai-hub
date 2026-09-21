@@ -288,10 +288,12 @@
                         </div>
 
                         <div class="pi-card-foot pi-card-foot-actions">
-                            <span>
-                                <i data-lucide="star"></i>
-                                {{ (float)($tool->rating ?? 0) > 0 ? number_format((float)$tool->rating, 1).' rating' : 'Not rated' }}
-                            </span>
+                            @if((float)($tool->rating ?? 0) > 0)
+                                <span>
+                                    <i data-lucide="star"></i>
+                                    {{ number_format((float)$tool->rating, 1) }} rating
+                                </span>
+                            @endif
                             <div>
                                 <a href="{{ route('tools.show', $tool) }}" class="pi-secondary-link">Profile</a>
                                 <a href="{{ route('pricing.show', $tool) }}">View pricing <i data-lucide="arrow-up-right"></i></a>

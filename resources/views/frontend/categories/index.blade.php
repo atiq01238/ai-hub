@@ -69,7 +69,7 @@
                 <div class="category-card-top"><span class="category-orb large"><i data-lucide="{{ $icons[$category->slug] ?? 'sparkles' }}"></i></span><span class="category-arrow"><i data-lucide="arrow-up-right"></i></span></div>
                 <h3>{{ $category->name }}</h3>
                 <p>{{ $category->short_description ?: 'Discover leading '.strtolower($category->name).' tools, related models and structured AI intelligence.' }}</p>
-                <div class="category-metrics"><span><strong>{{ number_format($category->tools_count) }}</strong>Tools</span><span><strong>{{ number_format($category->models_count) }}</strong>Models</span><span><strong>{{ number_format($category->articles_count) }}</strong>Guides</span><span><strong>{{ number_format($category->news_count) }}</strong>News</span></div>
+                <div class="category-metrics"><span><strong>{{ number_format($category->tools_count) }}</strong>Tools</span>@if($category->models_count > 0)<span><strong>{{ number_format($category->models_count) }}</strong>Models</span>@endif @if($category->articles_count > 0)<span><strong>{{ number_format($category->articles_count) }}</strong>Guides</span>@endif @if($category->news_count > 0)<span><strong>{{ number_format($category->news_count) }}</strong>News</span>@endif</div>
             </a>
         @endforeach
     </div>

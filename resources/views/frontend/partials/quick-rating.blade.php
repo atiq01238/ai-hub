@@ -22,8 +22,12 @@
         <span class="qf-eyebrow"><i data-lucide="star"></i> COMMUNITY RATING</span>
         <strong>{{ $label ?? 'Rate this item' }}</strong>
         <small>
-            <b data-feedback-average>{{ $ratingAverage !== null ? number_format((float) $ratingAverage, 1) : '—' }}</b>/5
-            · <span data-feedback-count>{{ $ratingCount }}</span> {{ \Illuminate\Support\Str::plural('rating', $ratingCount) }}
+            @if($ratingCount > 0)
+                <b data-feedback-average>{{ $ratingAverage !== null ? number_format((float) $ratingAverage, 1) : '—' }}</b>/5
+                · <span data-feedback-count>{{ $ratingCount }}</span> {{ \Illuminate\Support\Str::plural('rating', $ratingCount) }}
+            @else
+                <span data-feedback-count hidden>0</span><span>Be the first to share a community rating.</span>
+            @endif
         </small>
     </div>
     <div class="qf-rating-controls">

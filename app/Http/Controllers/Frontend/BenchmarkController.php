@@ -127,10 +127,48 @@ class BenchmarkController extends Controller
             ->sortBy(fn ($result) => $benchmark->higher_is_better ? -(float) $result->score : (float) $result->score)
             ->values();
 
+        $lastScore = null;
+        $lastRank = 0;
+        $results->each(function ($result, int $index) use (&$lastScore, &$lastRank) {
+            $score = (float) $result->score;
+            if ($lastScore === null || abs($score - $lastScore) > 0.000001) {
+                $lastRank = $index + 1;
+                $lastScore = $score;
+            }
+            $result->setAttribute('display_rank', $lastRank);
+        });
+
+        $leaderScore = $results->first() ? (float) $results->first()->score : null;
+        $leaderCount = $leaderScore === null
+            ? 0
+            : $results->filter(fn ($result) => abs((float) $result->score - $leaderScore) <= 0.000001)->count();
+
+        $testedDates = $results->pluck('tested_at')->filter();
+        $benchmarkInsights = [
+            'result_count' => $results->count(),
+            'leader_score' => $leaderScore,
+            'leader_count' => $leaderCount,
+            'latest_tested_at' => $testedDates->sortDesc()->first(),
+            'oldest_tested_at' => $testedDates->sort()->first(),
+            'source_count' => $results->pluck('source_url')->filter()->unique()->count(),
+            'entity_type' => $results->contains(fn ($result) => $result->benchmarkable instanceof Tool) ? 'tools' : 'models',
+        ];
+
+        $relatedBenchmarks = Benchmark::query()
+            ->where('is_active', true)
+            ->where('id', '!=', $benchmark->getKey())
+            ->where('benchmark_class', $benchmark->benchmark_class)
+            ->when($benchmark->category, fn ($query) => $query->where('category', $benchmark->category))
+            ->whereHas('results', fn ($query) => $query->where('verified', true)->where('status', 'verified'))
+            ->withCount(['results as verified_results_count' => fn ($query) => $query->where('verified', true)->where('status', 'verified')])
+            ->orderByDesc('verified_results_count')
+            ->take(4)
+            ->get();
+
         $title = $benchmark->name.' AI Benchmark Leaderboard'.($benchmark->version ? ' '.$benchmark->version : '').' (2026)';
         $description = 'Explore verified '.$benchmark->name.' '.Benchmark::classLabel($benchmark->benchmark_class).' results, rankings, methodology and sources on AI Orbit.';
 
-        return view('frontend.benchmarks.show', compact('benchmark', 'results', 'title', 'description'));
+        return view('frontend.benchmarks.show', compact('benchmark', 'results', 'title', 'description', 'benchmarkInsights', 'relatedBenchmarks'));
     }
 
     private function modelLeaderboard(Collection $benchmarks, string $benchmarkClass): Collection

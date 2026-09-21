@@ -162,8 +162,55 @@
 <link rel="stylesheet" href="{{ asset('css/frontend/discovery.css') }}">
 @endpush
 @section('content')
-<section class="category-detail-hero"><div class="category-detail-inner"><div class="category-hero-main"><a class="breadcrumb-link" href="{{ route($indexRoute) }}"><i data-lucide="arrow-left"></i> {{ $isFeature ? 'All Features':'All Use Cases' }}</a><span class="eyebrow"><i data-lucide="{{ $term->icon ?: ($isFeature?'sparkles':'target') }}"></i> {{ $label }}</span><h1>{{ $term->name }}</h1><p>{{ $term->description ?: $term->short_description }}</p><div class="category-hero-actions"><a class="primary-action" href="#matching-tools">Explore tools <i data-lucide="arrow-down"></i></a><a class="secondary-action" href="{{ route('search.index',['q'=>$term->name]) }}">Search AI Orbit <i data-lucide="search"></i></a></div></div><div class="category-stat-board"><span><strong>{{ number_format($tools->total()) }}</strong><small>Published tools</small></span><span><strong>{{ number_format($models->count()) }}</strong><small>Related models</small></span></div></div></section>
+<section class="category-detail-hero">
+    <div class="category-detail-inner">
+        <div class="category-hero-main">
+            <a class="breadcrumb-link" href="{{ route($indexRoute) }}"><i data-lucide="arrow-left"></i> {{ $isFeature ? 'All Features' : 'All Use Cases' }}</a>
+            <span class="eyebrow"><i data-lucide="{{ $term->icon ?: ($isFeature ? 'sparkles' : 'target') }}"></i> {{ $label }}</span>
+            <h1>{{ $term->name }}</h1>
+            <p>{{ $term->description ?: $term->short_description }}</p>
+            <div class="category-hero-actions">
+                <a class="primary-action" href="#matching-tools">Explore tools <i data-lucide="arrow-down"></i></a>
+                <a class="secondary-action" href="{{ route('search.index', ['q' => $term->name]) }}">Search AI Orbit <i data-lucide="search"></i></a>
+            </div>
+        </div>
+        <div class="category-stat-board">
+            <span><strong>{{ number_format($tools->total()) }}</strong><small>Published tools</small></span>
+            @if($models->isNotEmpty())
+                <span><strong>{{ number_format($models->count()) }}</strong><small>Related models</small></span>
+            @endif
+        </div>
+    </div>
+</section>
 <div class="discovery-page category-detail-page">
+
+    <section class="category-editorial-guide" aria-labelledby="taxonomy-guide-title">
+        <div class="category-editorial-guide__intro">
+            <span class="eyebrow"><i data-lucide="book-open-check"></i> RESEARCH GUIDE</span>
+            <h2 id="taxonomy-guide-title">{{ $isFeature ? 'How to verify '.$term->name.' in an AI tool' : 'How to choose an AI tool for '.$term->name }}</h2>
+            <p>
+                @if($isFeature)
+                    A feature label is only a starting point. Confirm how {{ $term->name }} is implemented, whether it is available on the plan you need and how it changes the day-to-day workflow.
+                @else
+                    Start with the outcome you need for {{ $term->name }}, then compare products using source-backed capabilities, pricing and workflow constraints instead of a generic popularity score.
+                @endif
+            </p>
+        </div>
+
+        <div class="category-editorial-guide__factors">
+            @if($isFeature)
+                <article><span><i data-lucide="scan-search"></i></span><div><h3>Verify implementation</h3><p>Open the product profile and check the evidence behind the {{ $term->name }} claim rather than relying on a feature tag alone.</p></div></article>
+                <article><span><i data-lucide="layers-3"></i></span><div><h3>Check access and limits</h3><p>Confirm whether the feature is included in the relevant plan, platform or API and whether usage limits affect your workflow.</p></div></article>
+                <article><span><i data-lucide="workflow"></i></span><div><h3>Compare practical fit</h3><p>Integrations, permissions, output controls and adjacent capabilities determine whether the feature is useful in production.</p></div></article>
+            @else
+                <article><span><i data-lucide="target"></i></span><div><h3>Define the outcome</h3><p>Be specific about the result you need from {{ $term->name }} so products built for different workflows are not treated as equivalent.</p></div></article>
+                <article><span><i data-lucide="shield-check"></i></span><div><h3>Check source-backed fit</h3><p>Use capabilities, use-case mapping, pricing records and linked sources to verify why a tool appears on this page.</p></div></article>
+                <article><span><i data-lucide="badge-dollar-sign"></i></span><div><h3>Compare operating cost</h3><p>Plan limits, API access, team controls and platform fit can change the real cost of completing the workflow.</p></div></article>
+            @endif
+        </div>
+
+        <p class="category-editorial-guide__note"><i data-lucide="circle-check-big"></i>Taxonomy matches describe recorded relationships. Missing data is not treated as a negative score or invented to fill a comparison.</p>
+    </section>
     <section id="matching-tools" class="result-section"><div class="section-bar"><div><span class="section-icon"><i data-lucide="bot"></i></span><h2>AI tools for {{ $term->name }}</h2><small>Structured taxonomy matches</small></div></div>
         @if($tools->count())
             <div class="category-tool-grid">
@@ -175,7 +222,9 @@
                                 <small>{{ $tool->category?->name ?? 'AI Tool' }}</small>
                                 <h3><a href="{{ route('tools.show',$tool) }}">{{ $tool->name }}</a></h3>
                             </div>
-                            <span class="rating-pill"><i data-lucide="star"></i>{{ (float)$tool->rating > 0 ? number_format((float)$tool->rating,1) : 'Not rated' }}</span>
+                            @if((float)$tool->rating > 0)
+                                <span class="rating-pill"><i data-lucide="star"></i>{{ number_format((float)$tool->rating, 1) }}</span>
+                            @endif
                         </div>
                         <p>{{ \Illuminate\Support\Str::limit($tool->short_description ?: $tool->description,125) }}</p>
                         <div class="tool-card-foot">

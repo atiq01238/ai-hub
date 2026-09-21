@@ -172,16 +172,43 @@
                 <small>Published tools</small>
             </span>
 
-            <span>
-                <strong>{{ number_format($models->count()) }}</strong>
-                <small>Related models</small>
-            </span>
+            @if($models->isNotEmpty())
+                <span>
+                    <strong>{{ number_format($models->count()) }}</strong>
+                    <small>Related models</small>
+                </span>
+            @endif
         </div>
 
     </div>
 </section>
 
 <div class="discovery-page category-detail-page">
+
+    <section class="category-editorial-guide" aria-labelledby="subcategory-guide-title">
+        <div class="category-editorial-guide__intro">
+            <span class="eyebrow"><i data-lucide="compass"></i> DECISION GUIDE</span>
+            <h2 id="subcategory-guide-title">How to evaluate {{ $subcategory->name }} AI tools</h2>
+            <p>Use this subcategory as a focused starting point, then verify each product against the workflow, evidence and commercial constraints that matter to your use case.</p>
+        </div>
+
+        <div class="category-editorial-guide__factors">
+            <article>
+                <span><i data-lucide="target"></i></span>
+                <div><h3>Match the exact task</h3><p>Prefer tools built for {{ $subcategory->name }} workflows instead of assuming every product in the broader {{ $category->name }} category solves the same problem.</p></div>
+            </article>
+            <article>
+                <span><i data-lucide="shield-check"></i></span>
+                <div><h3>Check the evidence</h3><p>Open the product profile to review source-backed capabilities, use-case mapping, pricing evidence and any benchmark data before treating a catalog match as a recommendation.</p></div>
+            </article>
+            <article>
+                <span><i data-lucide="workflow"></i></span>
+                <div><h3>Compare the workflow</h3><p>Platform support, integrations, pricing limits and operating controls can matter as much as the headline feature when the tool becomes part of a real workflow.</p></div>
+            </article>
+        </div>
+
+        <p class="category-editorial-guide__note"><i data-lucide="circle-check-big"></i>AI Orbit keeps missing evidence explicit and does not treat an absent rating or unverified field as a negative score.</p>
+    </section>
 
     <section id="subcategory-tools" class="result-section">
 
@@ -250,10 +277,12 @@
                                 </h3>
                             </div>
 
-                            <span class="rating-pill">
-                                <i data-lucide="star"></i>
-                                {{ (float) $tool->rating > 0 ? number_format((float) $tool->rating, 1) : 'Not rated' }}
-                            </span>
+                            @if((float) $tool->rating > 0)
+                                <span class="rating-pill">
+                                    <i data-lucide="star"></i>
+                                    {{ number_format((float) $tool->rating, 1) }}
+                                </span>
+                            @endif
 
                         </div>
 

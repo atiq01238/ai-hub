@@ -54,6 +54,28 @@
         </div>
     </section>
 
+    <section class="inst-split">
+        <div class="inst-panel">
+            <span class="inst-mini-title">Editorial responsibility</span>
+            <h2>AI Orbit is accountable for what it publishes.</h2>
+            <p>AI Orbit Editorial maintains the public research experience, separates source records from editorial analysis and keeps corrections visible through documented policies.</p>
+            <div class="inst-check-list">
+                <div><i data-lucide="user-check"></i><span><b>Publisher</b> — AI Orbit Editorial.</span></div>
+                <div><i data-lucide="shield-check"></i><span><b>Review standard</b> — factual claims remain subject to sourcing, verification and correction controls.</span></div>
+                <div><i data-lucide="mail"></i><span><b>Contact</b> — use the public contact form for editorial, correction, partnership or technical questions.</span></div>
+            </div>
+        </div>
+        <div class="inst-panel">
+            <span class="inst-mini-title">Reader controls</span>
+            <h2>Question a claim, source or decision.</h2>
+            <p>Readers can inspect methodology, report data issues and request corrections without relying on an opaque score or undocumented ranking rule.</p>
+            <div class="inst-actions">
+                <a class="inst-btn" href="{{ route('contact', ['topic' => 'data_correction']) }}">Report a correction</a>
+                <a class="inst-btn" href="{{ route('methodology') }}">Review methodology</a>
+            </div>
+        </div>
+    </section>
+
     <section class="inst-callout">
         <div><span class="inst-eyebrow"><i data-lucide="users"></i> Community input</span><h2>See something missing or incorrect?</h2><p>AI changes quickly. Community submissions help surface new products and corrections, while moderation keeps public data controlled.</p></div>
         <div class="inst-actions"><a class="inst-btn primary" href="{{ route('submissions.create') }}">Suggest or correct data</a><a class="inst-btn" href="{{ route('contact') }}">Contact AI Orbit</a></div>

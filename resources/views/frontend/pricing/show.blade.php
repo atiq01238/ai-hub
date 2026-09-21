@@ -155,11 +155,35 @@
     };
 
     $freshnessLabel = match ($pricingSummary['freshness'] ?? 'unverified') {
-        'fresh' => 'Fresh',
-        'review' => 'Needs review',
-        'stale' => 'Stale',
-        default => 'Unverified',
+        'fresh' => 'Pricing evidence fresh',
+        'review' => 'Review due',
+        'stale' => 'Pricing evidence stale',
+        default => 'Pricing not verified',
     };
+
+    $meaningfulHistory = collect($history)->filter(function ($change) {
+        if (in_array($change->change_type, ['new_plan', 'removed_plan'], true)) {
+            return true;
+        }
+
+        $numericMetric = in_array($change->metric, ['monthly_price', 'yearly_price'], true);
+
+        if ($numericMetric) {
+            $old = $change->old_price;
+            $new = $change->new_price;
+
+            if ($old === null && $new === null) {
+                return false;
+            }
+
+            return (string) $old !== (string) $new;
+        }
+
+        $old = trim((string) ($change->old_value ?? ''));
+        $new = trim((string) ($change->new_value ?? ''));
+
+        return ($old !== '' || $new !== '') && $old !== $new;
+    })->values();
 @endphp
 
 @section('title', $pricingDetailTitle)
@@ -273,10 +297,10 @@
                 $yearlyPrice = $plan->yearly_price !== null ? (float) $plan->yearly_price : null;
                 $planFreshness = $plan->freshness;
                 $planFreshnessLabel = match ($planFreshness) {
-                    'fresh' => 'Fresh',
-                    'review' => 'Needs review',
-                    'stale' => 'Stale',
-                    default => 'Unverified',
+                    'fresh' => 'Plan evidence fresh',
+                    'review' => 'Review due',
+                    'stale' => 'Evidence stale',
+                    default => 'Not verified',
                 };
                 $primaryPlanSource = $plan->sources->first();
             @endphp
@@ -541,10 +565,10 @@
                                 <td>
                                     <span class="pi-freshness {{ $plan->freshness }}">
                                         {{ match($plan->freshness) {
-                                            'fresh' => 'Fresh',
-                                            'review' => 'Needs review',
-                                            'stale' => 'Stale',
-                                            default => 'Unverified',
+                                            'fresh' => 'Evidence fresh',
+                                            'review' => 'Review due',
+                                            'stale' => 'Evidence stale',
+                                            default => 'Not verified',
                                         } }}
                                     </span>
                                     @if($plan->latest_evidence_at)<small>{{ $plan->latest_evidence_at->format('M j, Y') }}</small>@endif
@@ -568,10 +592,10 @@
         <section class="pi-panel">
             <div class="pi-panel-title">
                 <span><i data-lucide="history"></i> Published pricing history</span>
-                <small>{{ $history->count() }} recent change{{ $history->count() === 1 ? '' : 's' }}</small>
+                <small>{{ $meaningfulHistory->count() }} meaningful change{{ $meaningfulHistory->count() === 1 ? '' : 's' }}</small>
             </div>
 
-            @forelse ($history as $change)
+            @forelse ($meaningfulHistory as $change)
                 @php
                     $numericMetric = in_array($change->metric, ['monthly_price', 'yearly_price'], true);
                     $metricLabel = match($change->metric) {
@@ -626,7 +650,7 @@
                     <small>{{ $change->created_at?->format('M j, Y') }}</small>
                 </div>
             @empty
-                <div class="pi-panel-empty">No published pricing changes for this tool yet.</div>
+                <div class="pi-panel-empty">No meaningful published price change is currently recorded for this tool.</div>
             @endforelse
         </section>
 
@@ -665,7 +689,10 @@
                     <div>
                         <b>{{ $alt->name }}</b>
                         <small>
-                            {{ $alt->pricingPlans->count() }} plans · {{ (float)($alt->rating ?? 0) > 0 ? number_format((float)$alt->rating, 1).' rating' : 'Not rated' }}
+                            {{ $alt->pricingPlans->count() }} plans
+                            @if((float)($alt->rating ?? 0) > 0)
+                                · {{ number_format((float)$alt->rating, 1) }} rating
+                            @endif
                         </small>
                     </div>
                     <i data-lucide="chevron-right"></i>

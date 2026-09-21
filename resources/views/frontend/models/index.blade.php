@@ -76,7 +76,7 @@
     JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
 ) !!}</script>
 @endpush
-@push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/models.css') }}?v=20260903-p56">@endpush
+@push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/models.css') }}?v=20260921-adsense2">@endpush
 @section('content')
 <section class="model-hero model-hero-wave">
 <div class="model-wave-art" aria-hidden="true"></div><div class="model-wave-shade" aria-hidden="true"></div>
@@ -176,6 +176,21 @@
             </div>
         </div>
         @endif
+    </div>
+</section>
+@endif
+
+@if(!$modelsHasFilters && $models->currentPage() === 1)
+<section class="model-wrap model-methodology" aria-label="How AI Orbit compares model profiles">
+    <div>
+        <span><i data-lucide="scale"></i> HOW TO READ AI ORBIT MODEL DATA</span>
+        <h2>Specs, pricing and benchmarks are separate evidence layers.</h2>
+        <p>A model can have verified benchmark results while a pricing field or identity detail is still being reviewed. AI Orbit keeps those states separate so profile completeness is not confused with model quality.</p>
+    </div>
+    <div class="model-methodology-grid">
+        <div><strong>Comparable benchmarks only</strong><small>Composite scores use compatible technical benchmark classes; unrelated product-experience signals are not mixed in.</small></div>
+        <div><strong>Pricing in the real unit</strong><small>Token, image, video, audio or provider-dependent pricing is shown in the unit that actually applies.</small></div>
+        <div><strong>Evidence coverage is not a rating</strong><small>Verification status describes AI Orbit's source coverage, not whether one model is universally better than another.</small></div>
     </div>
 </section>
 @endif

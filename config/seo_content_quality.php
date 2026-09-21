@@ -12,13 +12,15 @@ return [
     |
     */
     'tool' => [
-        // Phase 3.1: keep every published tool indexable while the live 318-tool
-        // catalog is audited/enriched. Switch to false only after the catalog
-        // cleanup is complete and strict quality gating is intentionally restored.
-        'index_published_by_default' => true,
+        // Phase 3.1 AdSense containment: a published tool remains browsable,
+        // but only profiles with enough structured decision support are indexable.
+        // Thin profiles become noindex,follow and are automatically excluded from
+        // the AdSense loader until their evidence/content is enriched.
+        'index_published_by_default' => false,
         'index_threshold' => 55,
         'min_description_chars' => 100,
         'min_profile_completeness' => 30,
+        'min_decision_signals' => 3,
     ],
 
     'model' => [

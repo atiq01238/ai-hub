@@ -221,7 +221,7 @@
                                 <a href="{{ route('tools.show', $tool) }}">
                                     <img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo">
                                     <div><small>{{ $tool->category?->name ?: 'AI Tool' }}</small><strong>{{ $tool->name }}</strong><span>{{ \Illuminate\Support\Str::limit($tool->short_description ?: $tool->description, 72) }}</span></div>
-                                    <b>{{ (float)$tool->rating > 0 ? number_format((float)$tool->rating, 1).'★' : 'Not rated' }}</b>
+                                    @if((float)$tool->rating > 0)<b>{{ number_format((float)$tool->rating, 1) }}★</b>@endif
                                 </a>
                             @endforeach
                         </div>
@@ -241,7 +241,7 @@
                                 <a href="{{ route('models.show', $model) }}">
                                     <img src="{{ $model->logo_url }}" alt="{{ $model->name }} model logo">
                                     <div><small>{{ strtoupper($model->status) }}</small><strong>{{ $model->name }}</strong><span>{{ $model->context_window ?: '—' }} context · {{ $model->version ?: 'Current version' }}</span></div>
-                                    <b>{{ $model->benchmark_score !== null ? number_format((float) $model->benchmark_score, 1) : '—' }}</b>
+                                    <b>{{ $model->benchmark_score !== null && (float)$model->benchmark_score > 0 ? number_format((float) $model->benchmark_score, 1) : '—' }}</b>
                                 </a>
                             @endforeach
                         </div>

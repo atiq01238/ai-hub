@@ -12,11 +12,11 @@ class AuditAdSenseReadiness extends Command
         {--url= : Optionally smoke-test a running/local/live base URL, e.g. https://ai-orbit.online}
         {--production : Treat HTTPS/canonical/debug production requirements as blockers}';
 
-    protected $description = 'Run AI Orbit Phase 9 final AdSense pre-review readiness checks without modifying data.';
+    protected $description = 'Run AI Orbit final AdSense pre-review checks, including low-value-content guardrails, without modifying data.';
 
     public function handle(AdSenseReadinessService $audit): int
     {
-        $this->info('AI Orbit Phase 9 — final AdSense pre-review audit');
+        $this->info('AI Orbit — final AdSense pre-review audit');
         $this->line('This is an internal readiness checklist, not a prediction or guarantee of Google approval.');
         $this->newLine();
 
@@ -49,7 +49,7 @@ class AuditAdSenseReadiness extends Command
         $ready = $local['ready'] && ($smoke === null || $smoke['ready']);
         $this->newLine();
         if ($ready) {
-            $this->info('PASS: no Phase 9 blockers detected. Do the final live/mobile visual check, then the site is ready to be considered for an AdSense re-review.');
+            $this->info('PASS: no AdSense readiness blockers detected. Do the final live/mobile visual check, then the site is ready to be considered for an AdSense re-review.');
         } else {
             $this->error('NOT READY: resolve the BLOCKER rows before requesting another AdSense review.');
         }

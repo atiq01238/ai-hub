@@ -81,7 +81,7 @@
 ) !!}</script>
 @endpush
 @push('styles')
-<link rel="stylesheet" href="{{ asset('css/frontend/tools.css') }}?v=20260901-seo4">
+<link rel="stylesheet" href="{{ asset('css/frontend/tools.css') }}?v=20260921-adsense2">
 @endpush
 
 @section('content')
@@ -233,6 +233,22 @@
 </section>
 @endif
 
+@if(!$toolsHasFilters && $tools->currentPage() === 1)
+<section class="tools-page-container directory-methodology" aria-label="How AI Orbit evaluates tool profiles">
+    <div class="directory-methodology-copy">
+        <span><i data-lucide="shield-check"></i> HOW AI ORBIT ORGANIZES TOOL RESEARCH</span>
+        <h2>Browse with context, not just a popularity list.</h2>
+        <p>AI Orbit connects tool profiles to categories, capabilities, pricing evidence, companies and comparable research. Missing facts stay unknown instead of being inferred, and community ratings are shown only when real feedback exists.</p>
+    </div>
+    <div class="directory-methodology-grid">
+        <div><i data-lucide="database-zap"></i><strong>Source-aware profiles</strong><small>Pricing, technical and company context are linked to stored evidence where available.</small></div>
+        <div><i data-lucide="circle-help"></i><strong>Unknown stays unknown</strong><small>Unverified fields are not converted into negative scores or invented product claims.</small></div>
+        <div><i data-lucide="git-compare-arrows"></i><strong>Compare before choosing</strong><small>Use shared capabilities, pricing and benchmark evidence instead of a universal winner label.</small></div>
+    </div>
+    <a href="{{ route('sourcing-verification') }}">Read sourcing & verification standards <i data-lucide="arrow-right"></i></a>
+</section>
+@endif
+
 @if(!request()->hasAny(['q','category','pricing','rating','company','platform','feature']) && $featuredTools->isNotEmpty())
 <section class="tools-page-container featured-strip-section">
     <div class="section-heading-row">
@@ -245,7 +261,7 @@
                 <span class="rank">#{{ $rank + 1 }}</span>
                 <img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo">
                 <div><h3>{{ $tool->name }}</h3><p>{{ $tool->category?->name ?? 'AI Tool' }}</p></div>
-                <span class="mini-score"><i data-lucide="star"></i>{{ (float)$tool->rating > 0 ? number_format((float)$tool->rating, 1) : 'Not rated' }}</span>
+                @if((float)$tool->rating > 0)<span class="mini-score"><i data-lucide="star"></i>{{ number_format((float)$tool->rating, 1) }}</span>@endif
                 @if($tool->website)<a href="{{ $tool->website }}" target="_blank" rel="noopener" aria-label="Visit {{ $tool->name }}"><i data-lucide="arrow-up-right"></i></a>@endif
             </article>
         @endforeach
@@ -418,21 +434,19 @@
                             data-tool-benchmarks="{{ $quickBenchmarks->toJson() }}">
                             <div class="tool-card-media" @if($cover) style="--tool-cover:url('{{ $cover }}')" @endif>
                                 <div class="tool-media-shade"></div>
-                                <span class="tool-rank-badge"><i data-lucide="trending-up"></i>{{ $tool->popularity }}% popular</span>
+                                @if((int)$tool->popularity > 0)<span class="tool-rank-badge"><i data-lucide="trending-up"></i>{{ $tool->popularity }}% popular</span>@endif
                                 <button type="button" class="save-tool-btn" data-save-item data-save-type="tool" data-save-id="{{ $tool->id }}" aria-label="Save {{ $tool->name }}" aria-pressed="false"><i data-lucide="bookmark"></i></button>
                             </div>
                             <div class="tool-card-body">
                                 <div class="tool-card-identity">
                                     <img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo" loading="lazy">
                                     <div><h3><a class="entity-name-link" href="{{ route('tools.show', $tool) }}">{{ $tool->name }}</a></h3><p>{{ $tool->company?->name ?? 'Independent' }} <span>•</span> {{ $tool->category?->name ?? 'AI Tool' }}</p></div>
+                                    @if((float) $tool->rating > 0)
                                     <div class="tool-rating">
                                         <i data-lucide="star"></i>
-                                        @if((float) $tool->rating > 0)
-                                            <strong>{{ number_format((float)$tool->rating,1) }}</strong><small>/5</small>
-                                        @else
-                                            <strong>Not rated</strong>
-                                        @endif
+                                        <strong>{{ number_format((float)$tool->rating,1) }}</strong><small>/5</small>
                                     </div>
+                                    @endif
                                 </div>
 
                                 <p class="tool-card-description">{{ Str::limit($tool->short_description ?: $tool->description, 115) }}</p>

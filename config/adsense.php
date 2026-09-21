@@ -46,5 +46,13 @@ return [
         'min_valid_comparisons' => 2,
         'min_priced_tools' => 10,
         'min_verified_benchmarks' => 3,
+
+        // Phase 3.1 low-value-content guardrails. Thin tool/news detail
+        // pages are allowed to remain browsable, but they must be noindex and
+        // ad-suppressed until the shared SEO quality service marks them indexable.
+        'min_indexable_tool_details_warn' => 10,
+        'min_quality_news_percent' => 60,
+        'min_benchmark_description_chars' => 60,
+        'min_benchmark_context_percent' => 50,
     ],
 ];

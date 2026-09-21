@@ -70,9 +70,12 @@
                 && (int) $adsensePageValue >= 1);
         $adsenseRouteEligible = request()->route()
             && request()->routeIs(...(array) config('adsense.content_route_patterns', []));
+        $adsenseRobots = strtolower(trim($__env->yieldContent('robots')));
+        $adsenseRobotsSafe = $adsenseRobots === '' || ! str_contains($adsenseRobots, 'noindex');
         $adsenseEligible = (bool) config('adsense.enabled', true)
             && $adsenseRouteEligible
             && $adsenseQuerySafe
+            && $adsenseRobotsSafe
             && filled(config('adsense.client_id'));
     @endphp
     @if($adsenseEligible)

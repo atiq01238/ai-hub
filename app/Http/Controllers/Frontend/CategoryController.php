@@ -144,6 +144,15 @@ class CategoryController extends Controller
             'news' => $newsCount,
         ];
 
+        $editorialGuide = config('editorial_guides.categories.'.$category->slug, [
+            'intro' => 'Compare products in this category by the workflow they support, the evidence available for their capabilities, pricing and the practical constraints that matter for your use case.',
+            'factors' => [
+                ['title' => 'Start with the task', 'detail' => 'Choose tools built for the outcome you need instead of relying on a broad category label alone.'],
+                ['title' => 'Check evidence', 'detail' => 'Use linked profiles, pricing records and verified capability data to confirm the claims that matter to your decision.'],
+                ['title' => 'Compare the workflow', 'detail' => 'Pricing, platform fit, integrations and operating limits can matter as much as the headline feature set.'],
+            ],
+        ]);
+
         return view('frontend.categories.show', compact(
             'category',
             'tools',
@@ -155,6 +164,7 @@ class CategoryController extends Controller
             'stats',
             'sort',
             'seoEligible',
+            'editorialGuide',
         ));
     }
 

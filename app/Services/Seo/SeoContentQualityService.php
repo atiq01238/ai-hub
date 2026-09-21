@@ -21,12 +21,13 @@ class SeoContentQualityService
     }
 
     /**
-     * Score a tool profile for enrichment while keeping every published tool
-     * indexable during the current cleanup cycle. The quality score is still
-     * retained for diagnostics so incomplete profiles can be enriched later.
+     * Score a tool profile for both enrichment and indexability.
      *
-     * Set seo_content_quality.tool.index_published_by_default to false to
-     * restore strict quality-gated indexing after the catalog audit is done.
+     * A long prose description is helpful, but it is not the only way a tool can
+     * provide decision value. Strong structured evidence (features, use cases,
+     * platforms, pricing, benchmarks, technical profile and integrations) can
+     * qualify a profile. Thin profiles stay publicly browsable but become
+     * noindex,follow until enough structured decision support is available.
      */
     public function tool(Tool $tool, ?array $confidence = null): array
     {
@@ -50,6 +51,24 @@ class SeoContentQualityService
         $hasPlatformSignal = $platformCount > 0 || $legacyPlatforms > 0;
         $hasTaxonomySignal = $hasFeatureSignal || $hasUseCaseSignal;
         $hasIdentityAnchor = filled($tool->website) || (int) ($confidence['total_sources'] ?? 0) > 0;
+
+        $technicalProfilePresent = $tool->relationLoaded('technicalProfile')
+            ? (bool) $tool->getRelation('technicalProfile')
+            : (method_exists($tool, 'technicalProfile') && $tool->technicalProfile()->exists());
+        $integrationCount = $this->relationCount($tool, 'integrationTerms');
+        $descriptionSignal = $descriptionChars >= 60;
+        $decisionSignalCount = collect([
+            $descriptionSignal,
+            $hasFeatureSignal,
+            $hasUseCaseSignal,
+            $hasPlatformSignal,
+            $pricingCount > 0,
+            $benchmarkCount > 0,
+            $technicalProfilePresent,
+            $integrationCount > 0,
+        ])->filter()->count();
+        $minDecisionSignals = (int) config('seo_content_quality.tool.min_decision_signals', 3);
+        $hasStructuredDecisionSupport = $decisionSignalCount >= $minDecisionSignals;
 
         $score = 0;
         $score += $descriptionChars >= 180 ? 20 : ($descriptionChars >= 100 ? 12 : 0);
@@ -90,9 +109,24 @@ class SeoContentQualityService
         if ($tool->status !== 'published') {
             $blockingReasons[] = 'Tool is not published.';
         } elseif (! (bool) config('seo_content_quality.tool.index_published_by_default', true)) {
-            // Strict mode can be re-enabled later without rewriting controllers,
-            // sitemaps, intent maps or robots handling.
-            $blockingReasons = $qualityWarnings;
+            // AdSense/SEO containment is intentionally based on decision value,
+            // not a single prose-length threshold. This keeps structured profiles
+            // indexable while thin catalog records remain browsable but noindex.
+            if (! $hasIdentityAnchor) {
+                $blockingReasons[] = 'No website or source evidence is attached.';
+            }
+            if (! $hasTaxonomySignal) {
+                $blockingReasons[] = 'No capability/feature or use-case signal is available.';
+            }
+            if (! $hasStructuredDecisionSupport) {
+                $blockingReasons[] = 'Structured decision-support coverage is too thin.';
+            }
+            if ($profileCompleteness < (int) config('seo_content_quality.tool.min_profile_completeness', 30)) {
+                $blockingReasons[] = 'Profile completeness is below the indexing floor.';
+            }
+            if ($score < (int) config('seo_content_quality.tool.index_threshold', 55)) {
+                $blockingReasons[] = 'Overall content-quality score is below the indexing threshold.';
+            }
         }
 
         $result = $this->result('tool', $score, $blockingReasons, [
@@ -105,6 +139,11 @@ class SeoContentQualityService
             'platform_signals' => $platformCount + $legacyPlatforms,
             'pricing_plans' => $pricingCount,
             'benchmark_results' => $benchmarkCount,
+            'technical_profile' => $technicalProfilePresent,
+            'integrations' => $integrationCount,
+            'decision_signals' => $decisionSignalCount,
+            'minimum_decision_signals' => $minDecisionSignals,
+            'structured_decision_support' => $hasStructuredDecisionSupport,
         ]);
 
         $result['quality_warnings'] = array_values(array_unique($qualityWarnings));

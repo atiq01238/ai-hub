@@ -69,6 +69,35 @@
         'url' => $categoryCanonical,
     ];
 
+
+    $coverageBits = [];
+
+    if (($stats['models'] ?? 0) > 0) {
+        $coverageBits[] = number_format($stats['models'])
+            . ' related AI model'
+            . ($stats['models'] === 1 ? '' : 's');
+    }
+
+    if (($stats['articles'] ?? 0) > 0) {
+        $coverageBits[] = number_format($stats['articles'])
+            . ' guide'
+            . ($stats['articles'] === 1 ? '' : 's');
+    }
+
+    if (($stats['news'] ?? 0) > 0) {
+        $coverageBits[] = number_format($stats['news'])
+            . ' news '
+            . ($stats['news'] === 1 ? 'story' : 'stories');
+    }
+
+    $coverageSentence = '';
+    if ($coverageBits !== []) {
+        $lastCoverageBit = array_pop($coverageBits);
+        $coverageSentence = $coverageBits === []
+            ? $lastCoverageBit
+            : implode(', ', $coverageBits) . ' and ' . $lastCoverageBit;
+    }
+
     $categoryBreadcrumbSchema = [
         '@' . 'context' => 'https://schema.org',
         '@' . 'type' => 'BreadcrumbList',
@@ -125,7 +154,12 @@
 <section class="category-detail-hero">
     <div class="category-detail-inner">
         <div class="category-hero-main"><a class="breadcrumb-link" href="{{ route('categories.index') }}"><i data-lucide="arrow-left"></i> All Categories</a><span class="eyebrow"><i data-lucide="sparkles"></i> AI Category</span><h1>{{ $category->name }}</h1><p>{{ $categoryIntro }}</p><div class="category-hero-actions"><a class="primary-action" href="#category-tools">Explore tools <i data-lucide="arrow-down"></i></a><a class="secondary-action" href="{{ route('search.index',['q'=>$category->name]) }}">Search this topic <i data-lucide="search"></i></a></div></div>
-        <div class="category-stat-board"><span><strong>{{ number_format($stats['tools']) }}</strong><small>Published tools</small></span><span><strong>{{ number_format($stats['models']) }}</strong><small>Related models</small></span><span><strong>{{ number_format($stats['articles']) }}</strong><small>Guides</small></span><span><strong>{{ number_format($stats['news']) }}</strong><small>News stories</small></span></div>
+        <div class="category-stat-board">
+            <span><strong>{{ number_format($stats['tools']) }}</strong><small>Published tools</small></span>
+            @if($stats['models'] > 0)<span><strong>{{ number_format($stats['models']) }}</strong><small>Related models</small></span>@endif
+            @if($stats['articles'] > 0)<span><strong>{{ number_format($stats['articles']) }}</strong><small>Guides</small></span>@endif
+            @if($stats['news'] > 0)<span><strong>{{ number_format($stats['news']) }}</strong><small>News stories</small></span>@endif
+        </div>
     </div>
 </section>
 <div class="discovery-page category-detail-page">
@@ -134,13 +168,36 @@
         <div>
             <span class="eyebrow"><i data-lucide="orbit"></i> AI Orbit coverage</span>
             <h2>Explore {{ $category->name }} AI</h2>
-            <p>AI Orbit currently connects {{ number_format($stats['tools']) }} published {{ $category->name }} tool{{ $stats['tools'] === 1 ? '' : 's' }} with {{ number_format($stats['models']) }} related AI model{{ $stats['models'] === 1 ? '' : 's' }}@if($stats['articles'] || $stats['news']), plus {{ number_format($stats['articles']) }} guide{{ $stats['articles'] === 1 ? '' : 's' }} and {{ number_format($stats['news']) }} news stor{{ $stats['news'] === 1 ? 'y' : 'ies' }}@endif. Use the linked profiles below to move between products, models and supporting intelligence.</p>
+            <p>
+                AI Orbit currently tracks {{ number_format($stats['tools']) }} published {{ $category->name }} tool{{ $stats['tools'] === 1 ? '' : 's' }}.
+                @if($coverageSentence !== '')
+                    Supporting intelligence currently connects {{ $coverageSentence }}.
+                @endif
+                Use the linked profiles and evidence below to compare products without treating missing data as a negative score.
+            </p>
         </div>
         <div class="category-context-links">
             <a href="{{ route('models.index') }}">AI models directory <i data-lucide="arrow-right"></i></a>
             <a href="{{ route('companies.index') }}">AI companies directory <i data-lucide="arrow-right"></i></a>
             <a href="{{ route('comparisons.index') }}">AI comparisons <i data-lucide="arrow-right"></i></a>
         </div>
+    </section>
+
+    <section class="category-editorial-guide" aria-labelledby="category-guide-title">
+        <div class="category-editorial-guide__intro">
+            <span class="eyebrow"><i data-lucide="book-open-check"></i> Decision guide</span>
+            <h2 id="category-guide-title">How to choose {{ $category->name }} AI tools</h2>
+            <p>{{ $editorialGuide['intro'] }}</p>
+        </div>
+        <div class="category-editorial-guide__factors">
+            @foreach(($editorialGuide['factors'] ?? []) as $factor)
+                <article>
+                    <span><i data-lucide="check-circle-2"></i></span>
+                    <div><h3>{{ $factor['title'] }}</h3><p>{{ $factor['detail'] }}</p></div>
+                </article>
+            @endforeach
+        </div>
+        <p class="category-editorial-guide__note"><i data-lucide="shield-check"></i>AI Orbit keeps editorial guidance separate from provider claims. Use individual profiles, pricing records and source links to verify the details that matter to your decision.</p>
     </section>
 
     @if($subcategories->isNotEmpty())
@@ -154,7 +211,7 @@
         @else
             <div class="category-tool-grid">
                 @foreach($tools as $tool)
-                    <article class="category-tool-card"><div class="tool-card-head"><img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo"><div><small>{{ $tool->company?->name ?? 'AI Tool' }}</small><h3><a href="{{ route('tools.show',$tool) }}">{{ $tool->name }}</a></h3></div><span class="rating-pill"><i data-lucide="star"></i>{{ (float)$tool->rating > 0 ? number_format((float)$tool->rating,1) : 'Not rated' }}</span></div><p>{{ \Illuminate\Support\Str::limit($tool->short_description ?: $tool->description, 125) }}</p><div class="tool-card-tags">@foreach(array_slice($tool->capabilities ?? [],0,3) as $capability)<span>{{ $capability }}</span>@endforeach</div><div class="tool-card-foot"><span><i data-lucide="flame"></i>{{ number_format((int)$tool->popularity) }} popularity</span><a href="{{ route('tools.show',$tool) }}">View tool <i data-lucide="arrow-right"></i></a></div></article>
+                    <article class="category-tool-card"><div class="tool-card-head"><img src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo"><div><small>{{ $tool->company?->name ?? 'AI Tool' }}</small><h3><a href="{{ route('tools.show',$tool) }}">{{ $tool->name }}</a></h3></div>@if((float)$tool->rating > 0)<span class="rating-pill"><i data-lucide="star"></i>{{ number_format((float)$tool->rating,1) }}</span>@endif</div><p>{{ \Illuminate\Support\Str::limit($tool->short_description ?: $tool->description, 125) }}</p><div class="tool-card-tags">@foreach(array_slice($tool->capabilities ?? [],0,3) as $capability)<span>{{ $capability }}</span>@endforeach</div><div class="tool-card-foot">@if((int)$tool->popularity > 0)<span><i data-lucide="flame"></i>{{ number_format((int)$tool->popularity) }} popularity</span>@else<span class="tool-card-foot__context"><i data-lucide="layers-3"></i>{{ $tool->subcategoryTerm?->name ?: $category->name }}</span>@endif<a href="{{ route('tools.show',$tool) }}">View tool <i data-lucide="arrow-right"></i></a></div></article>
                 @endforeach
             </div>
             <div class="category-pagination">

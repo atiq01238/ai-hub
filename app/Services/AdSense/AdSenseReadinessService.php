@@ -4,7 +4,9 @@ namespace App\Services\AdSense;
 
 use App\Models\AiModel;
 use App\Models\Article;
+use App\Models\Benchmark;
 use App\Models\BenchmarkResult;
+use App\Models\Category;
 use App\Models\Comparison;
 use App\Models\NewsItem;
 use App\Models\Review;
@@ -73,9 +75,12 @@ class AdSenseReadinessService
         $layout = is_file($layoutPath) ? (string) file_get_contents($layoutPath) : '';
         $scopedLoader = str_contains($layout, "config('adsense.content_route_patterns'")
             && str_contains($layout, '$adsenseQuerySafe')
+            && str_contains($layout, '$adsenseRobotsSafe')
             && str_contains($layout, "config('adsense.client_id')");
-        $this->add($checks, 'AdSense', 'Loader restricted to content/canonical URLs', $scopedLoader ? 'PASS' : 'BLOCKER',
-            $scopedLoader ? 'Global frontend layout uses the Phase 9 AdSense content-route and query-string gate.' : 'Scoped AdSense loader guard was not detected.');
+        $this->add($checks, 'AdSense', 'Loader restricted to indexable canonical content', $scopedLoader ? 'PASS' : 'BLOCKER',
+            $scopedLoader
+                ? 'Global frontend layout gates Auto ads by content route, canonical query state and noindex robots state.'
+                : 'Scoped AdSense loader guard must include route, query-string and noindex robots checks.');
 
         $robotsPath = public_path('robots.txt');
         $robots = is_file($robotsPath) ? (string) file_get_contents($robotsPath) : '';
@@ -120,6 +125,8 @@ class AdSenseReadinessService
         $leaks = $this->scanFrontendViewsFor($sourceLeakPatterns);
         $this->add($checks, 'Quality', 'Known template-leak signatures', $leaks->isEmpty() ? 'PASS' : 'BLOCKER',
             $leaks->isEmpty() ? 'No known leaked Blade/error signatures found in frontend view source.' : $leaks->take(5)->join(' | '));
+
+        $this->appendPublisherTemplateChecks($checks);
 
         try {
             $this->appendContentChecks($checks);
@@ -263,6 +270,28 @@ class AdSenseReadinessService
             $this->add($checks, 'HTTP', '/ai-tools?utm_source=phase9-audit', 'BLOCKER', $e->getMessage());
         }
 
+        // Phase 3.1: sample a quality-gated tool/news detail when available.
+        // These pages must stay reachable for users while sending noindex,follow
+        // and excluding the AdSense bootstrap script.
+        foreach ($this->sampleNoindexEntityPaths() as $path) {
+            try {
+                $response = Http::timeout(15)
+                    ->withHeaders(['User-Agent' => 'AIOrbit-AdSense-Readiness-Audit/1.0'])
+                    ->withOptions(['allow_redirects' => true])
+                    ->get($baseUrl.$path);
+                $body = (string) $response->body();
+                $status = $response->status();
+                $noindex = (bool) preg_match('/<meta[^>]+name=["\']robots["\'][^>]+content=["\'][^"\']*noindex/i', $body)
+                    || (bool) preg_match('/<meta[^>]+content=["\'][^"\']*noindex[^"\']*["\'][^>]+name=["\']robots["\']/i', $body);
+                $adsenseLoaded = str_contains($body, 'pagead2.googlesyndication.com/pagead/js/adsbygoogle.js');
+                $valid = $status >= 200 && $status < 400 && $noindex && ! $adsenseLoaded;
+                $this->add($checks, 'HTTP', $path.' (quality containment)', $valid ? 'PASS' : 'BLOCKER',
+                    $valid ? 'Thin detail is reachable, noindex and Auto ads are suppressed.' : 'Expected reachable + noindex + no AdSense loader for this thin detail page.');
+            } catch (\Throwable $e) {
+                $this->add($checks, 'HTTP', $path.' (quality containment)', 'BLOCKER', $e->getMessage());
+            }
+        }
+
         return $this->summarize($checks);
     }
 
@@ -336,6 +365,96 @@ class AdSenseReadinessService
         $this->add($checks, 'Content', 'Verified benchmark results', $verifiedBenchmarks >= $minBenchmarks ? 'PASS' : 'WARN',
             $verifiedBenchmarks.' verified results.');
 
+        $publishedToolRows = Tool::query()
+            ->where('status', 'published')
+            ->with([
+                'company:id,name', 'category:id,name', 'subcategoryTerm:id,name',
+                'featureTerms:id,name', 'useCaseTerms:id,name', 'platformTerms:id,name',
+                'integrationTerms:id,name', 'sources', 'factEvidence', 'pricingPlans.sources',
+                'technicalProfile',
+                'benchmarkResults' => fn ($query) => $query
+                    ->with('benchmark')
+                    ->where('verified', true)
+                    ->where('status', 'verified'),
+            ])
+            ->get();
+
+        $toolAssessments = $publishedToolRows->mapWithKeys(function (Tool $tool) {
+            return [$tool->id => $this->contentQuality->tool($tool)];
+        });
+        $indexableToolDetails = $toolAssessments->filter(fn (array $assessment) => (bool) ($assessment['indexable'] ?? false))->count();
+        $containedToolDetails = max(0, $publishedToolRows->count() - $indexableToolDetails);
+        $strictToolGate = ! (bool) config('seo_content_quality.tool.index_published_by_default', true);
+
+        $this->add($checks, 'Low-value guardrail', 'Thin tool profiles are quality-gated',
+            $strictToolGate ? 'PASS' : 'BLOCKER',
+            $strictToolGate
+                ? $indexableToolDetails.' indexable tool details; '.$containedToolDetails.' thin/incomplete profiles automatically use noindex,follow until structured decision support improves.'
+                : 'Published tools are still forced indexable by default. Enable the structured tool quality gate before AdSense review.');
+
+        $minIndexableToolDetails = (int) ($thresholds['min_indexable_tool_details_warn'] ?? 10);
+        $toolCoverageStatus = $indexableToolDetails >= $minIndexableToolDetails ? 'PASS' : 'WARN';
+        $this->add($checks, 'Content', 'Indexable tool detail coverage', $toolCoverageStatus,
+            $indexableToolDetails.'/'.$publishedToolRows->count().' published tool profiles currently pass the structured decision-support gate; internal review target '.$minIndexableToolDetails.'+.');
+
+        $qualityNewsPercent = $news->isEmpty() ? 0 : (int) round(($qualityNews / $news->count()) * 100);
+        $thinNews = max(0, $news->count() - $qualityNews);
+        $newsTemplatePath = resource_path('views/frontend/news/show.blade.php');
+        $newsTemplate = is_file($newsTemplatePath) ? (string) file_get_contents($newsTemplatePath) : '';
+        $layoutPath = resource_path('views/frontend/layouts/app.blade.php');
+        $layoutSource = is_file($layoutPath) ? (string) file_get_contents($layoutPath) : '';
+        $newsRobotsGated = str_contains($newsTemplate, "\$seoQuality['robots']")
+            && str_contains($layoutSource, '$adsenseRobotsSafe');
+
+        $this->add($checks, 'Low-value guardrail', 'Thin news briefs are contained',
+            $newsRobotsGated ? 'PASS' : 'BLOCKER',
+            $newsRobotsGated
+                ? $qualityNews.' quality-passing news briefs remain indexable; '.$thinNews.' thinner briefs are noindex,follow and Auto ads are suppressed on noindex pages.'
+                : 'News detail robots output and/or the global noindex AdSense suppression gate is missing.');
+
+        $minQualityNewsPercent = (int) ($thresholds['min_quality_news_percent'] ?? 60);
+        $qualityNewsStatus = $news->isEmpty()
+            ? 'WARN'
+            : ($qualityNewsPercent >= $minQualityNewsPercent ? 'PASS' : 'WARN');
+        $this->add($checks, 'Content', 'News editorial enrichment coverage', $qualityNewsStatus,
+            $qualityNews.'/'.$news->count().' public news briefs pass the summary + why-it-matters quality gate ('.$qualityNewsPercent.'%). Lower coverage is an enrichment backlog, not an indexing/ads leak, because thin briefs are contained.');
+
+        $indexableCategories = Category::query()->seoProductIndexable()->get(['id', 'name', 'slug']);
+        $categoryGuides = collect((array) config('editorial_guides.categories', []));
+        $categoriesWithGuides = $indexableCategories
+            ->filter(fn (Category $category) => $categoryGuides->has($category->slug))
+            ->count();
+        $categoryGuideStatus = $indexableCategories->isEmpty() || $categoriesWithGuides === $indexableCategories->count()
+            ? 'PASS'
+            : 'BLOCKER';
+        $this->add($checks, 'Low-value guardrail', 'Indexable category editorial guides', $categoryGuideStatus,
+            $categoriesWithGuides.'/'.$indexableCategories->count().' indexable product categories have dedicated editorial guidance.');
+
+        $activeBenchmarks = Benchmark::query()
+            ->where('is_active', true)
+            ->withCount(['results as verified_results_count' => fn ($query) => $query
+                ->where('verified', true)
+                ->where('status', 'verified')])
+            ->get(['id', 'name', 'slug', 'description', 'official_url', 'methodology_url', 'is_active']);
+        $contextRichBenchmarks = $activeBenchmarks->filter(function (Benchmark $benchmark) use ($thresholds) {
+            $description = trim(strip_tags((string) $benchmark->description));
+            $description = preg_replace('/\s+/u', ' ', $description) ?? $description;
+            $hasSource = filled($benchmark->official_url) || filled($benchmark->methodology_url);
+
+            return mb_strlen(trim($description)) >= (int) ($thresholds['min_benchmark_description_chars'] ?? 60)
+                && $hasSource
+                && (int) ($benchmark->verified_results_count ?? 0) >= 1;
+        })->count();
+        $benchmarkContextPercent = $activeBenchmarks->isEmpty()
+            ? 0
+            : (int) round(($contextRichBenchmarks / $activeBenchmarks->count()) * 100);
+        $minBenchmarkContextPercent = (int) ($thresholds['min_benchmark_context_percent'] ?? 50);
+        $benchmarkContextStatus = $activeBenchmarks->isEmpty()
+            ? 'WARN'
+            : ($benchmarkContextPercent >= $minBenchmarkContextPercent ? 'PASS' : 'WARN');
+        $this->add($checks, 'Low-value guardrail', 'Benchmarks with methodology/source context', $benchmarkContextStatus,
+            $contextRichBenchmarks.'/'.$activeBenchmarks->count().' active benchmarks have description + source/methodology + verified result context ('.$benchmarkContextPercent.'%).');
+
         $publicReviews = Review::query()
             ->publicContent()
             ->where(function ($query) {
@@ -347,6 +466,176 @@ class AdSenseReadinessService
             $publicReviews > 0
                 ? $publicReviews.' public written/editorial reviews.'
                 : '0 written reviews; Phase 9 keeps the empty reviews hub noindex and out of the static sitemap until content exists.');
+    }
+
+    private function appendPublisherTemplateChecks(Collection $checks): void
+    {
+        $requirements = [
+            'resources/views/frontend/news/show.blade.php' => [
+                'What is confirmed, and what is not',
+                'SOURCE-GROUNDED CONTEXT',
+                "\$seoQuality['robots']",
+            ],
+            'resources/views/frontend/tools/show.blade.php' => [
+                "frontend.tools.partials.editorial-decision-brief",
+                'Features & use cases',
+                "\$seoQuality['robots']",
+            ],
+            'resources/views/frontend/categories/show.blade.php' => [
+                'How to choose',
+                'category-editorial-guide',
+            ],
+            'resources/views/frontend/categories/subcategory.blade.php' => [
+                'How to evaluate',
+                'category-editorial-guide',
+            ],
+            'resources/views/frontend/taxonomy/show.blade.php' => [
+                'RESEARCH GUIDE',
+                'category-editorial-guide',
+            ],
+            'resources/views/frontend/benchmarks/show.blade.php' => [
+                'How to interpret this leaderboard',
+                'Limitations',
+            ],
+            'resources/views/frontend/models/show.blade.php' => [
+                'AI Orbit profile evidence coverage',
+                'Verified benchmark profile',
+            ],
+            'resources/views/frontend/pricing/show.blade.php' => [
+                '$meaningfulHistory',
+                'Published pricing history',
+            ],
+            'resources/views/frontend/articles/show.blade.php' => [
+                '$displayReviewer',
+                'AI Orbit editorial standard',
+            ],
+            'resources/views/frontend/pages/about.blade.php' => [
+                'Editorial responsibility',
+                'AI Orbit is accountable for what it publishes.',
+            ],
+        ];
+
+        $missingMarkers = collect();
+        foreach ($requirements as $relative => $markers) {
+            $path = base_path($relative);
+            if (! is_file($path)) {
+                $missingMarkers->push($relative.' is missing');
+                continue;
+            }
+
+            $contents = (string) file_get_contents($path);
+            foreach ($markers as $marker) {
+                if (! str_contains($contents, $marker)) {
+                    $missingMarkers->push($relative.' missing "'.$marker.'"');
+                }
+            }
+        }
+
+        $this->add($checks, 'Low-value guardrail', 'High-risk page templates contain decision/context sections',
+            $missingMarkers->isEmpty() ? 'PASS' : 'BLOCKER',
+            $missingMarkers->isEmpty()
+                ? count($requirements).' high-risk publisher templates contain their expected editorial/context markers.'
+                : $missingMarkers->take(6)->join(' | '));
+
+        $publicTemplateFiles = [
+            'resources/views/frontend/news/show.blade.php',
+            'resources/views/frontend/tools/show.blade.php',
+            'resources/views/frontend/categories/index.blade.php',
+            'resources/views/frontend/categories/show.blade.php',
+            'resources/views/frontend/categories/subcategory.blade.php',
+            'resources/views/frontend/taxonomy/show.blade.php',
+            'resources/views/frontend/benchmarks/show.blade.php',
+            'resources/views/frontend/models/index.blade.php',
+            'resources/views/frontend/models/show.blade.php',
+            'resources/views/frontend/pricing/index.blade.php',
+            'resources/views/frontend/pricing/show.blade.php',
+            'resources/views/frontend/companies/index.blade.php',
+            'resources/views/frontend/companies/show.blade.php',
+            'resources/views/frontend/articles/show.blade.php',
+        ];
+
+        $unfinishedPatterns = [
+            'Processing: Pending',
+            'Evidence records not imported yet',
+            '0 source records',
+            'AI Hub users say',
+            '0 popularity',
+            '— → —',
+            'Not rated',
+        ];
+
+        $unfinishedHits = collect();
+        foreach ($publicTemplateFiles as $relative) {
+            $path = base_path($relative);
+            if (! is_file($path)) {
+                continue;
+            }
+
+            $contents = (string) file_get_contents($path);
+            foreach ($unfinishedPatterns as $pattern) {
+                if (str_contains($contents, $pattern)) {
+                    $unfinishedHits->push($relative.' contains "'.$pattern.'"');
+                }
+            }
+        }
+
+        $this->add($checks, 'Low-value guardrail', 'Unfinished/debug-style public copy',
+            $unfinishedHits->isEmpty() ? 'PASS' : 'BLOCKER',
+            $unfinishedHits->isEmpty()
+                ? 'No known unfinished/debug-style low-value signatures remain in publisher templates.'
+                : $unfinishedHits->take(6)->join(' | '));
+
+        $bladeSanityHits = collect();
+        foreach ($publicTemplateFiles as $relative) {
+            $path = base_path($relative);
+            if (! is_file($path)) {
+                continue;
+            }
+
+            $contents = (string) file_get_contents($path);
+
+            if (preg_match('/(?<=[A-Za-z0-9_])@(if|elseif|else|foreach|for|forelse|while|php)\b/', $contents, $match, PREG_OFFSET_CAPTURE)) {
+                $offset = (int) ($match[0][1] ?? 0);
+                $context = trim(substr($contents, max(0, $offset - 28), 80));
+                $bladeSanityHits->push($relative.' has a glued Blade directive near "'.Str::limit($context, 70, '').'"');
+            }
+
+            $pairs = [
+                ['if', 'endif'],
+                ['foreach', 'endforeach'],
+                ['for', 'endfor'],
+                ['forelse', 'endforelse'],
+                ['while', 'endwhile'],
+                ['switch', 'endswitch'],
+            ];
+
+            foreach ($pairs as [$open, $close]) {
+                preg_match_all('/@'.preg_quote($open, '/').'\b/', $contents, $openMatches);
+                preg_match_all('/@'.preg_quote($close, '/').'\b/', $contents, $closeMatches);
+                $openCount = count($openMatches[0] ?? []);
+                $closeCount = count($closeMatches[0] ?? []);
+                if ($openCount !== $closeCount) {
+                    $bladeSanityHits->push($relative.' has @'.$open.'='.$openCount.' / @'.$close.'='.$closeCount);
+                }
+            }
+        }
+
+        $this->add($checks, 'Quality', 'Publisher Blade directive sanity',
+            $bladeSanityHits->isEmpty() ? 'PASS' : 'BLOCKER',
+            $bladeSanityHits->isEmpty()
+                ? 'High-risk publisher templates have balanced control directives and no glued directive signatures.'
+                : $bladeSanityHits->take(6)->join(' | '));
+
+        $categoriesPath = Route::has('categories.index')
+            ? (string) parse_url(route('categories.index'), PHP_URL_PATH)
+            : '';
+        $categoryPathClean = $categoriesPath === '/categories'
+            || ($categoriesPath !== '' && ! str_contains($categoriesPath, '/public/'));
+        $this->add($checks, 'Crawl', 'Categories canonical route path',
+            $categoryPathClean ? 'PASS' : 'WARN',
+            $categoryPathClean
+                ? ($categoriesPath ?: 'Category route unavailable during path check.')
+                : 'Category directory resolves through a /public/ URL. Prefer the clean /categories canonical route and redirect legacy /public/categories requests.');
     }
 
     private function scanFrontendViewsFor(array $patterns): Collection
@@ -374,12 +663,54 @@ class AdSenseReadinessService
         return $hits->values();
     }
 
+    private function sampleNoindexEntityPaths(): array
+    {
+        $paths = collect();
+
+        try {
+            $tools = Tool::query()
+                ->where('status', 'published')
+                ->with([
+                    'company:id,name', 'category:id,name', 'subcategoryTerm:id,name',
+                    'featureTerms:id,name', 'useCaseTerms:id,name', 'platformTerms:id,name',
+                    'integrationTerms:id,name', 'sources', 'factEvidence', 'pricingPlans.sources',
+                    'technicalProfile',
+                    'benchmarkResults' => fn ($query) => $query->with('benchmark')->where('verified', true)->where('status', 'verified'),
+                ])
+                ->orderBy('id')
+                ->get();
+            if ($tool = $tools->first(fn (Tool $row) => ! $this->contentQuality->tool($row)['indexable'])) {
+                $paths->push((string) parse_url(route('tools.show', $tool), PHP_URL_PATH));
+            }
+
+            $news = NewsItem::query()->publiclyVisible()->orderBy('id')->get();
+            if ($item = $news->first(fn (NewsItem $row) => ! $this->contentQuality->news($row)['indexable'])) {
+                $paths->push((string) parse_url(route('news.show', $item), PHP_URL_PATH));
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return $paths->filter()->unique()->values()->all();
+    }
+
     private function sampleEntityPaths(): array
     {
         $paths = collect();
 
         try {
-            if ($tool = Tool::query()->where('status', 'published')->orderBy('id')->first()) {
+            $tools = Tool::query()
+                ->where('status', 'published')
+                ->with([
+                    'company:id,name', 'category:id,name', 'subcategoryTerm:id,name',
+                    'featureTerms:id,name', 'useCaseTerms:id,name', 'platformTerms:id,name',
+                    'integrationTerms:id,name', 'sources', 'factEvidence', 'pricingPlans.sources',
+                    'technicalProfile',
+                    'benchmarkResults' => fn ($query) => $query->with('benchmark')->where('verified', true)->where('status', 'verified'),
+                ])
+                ->orderBy('id')
+                ->get();
+            if ($tool = $tools->first(fn (Tool $row) => $this->contentQuality->tool($row)['indexable'])) {
                 $paths->push((string) parse_url(route('tools.show', $tool), PHP_URL_PATH));
             }
 

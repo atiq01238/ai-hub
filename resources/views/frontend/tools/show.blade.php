@@ -97,7 +97,7 @@
         <div class="tool-hero-bottom">
             <div class="tool-quick-facts">
                 <span><i data-lucide="badge-dollar-sign"></i><small>Pricing</small><b>{{ $priceLabel }}</b></span>
-                <span><i data-lucide="shield-check"></i><small>Data confidence</small><b>{{ $dataConfidence['score'] }}/100</b></span>
+                <span><i data-lucide="shield-check"></i><small>Profile coverage</small><b>{{ $dataConfidence['score'] }}%</b></span>
                 <span><i data-lucide="monitor-smartphone"></i><small>Platforms</small><b>{{ $platforms->take(2)->join(' + ') ?: 'Web' }}</b></span>
                 @if($tool->company)<span><i data-lucide="building-2"></i><small>Company</small><b>@if(in_array($tool->company->status, ['active','acquired'], true))<a href="{{ route('companies.show',$tool->company) }}">{{ $tool->company->name }}</a>@else{{ $tool->company->name }}@endif</b></span>@endif
             </div>
@@ -118,6 +118,7 @@
             'id' => $tool->id,
             'summary' => $quickRating,
             'label' => 'Rate '.$tool->name,
+            'compact_empty' => true,
         ])
     </div>
 </section>
@@ -149,10 +150,13 @@
     <div class="tool-detail-main">
         <section class="detail-panel overview-panel" id="overview">
             <div class="detail-section-head"><div><span>Overview</span><h2>What is {{ $tool->name }}?</h2></div><i data-lucide="sparkles"></i></div>
-            @if(trim((string) $tool->overview) !== '')
-                <div class="rich-description">{!! nl2br(e($tool->overview)) !!}</div>
-            @else
-                <p class="detail-empty">A narrative overview has not been published yet. The structured evidence below is shown without filling unknown details with generated copy.</p>
+            @php
+                $profileOverview = trim((string) $tool->overview)
+                    ?: trim((string) $tool->description)
+                    ?: trim((string) $tool->short_description);
+            @endphp
+            @if($profileOverview !== '')
+                <div class="rich-description">{!! nl2br(e($profileOverview)) !!}</div>
             @endif
             @if($tool->useCaseTerms->isNotEmpty())
             <div class="best-for-box"><span><i data-lucide="target"></i>Best for</span><div>@foreach($tool->useCaseTerms->take(5) as $useCase)<b title="{{ $useCase->pivot?->fit_note ?: ($useCase->short_description ?: 'AI Orbit use-case classification') }}">{{ $useCase->name }}@if(($useCase->pivot?->verification_status ?? 'pending') === 'verified') <i data-lucide="badge-check"></i>@endif</b>@endforeach</div></div>
@@ -179,14 +183,14 @@
                             <h3>{{ $feature->name }}</h3>
                             <p>{{ $featureDescription ?: 'Capability description has not been verified for this tool yet.' }}</p>
                             <div class="feature-evidence-row">
-                                @if($featureVerified)<span class="evidence-state evidence-state--verified"><i data-lucide="badge-check"></i>Verified capability</span>@else<span class="evidence-state"><i data-lucide="clock-3"></i>Evidence pending</span>@endif
+                                @if($featureVerified)<span class="evidence-state evidence-state--verified"><i data-lucide="badge-check"></i>Verified capability</span>@elseif($featureEvidence)<span class="evidence-state"><i data-lucide="search-check"></i>Source review in progress</span>@endif
                                 @if($featureEvidence)<a href="{{ $featureEvidence->source_url }}" target="_blank" rel="noopener noreferrer nofollow">Source<i data-lucide="arrow-up-right"></i></a>@endif
                             </div>
                         </div>
                     </article>
                 @empty
                     @forelse($capabilities as $capability)
-                        <article><span><i data-lucide="circle-help"></i></span><div><h3>{{ $capability }}</h3><p>Legacy capability label. Structured evidence has not been attached yet.</p><div class="feature-evidence-row"><span class="evidence-state"><i data-lucide="clock-3"></i>Evidence pending</span></div></div></article>
+                        <article><span><i data-lucide="circle-help"></i></span><div><h3>{{ $capability }}</h3><p>Catalog capability recorded for this product. Open the linked profile sources for the currently verified details.</p></div></article>
                     @empty<p class="detail-empty">Capability details have not been published yet.</p>@endforelse
                 @endforelse
             </div>
@@ -199,7 +203,7 @@
                 <div class="use-case-fit-list">
                     @foreach($tool->useCaseTerms->filter(fn($useCase) => trim((string)($useCase->pivot?->fit_note ?? '')) !== '')->take(6) as $useCase)
                         @php $useCaseEvidence = !empty($useCase->pivot?->tool_source_id) ? $sourceMap->get($useCase->pivot->tool_source_id) : null; @endphp
-                        <div><strong>{{ $useCase->name }}</strong><p>{{ $useCase->pivot->fit_note }}</p><span>{{ ($useCase->pivot?->verification_status ?? 'pending') === 'verified' ? 'Verified fit' : 'Evidence pending' }}@if($useCaseEvidence) · <a href="{{ $useCaseEvidence->source_url }}" target="_blank" rel="noopener noreferrer nofollow">source</a>@endif</span></div>
+                        <div><strong>{{ $useCase->name }}</strong><p>{{ $useCase->pivot->fit_note }}</p>@if(($useCase->pivot?->verification_status ?? 'pending') === 'verified' || $useCaseEvidence)<span>{{ ($useCase->pivot?->verification_status ?? 'pending') === 'verified' ? 'Verified fit' : 'Source review in progress' }}@if($useCaseEvidence) · <a href="{{ $useCaseEvidence->source_url }}" target="_blank" rel="noopener noreferrer nofollow">source</a>@endif</span>@endif</div>
                     @endforeach
                 </div>
             @endif
@@ -227,10 +231,11 @@
         <section class="detail-panel technical-profile-panel" id="technical">
             <div class="detail-section-head"><div><span>Technical profile</span><h2>Access, deployment & licensing</h2><p>Structured product facts with evidence status. Unknown facts are never guessed.</p></div><i data-lucide="terminal-square"></i></div>
             <div class="feature-detail-grid technical-fact-grid">
-                <article class="technical-fact-card {{ $apiVerified ? 'is-verified' : 'is-pending' }}">
+                @if(filled($technicalProfile->api_status) && $technicalProfile->api_status !== 'unknown')
+<article class="technical-fact-card {{ $apiVerified ? 'is-verified' : 'is-pending' }}">
                     <span class="technical-fact-card__icon"><i data-lucide="braces"></i></span>
                     <div class="technical-fact-card__content">
-                        <div class="technical-fact-card__head"><h3>API access</h3><span class="technical-fact-state {{ $apiVerified ? 'is-verified' : 'is-pending' }}"><i data-lucide="{{ $apiVerified ? 'badge-check' : 'clock-3' }}"></i>{{ $apiVerified ? 'Verified' : 'Pending evidence' }}</span></div>
+                        <div class="technical-fact-card__head"><h3>API access</h3><span class="technical-fact-state {{ $apiVerified ? 'is-verified' : 'is-pending' }}"><i data-lucide="{{ $apiVerified ? 'badge-check' : 'clock-3' }}"></i>{{ $apiVerified ? 'Verified' : 'Source check pending' }}</span></div>
                         <p>{{ \App\Models\ToolTechnicalProfile::API_STATUSES[$technicalProfile->api_status] ?? Str::headline($technicalProfile->api_status) }}</p>
                         @if($technicalProfile->api_docs_url || ($apiSource && !$sameEvidenceUrl($technicalProfile->api_docs_url, $apiSource->source_url)))
                         <div class="technical-fact-actions">
@@ -240,11 +245,13 @@
                         @endif
                     </div>
                 </article>
+@endif
 
-                <article class="technical-fact-card {{ $openSourceVerified ? 'is-verified' : 'is-pending' }}">
+                @if(filled($technicalProfile->open_source_status) && $technicalProfile->open_source_status !== 'unknown')
+<article class="technical-fact-card {{ $openSourceVerified ? 'is-verified' : 'is-pending' }}">
                     <span class="technical-fact-card__icon"><i data-lucide="git-fork"></i></span>
                     <div class="technical-fact-card__content">
-                        <div class="technical-fact-card__head"><h3>Open source & license</h3><span class="technical-fact-state {{ $openSourceVerified ? 'is-verified' : 'is-pending' }}"><i data-lucide="{{ $openSourceVerified ? 'badge-check' : 'clock-3' }}"></i>{{ $openSourceVerified ? 'Verified' : 'Pending evidence' }}</span></div>
+                        <div class="technical-fact-card__head"><h3>Open source & license</h3><span class="technical-fact-state {{ $openSourceVerified ? 'is-verified' : 'is-pending' }}"><i data-lucide="{{ $openSourceVerified ? 'badge-check' : 'clock-3' }}"></i>{{ $openSourceVerified ? 'Verified' : 'Source check pending' }}</span></div>
                         <p>{{ \App\Models\ToolTechnicalProfile::OPEN_SOURCE_STATUSES[$technicalProfile->open_source_status] ?? Str::headline($technicalProfile->open_source_status) }}@if($technicalProfile->license_name) · {{ $technicalProfile->license_name }}@endif</p>
                         @if($technicalProfile->repository_url || ($repositorySource && !$sameEvidenceUrl($technicalProfile->repository_url, $repositorySource->source_url)))
                         <div class="technical-fact-actions">
@@ -254,25 +261,30 @@
                         @endif
                     </div>
                 </article>
+@endif
 
-                <article class="technical-fact-card {{ $deploymentVerified ? 'is-verified' : 'is-pending' }}">
+                @if(filled($technicalProfile->self_hosting_status) && $technicalProfile->self_hosting_status !== 'unknown')
+<article class="technical-fact-card {{ $deploymentVerified ? 'is-verified' : 'is-pending' }}">
                     <span class="technical-fact-card__icon"><i data-lucide="server-cog"></i></span>
                     <div class="technical-fact-card__content">
-                        <div class="technical-fact-card__head"><h3>Deployment</h3><span class="technical-fact-state {{ $deploymentVerified ? 'is-verified' : 'is-pending' }}"><i data-lucide="{{ $deploymentVerified ? 'badge-check' : 'clock-3' }}"></i>{{ $deploymentVerified ? 'Verified' : 'Pending evidence' }}</span></div>
+                        <div class="technical-fact-card__head"><h3>Deployment</h3><span class="technical-fact-state {{ $deploymentVerified ? 'is-verified' : 'is-pending' }}"><i data-lucide="{{ $deploymentVerified ? 'badge-check' : 'clock-3' }}"></i>{{ $deploymentVerified ? 'Verified' : 'Source check pending' }}</span></div>
                         <p>{{ \App\Models\ToolTechnicalProfile::SELF_HOSTING_STATUSES[$technicalProfile->self_hosting_status] ?? Str::headline($technicalProfile->self_hosting_status) }}</p>
                         @if(!empty($technicalProfile->deployment_modes))<div class="technical-mode-list">@foreach($technicalProfile->deployment_modes as $mode)<span>{{ $mode }}</span>@endforeach</div>@endif
                         @if($deploymentSource)<div class="technical-fact-actions"><a href="{{ $deploymentSource->source_url }}" target="_blank" rel="noopener noreferrer nofollow">Deployment source <i data-lucide="arrow-up-right"></i></a></div>@endif
                     </div>
                 </article>
+@endif
 
-                <article class="technical-fact-card {{ $commercialVerified ? 'is-verified' : 'is-pending' }}">
+                @if(filled($technicalProfile->commercial_use_status) && $technicalProfile->commercial_use_status !== 'unknown')
+<article class="technical-fact-card {{ $commercialVerified ? 'is-verified' : 'is-pending' }}">
                     <span class="technical-fact-card__icon"><i data-lucide="badge-dollar-sign"></i></span>
                     <div class="technical-fact-card__content">
-                        <div class="technical-fact-card__head"><h3>Commercial use</h3><span class="technical-fact-state {{ $commercialVerified ? 'is-verified' : 'is-pending' }}"><i data-lucide="{{ $commercialVerified ? 'badge-check' : 'clock-3' }}"></i>{{ $commercialVerified ? 'Verified' : 'Pending evidence' }}</span></div>
+                        <div class="technical-fact-card__head"><h3>Commercial use</h3><span class="technical-fact-state {{ $commercialVerified ? 'is-verified' : 'is-pending' }}"><i data-lucide="{{ $commercialVerified ? 'badge-check' : 'clock-3' }}"></i>{{ $commercialVerified ? 'Verified' : 'Source check pending' }}</span></div>
                         <p>{{ \App\Models\ToolTechnicalProfile::COMMERCIAL_USE_STATUSES[$technicalProfile->commercial_use_status] ?? Str::headline($technicalProfile->commercial_use_status) }}</p>
                         @if($termsSource)<div class="technical-fact-actions"><a href="{{ $termsSource->source_url }}" target="_blank" rel="noopener noreferrer nofollow">Terms evidence <i data-lucide="arrow-up-right"></i></a></div>@endif
                     </div>
                 </article>
+@endif
             </div>
 
             @if(!empty($technicalProfile->supported_languages) || !empty($technicalProfile->region_availability))
@@ -292,8 +304,12 @@
         <section class="detail-panel" id="trust">
             <div class="detail-section-head"><div><span>Trust intelligence</span><h2>Privacy, security & compliance</h2><p>Provider policies and certifications are shown only when recorded with evidence.</p></div><i data-lucide="shield-check"></i></div>
             <div class="feature-detail-grid">
-                <article><span><i data-lucide="database"></i></span><div><h3>Data training policy</h3><p>{{ \App\Models\ToolTechnicalProfile::TRAINING_POLICIES[$technicalProfile->data_training_policy] ?? Str::headline($technicalProfile->data_training_policy) }}</p>@if($technicalProfile->data_retention_note)<small>{{ $technicalProfile->data_retention_note }}</small>@endif <small>{{ $factVerified('privacy','data_training_policy') ? 'Verified fact' : 'Evidence pending' }}</small>@if($privacySource)<a href="{{ $privacySource->source_url }}" target="_blank" rel="noopener noreferrer nofollow">Privacy source <i data-lucide="arrow-up-right"></i></a>@endif</div></article>
-                <article><span><i data-lucide="key-round"></i></span><div><h3>SSO / enterprise access</h3><p>{{ \App\Models\ToolTechnicalProfile::SSO_STATUSES[$technicalProfile->sso_status] ?? Str::headline($technicalProfile->sso_status) }}</p><small>{{ $factVerified('security','sso_status') ? 'Verified fact' : 'Evidence pending' }}</small>@if($securitySource)<a href="{{ $securitySource->source_url }}" target="_blank" rel="noopener noreferrer nofollow">Security source <i data-lucide="arrow-up-right"></i></a>@endif</div></article>
+                @if((filled($technicalProfile->data_training_policy) && $technicalProfile->data_training_policy !== 'unknown') || $technicalProfile->data_retention_note || $technicalProfile->privacy_summary)
+                <article><span><i data-lucide="database"></i></span><div><h3>Data training policy</h3><p>{{ \App\Models\ToolTechnicalProfile::TRAINING_POLICIES[$technicalProfile->data_training_policy] ?? Str::headline($technicalProfile->data_training_policy) }}</p>@if($technicalProfile->data_retention_note)<small>{{ $technicalProfile->data_retention_note }}</small>@endif @if($factVerified('privacy','data_training_policy'))<small>Verified fact</small>@elseif($privacySource)<small>Source review in progress</small>@endif @if($privacySource)<a href="{{ $privacySource->source_url }}" target="_blank" rel="noopener noreferrer nofollow">Privacy source <i data-lucide="arrow-up-right"></i></a>@endif</div></article>
+                @endif
+                @if((filled($technicalProfile->sso_status) && $technicalProfile->sso_status !== 'unknown') || $technicalProfile->security_summary || !empty($technicalProfile->security_certifications) || !empty($technicalProfile->compliance_certifications))
+                <article><span><i data-lucide="key-round"></i></span><div><h3>SSO / enterprise access</h3><p>{{ \App\Models\ToolTechnicalProfile::SSO_STATUSES[$technicalProfile->sso_status] ?? Str::headline($technicalProfile->sso_status) }}</p>@if($factVerified('security','sso_status'))<small>Verified fact</small>@elseif($securitySource)<small>Source review in progress</small>@endif @if($securitySource)<a href="{{ $securitySource->source_url }}" target="_blank" rel="noopener noreferrer nofollow">Security source <i data-lucide="arrow-up-right"></i></a>@endif</div></article>
+                @endif
             </div>
             @if($technicalProfile->privacy_summary)<div class="rich-description"><strong>Privacy:</strong> {{ $technicalProfile->privacy_summary }}</div>@endif
             @if($technicalProfile->security_summary)<div class="rich-description"><strong>Security:</strong> {{ $technicalProfile->security_summary }}</div>@endif
@@ -508,16 +524,9 @@
         <section class="sidebar-card summary-card">
             <div class="sidebar-title"><span>At a glance</span><i data-lucide="scan-eye"></i></div>
             <dl>
-                <div>
-                    <dt>Rating</dt>
-                    <dd>
-                        @if((float) $tool->rating > 0)
-                            <i data-lucide="star"></i>{{ number_format((float)$tool->rating,1) }}/5
-                        @else
-                            Not rated yet
-                        @endif
-                    </dd>
-                </div>
+                @if((float) $tool->rating > 0)
+                <div><dt>Rating</dt><dd><i data-lucide="star"></i>{{ number_format((float)$tool->rating,1) }}/5</dd></div>
+                @endif
                 <div><dt>Pricing</dt><dd>{{ $priceLabel }}</dd></div>
                 <div><dt>Category</dt><dd>{{ $tool->category?->name ?: 'AI Tool' }}</dd></div>
                 @if($tool->launch_date)<div><dt>Launched</dt><dd>{{ $tool->launch_date->format('M Y') }}</dd></div>@endif
@@ -544,25 +553,25 @@
             </dl>
         </section>
 
-        <section class="sidebar-card data-confidence-panel" aria-label="AI Orbit data confidence">
+        <section class="sidebar-card data-confidence-panel" aria-label="AI Orbit profile evidence coverage">
             <header class="dc-head">
                 <div class="dc-heading">
                     <span class="dc-icon" aria-hidden="true"><i data-lucide="shield-check"></i></span>
                     <div>
                         <span class="dc-kicker">Data quality</span>
-                        <h3>AI Orbit confidence</h3>
+                        <h3>Evidence coverage</h3>
                     </div>
                 </div>
                 <span class="dc-status">{{ $dataConfidence['label'] }}</span>
             </header>
 
             <div class="dc-score-row">
-                <div class="dc-score" aria-label="Confidence score {{ $dataConfidence['score'] }} out of 100">
-                    <strong>{{ $dataConfidence['score'] }}</strong><span>/100</span>
+                <div class="dc-score" aria-label="Profile evidence coverage {{ $dataConfidence['score'] }} percent">
+                    <strong>{{ $dataConfidence['score'] }}</strong><span>%</span>
                 </div>
                 <div class="dc-score-copy">
-                    <strong>Profile confidence</strong>
-                    <span>Evidence coverage &amp; freshness</span>
+                    <strong>Coverage score</strong>
+                    <span>Evidence completeness &amp; freshness</span>
                 </div>
             </div>
 
@@ -591,7 +600,7 @@
 
             <footer class="dc-note">
                 <i data-lucide="info"></i>
-                <span>Confidence reflects profile evidence and completeness, not product quality. <a href="{{ route('sourcing-verification') }}">How verification works</a></span>
+                <span>This score measures how much of the profile is source-backed and current. It is not a product-quality rating. <a href="{{ route('sourcing-verification') }}">How verification works</a></span>
             </footer>
         </section>
 

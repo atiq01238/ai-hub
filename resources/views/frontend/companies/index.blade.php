@@ -73,7 +73,7 @@
     JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
 ) !!}</script>
 @endpush
-@push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/companies.css') }}?v=20260901-seo4">@endpush
+@push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/companies.css') }}?v=20260921-adsense2">@endpush
 @section('content')
 <section class="company-hero"><div class="company-wrap">
     <div class="company-eyebrow"><i data-lucide="building-2"></i> AI COMPANY INTELLIGENCE</div>
@@ -82,6 +82,21 @@
     <form class="company-search" method="GET" action="{{ route('companies.index') }}"><i data-lucide="search"></i><input name="q" value="{{ request('q') }}" placeholder="Search OpenAI, Anthropic, Google, Mistral..."><button>Search companies</button></form>
     <div class="company-stats"><div><strong>{{ number_format($stats['companies']) }}</strong><span>Public companies</span></div><div><strong>{{ number_format($stats['tools']) }}</strong><span>Published tools</span></div><div><strong>{{ number_format($stats['models']) }}</strong><span>AI models</span></div><div><strong>{{ number_format($stats['news']) }}</strong><span>News signals</span></div></div>
 </div></section>
+
+@if(!$companiesHasFilters && $companies->currentPage() === 1)
+<section class="company-research-note"><div class="company-wrap">
+    <div class="company-research-note-copy">
+        <span><i data-lucide="network"></i> CONNECTED COMPANY RESEARCH</span>
+        <h2>Company profiles connect products, models and current intelligence.</h2>
+        <p>AI Orbit builds company pages from linked public catalog records rather than treating a company as a standalone directory entry. Counts reflect published tools, active models and stored news signals available in the current database.</p>
+    </div>
+    <div class="company-research-note-grid">
+        <div><strong>Product footprint</strong><small>Published tools and active models are linked back to their company profile.</small></div>
+        <div><strong>Freshness context</strong><small>Profile update dates come from the newest linked company, product, model or intelligence record.</small></div>
+        <div><strong>Source separation</strong><small>Provider claims, editorial analysis and measured benchmark data remain distinguishable.</small></div>
+    </div>
+</div></section>
+@endif
 
 <section class="company-directory"><div class="company-wrap">
     <div class="company-directory-head"><div><span class="company-kicker">COMPANY DATABASE</span><h2>AI Company Directory</h2><p>{{ number_format($companies->total()) }} companies match your current selection.</p></div><div class="company-directory-actions"><button class="company-filter-button" type="button" data-company-filter-open><i data-lucide="sliders-horizontal"></i> Filters</button><form method="GET">@foreach(request()->except('sort','page') as $k=>$v)<input type="hidden" name="{{ $k }}" value="{{ $v }}">@endforeach<select name="sort" onchange="this.form.submit()"><option value="featured">Featured</option><option value="tools" @selected(request('sort')==='tools')>Most tools</option><option value="models" @selected(request('sort')==='models')>Most models</option><option value="newest" @selected(request('sort')==='newest')>Newest companies</option><option value="name" @selected(request('sort')==='name')>Name A–Z</option></select></form></div></div>
