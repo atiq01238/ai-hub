@@ -123,7 +123,7 @@ class SeoSitemapController extends Controller
             ->publiclyVisible()
             ->orderByDesc('published_at')
             ->get()
-            ->filter(fn (NewsItem $item) => $contentQuality->news($item)['indexable'])
+            ->filter(fn (NewsItem $item) => $contentQuality->newsDiscoveryPriority($item))
             ->values();
 
         return $this->xml($items, fn ($item) => route('news.show', $item));
@@ -202,10 +202,19 @@ class SeoSitemapController extends Controller
     {
         $items = Benchmark::query()
             ->seoDiscoveryPriority()
-            ->select(['id', 'slug', 'updated_at'])
+            ->select(['id', 'name', 'slug', 'description', 'official_url', 'methodology_url', 'is_active', 'updated_at'])
+            ->with(['results' => fn ($query) => $query
+                ->where('verified', true)
+                ->where('status', 'verified')
+                ->select(['id', 'benchmark_id', 'benchmarkable_type', 'benchmarkable_id', 'verified', 'status', 'updated_at'])])
             ->withMax(['results as verified_results_updated_at' => fn ($query) => $query->where('verified', true)->where('status', 'verified')], 'updated_at')
             ->orderBy('name')
             ->get()
+            // The SQL scope is a cheap pre-filter; the exact assessment counts
+            // distinct verified entities so historical result rows cannot inflate
+            // sitemap priority.
+            ->filter(fn (Benchmark $benchmark) => $benchmark->isSeoDiscoveryPriority())
+            ->values()
             ->each(function (Benchmark $benchmark) {
                 $benchmark->updated_at = $this->latestTimestamp([
                     $benchmark->updated_at,

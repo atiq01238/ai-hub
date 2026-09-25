@@ -49,12 +49,13 @@ class AuditComparisonSeo extends Command
             ['Non-pair persisted rows', (int) ($reasonCounts['not_pair'] ?? 0)],
             ['Missing verification date', (int) ($warningCounts['verification_date_missing'] ?? 0)],
             ['Verification older than 12 months', (int) ($warningCounts['verification_older_than_12_months'] ?? 0)],
+            ['Stored slug differs from current canonical pair', (int) ($warningCounts['stored_slug_mismatch'] ?? 0)],
         ]);
 
         if ($this->option('details') && $rows->isNotEmpty()) {
             $this->newLine();
             $this->table(
-                ['ID', 'Comparison', 'Pair key', 'SEO', 'Reasons', 'Warnings', 'Views'],
+                ['ID', 'Comparison', 'Pair key', 'Canonical slug', 'SEO', 'Reasons', 'Warnings', 'Views'],
                 $rows->map(function (array $row) {
                     /** @var Comparison $comparison */
                     $comparison = $row['comparison'];
@@ -64,6 +65,7 @@ class AuditComparisonSeo extends Command
                         $comparison->id,
                         $comparison->title,
                         $assessment['pair_key'] ?? '—',
+                        $assessment['signals']['canonical_slug'] ?? $comparison->slug ?? '—',
                         ($assessment['indexable'] ?? false) ? 'indexable' : 'review',
                         collect($assessment['reasons'] ?? [])->join(', ') ?: '—',
                         collect($assessment['warnings'] ?? [])->join(', ') ?: '—',
@@ -79,6 +81,9 @@ class AuditComparisonSeo extends Command
         }
         if (($reasonCounts['thin_editorial_context'] ?? 0) > 0) {
             $this->comment('Thin rows remain publicly available but stay noindex until summary, intent, FAQ or verification context is added.');
+        }
+        if (($warningCounts['stored_slug_mismatch'] ?? 0) > 0) {
+            $this->comment('Stored slug mismatches are already consolidated by a 301 redirect to the current pair-derived canonical slug. Review them before changing persisted slugs.');
         }
 
         $this->info('Comparison SEO audit complete. Only SEO-ready canonical pairs are promoted to search engines.');

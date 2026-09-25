@@ -26,12 +26,13 @@ class AuditSeoIndexing extends Command
 
     public function handle(SeoContentQualityService $contentQuality): int
     {
-        $companyQuery = Company::query()->seoIndexable();
+        $companyQuery = Company::query()->seoDiscoveryPriority();
 
         $toolRows = $this->qualityTools($contentQuality);
         $modelRows = $this->qualityModels($contentQuality);
         $articleRows = $this->qualityArticles($contentQuality);
         $newsRows = $this->qualityNews($contentQuality);
+        $newsSitemapRows = $newsRows->filter(fn (NewsItem $news) => $contentQuality->newsDiscoveryPriority($news))->values();
         $newsQuery = NewsItem::query()->publiclyVisible();
 
         $reviewQuery = Review::query()
@@ -56,15 +57,21 @@ class AuditSeoIndexing extends Command
 
         $validComparisons = $comparisonRows->filter(function (Comparison $comparison) {
             try {
-                return $comparison->publicItems()->count() >= 2;
+                $items = $comparison->publicItems();
+                $comparison->setRelation('resolved_items', $items);
+                return $items->count() === 2 && $comparison->isSeoIndexable();
             } catch (\Throwable $e) {
                 return false;
             }
         });
 
-        $benchmarkQuery = Benchmark::query()
-            ->where('is_active', true)
-            ->whereHas('results', fn ($query) => $query->where('verified', true)->where('status', 'verified'));
+        $benchmarkRows = $this->benchmarkAssessments();
+        $benchmarkSitemapRows = $benchmarkRows
+            ->filter(fn (array $row) => (bool) ($row['assessment']['sitemap_priority'] ?? false))
+            ->values();
+        $benchmarkIndexableRows = $benchmarkRows
+            ->filter(fn (array $row) => (bool) ($row['assessment']['indexable'] ?? false))
+            ->values();
 
         $taxonomyCount = Category::query()->seoProductIndexable()->count()
             + Subcategory::query()->seoIndexable()->count()
@@ -81,12 +88,12 @@ class AuditSeoIndexing extends Command
             ['Companies', (clone $companyQuery)->count()],
             ['Tools', $toolRows->count()],
             ['Models', $modelRows->count()],
-            ['News', $newsRows->count()],
+            ['News', $newsSitemapRows->count()],
             ['Articles', $articleRows->count()],
             ['Reviews', $publicReviewCount],
             ['Pricing', Tool::query()->where('status', 'published')->whereHas('pricingPlans')->count()],
             ['Comparisons', $validComparisons->count()],
-            ['Benchmarks', (clone $benchmarkQuery)->count()],
+            ['Benchmarks', $benchmarkSitemapRows->count()],
             ['Taxonomy', $taxonomyCount],
             ['Static hubs/pages', $staticPageCount],
         ];
@@ -100,6 +107,7 @@ class AuditSeoIndexing extends Command
         $modelsBlockedByQuality = AiModel::query()->whereIn('status', ['active', 'preview'])->count() - $modelRows->count();
         $articlesBlockedByQuality = Article::query()->where('status', 'published')->where('approval_status', 'approved')->count() - $articleRows->count();
         $newsBlockedByQuality = (clone $newsQuery)->count() - $newsRows->count();
+        $newsHeldBackFromSitemap = $newsRows->count() - $newsSitemapRows->count();
         $invalidComparisons = $comparisonRows->count() - $validComparisons->count();
         $unverifiedBenchmarks = Benchmark::query()
             ->where('is_active', true)
@@ -154,9 +162,11 @@ class AuditSeoIndexing extends Command
             ['Published tools withheld by Phase 3 content-quality gate', $toolsBlockedByQuality],
             ['Active/preview models withheld by Phase 3 content-quality gate', $modelsBlockedByQuality],
             ['Approved articles withheld by Phase 3 content-quality gate', $articlesBlockedByQuality],
-            ['AI-relevant news withheld by Phase 3 content-quality gate', $newsBlockedByQuality],
-            ['Published comparisons resolving fewer than 2 items', $invalidComparisons],
+            ['AI-relevant news withheld by content-quality gate', $newsBlockedByQuality],
+            ['Indexable news intentionally held back from direct sitemap priority', $newsHeldBackFromSitemap],
+            ['Published comparisons excluded by pair/editorial/duplicate SEO gate', $invalidComparisons],
             ['Active benchmarks without verified public results', $unverifiedBenchmarks],
+            ['Indexable benchmark pages not receiving Tier A sitemap priority', $benchmarkIndexableRows->count() - $benchmarkSitemapRows->count()],
             ['Published duplicate news excluded from crawl paths', $duplicateNews],
             ['Published news blocked by AI relevance gate', $newsBlockedByRelevance],
             ['Published blank community reviews excluded', $blankCommunityReviews],
@@ -178,6 +188,21 @@ class AuditSeoIndexing extends Command
         $this->info('Audit complete. This command does not modify database records.');
 
         return self::SUCCESS;
+    }
+
+    private function benchmarkAssessments(): Collection
+    {
+        return Benchmark::query()
+            ->where('is_active', true)
+            ->with(['results' => fn ($query) => $query
+                ->where('verified', true)
+                ->where('status', 'verified')])
+            ->orderBy('id')
+            ->get()
+            ->map(fn (Benchmark $benchmark) => [
+                'benchmark' => $benchmark,
+                'assessment' => $benchmark->seoAssessment(),
+            ]);
     }
 
     private function qualityTools(SeoContentQualityService $quality): Collection

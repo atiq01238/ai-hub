@@ -45,5 +45,27 @@ return [
         'index_threshold' => 60,
         'min_summary_chars' => 120,
         'min_why_it_matters_chars' => 60,
+
+        // Crawl-recovery gate: a news brief can remain indexable when it passes
+        // the normal quality floor, while direct sitemap promotion is reserved
+        // for deeper AI Orbit summaries/context. This keeps fast-moving source
+        // briefs from competing with evergreen/commercial crawl priorities.
+        'sitemap_threshold' => 75,
+        'sitemap_min_summary_chars' => 180,
+        'sitemap_min_why_it_matters_chars' => 100,
+    ],
+
+    'benchmark' => [
+        // Tier B index floor. A rich single-result benchmark may still qualify
+        // when it has substantial context plus an official/methodology source.
+        'index_min_verified_results' => 2,
+        'index_min_description_chars' => 100,
+        'high_evidence_verified_results' => 5,
+        'rich_single_min_description_chars' => 160,
+
+        // Tier A sitemap priority. These stronger thresholds intentionally
+        // reduce the large benchmark crawl backlog while preserving public pages.
+        'sitemap_min_verified_results' => 5,
+        'sitemap_min_description_chars' => 120,
     ],
 ];

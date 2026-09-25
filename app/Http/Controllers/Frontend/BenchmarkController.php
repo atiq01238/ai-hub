@@ -155,20 +155,23 @@ class BenchmarkController extends Controller
         ];
 
         $relatedBenchmarks = Benchmark::query()
-            ->where('is_active', true)
+            ->seoIndexable()
             ->where('id', '!=', $benchmark->getKey())
             ->where('benchmark_class', $benchmark->benchmark_class)
             ->when($benchmark->category, fn ($query) => $query->where('category', $benchmark->category))
-            ->whereHas('results', fn ($query) => $query->where('verified', true)->where('status', 'verified'))
             ->withCount(['results as verified_results_count' => fn ($query) => $query->where('verified', true)->where('status', 'verified')])
             ->orderByDesc('verified_results_count')
+            ->take(12)
+            ->get()
+            ->filter(fn (Benchmark $related) => $related->isSeoIndexable())
             ->take(4)
-            ->get();
+            ->values();
 
+        $seoAssessment = $benchmark->seoAssessment();
         $title = $benchmark->name.' AI Benchmark Leaderboard'.($benchmark->version ? ' '.$benchmark->version : '').' (2026)';
         $description = 'Explore verified '.$benchmark->name.' '.Benchmark::classLabel($benchmark->benchmark_class).' results, rankings, methodology and sources on AI Orbit.';
 
-        return view('frontend.benchmarks.show', compact('benchmark', 'results', 'title', 'description', 'benchmarkInsights', 'relatedBenchmarks'));
+        return view('frontend.benchmarks.show', compact('benchmark', 'results', 'title', 'description', 'benchmarkInsights', 'relatedBenchmarks', 'seoAssessment'));
     }
 
     private function modelLeaderboard(Collection $benchmarks, string $benchmarkClass): Collection

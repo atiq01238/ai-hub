@@ -34,7 +34,7 @@
 @section('meta_description', $description)
 @section('canonical', $benchmarkCanonical)
 @section('og_type', 'website')
-@section('robots', 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1')
+@section('robots', $seoAssessment['robots'] ?? 'noindex,follow')
 
 @push('head')
 <script type="application/ld+json">{!! json_encode($benchmarkDatasetSchema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>

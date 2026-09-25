@@ -296,6 +296,25 @@ class SeoContentQualityService
         ]);
     }
 
+    /**
+     * Stronger discovery gate used only for the news sitemap.
+     *
+     * Normal news indexability remains unchanged; this prevents every adequate
+     * source brief from receiving the same crawl priority as deeper AI Orbit
+     * analysis during the current recovery period.
+     */
+    public function newsDiscoveryPriority(NewsItem $news): bool
+    {
+        $assessment = $this->news($news);
+        $metrics = $assessment['metrics'] ?? [];
+
+        return (bool) ($assessment['indexable'] ?? false)
+            && (int) ($assessment['score'] ?? 0) >= (int) config('seo_content_quality.news.sitemap_threshold', 75)
+            && (int) ($metrics['summary_chars'] ?? 0) >= (int) config('seo_content_quality.news.sitemap_min_summary_chars', 180)
+            && (int) ($metrics['why_it_matters_chars'] ?? 0) >= (int) config('seo_content_quality.news.sitemap_min_why_it_matters_chars', 100)
+            && (bool) ($metrics['source_url_present'] ?? false);
+    }
+
     public function robots(array $assessment): string
     {
         return ($assessment['indexable'] ?? false)

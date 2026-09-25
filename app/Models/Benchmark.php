@@ -80,12 +80,51 @@ class Benchmark extends Model
     }
 
     /**
-     * Benchmarks worth actively promoting to crawlers.
+     * Benchmarks that are strong enough to remain indexable even when they are
+     * not yet important enough for direct sitemap promotion.
      *
-     * A benchmark remains public even when it does not qualify here. The gate
-     * only reduces low-evidence sitemap inventory: two verified results are
-     * enough, while a single-result benchmark needs meaningful description and
-     * an official/methodology source to be promoted.
+     * Tier A = sitemap priority. Tier B = indexable but discovered naturally.
+     * Tier C = public methodology/reference page, noindex until evidence grows.
+     */
+    public function scopeSeoIndexable($query)
+    {
+        $verified = fn ($q) => $q->where('verified', true)->where('status', 'verified');
+        $indexMin = (int) config('seo_content_quality.benchmark.index_min_verified_results', 2);
+        $indexDescriptionMin = (int) config('seo_content_quality.benchmark.index_min_description_chars', 100);
+        $highEvidenceMin = (int) config('seo_content_quality.benchmark.high_evidence_verified_results', 5);
+        $richSingleMin = (int) config('seo_content_quality.benchmark.rich_single_min_description_chars', 160);
+
+        return $query
+            ->where('is_active', true)
+            ->where(function ($source) {
+                $source->whereNotNull('official_url')
+                    ->orWhereNotNull('methodology_url');
+            })
+            ->where(function ($query) use ($verified, $indexMin, $indexDescriptionMin, $highEvidenceMin, $richSingleMin) {
+                // High-evidence benchmark: result depth can compensate for a
+                // short editorial description, but a source is still required.
+                $query->whereHas('results', $verified, '>=', $highEvidenceMin)
+                    ->orWhere(function ($standard) use ($verified, $indexMin, $indexDescriptionMin) {
+                        $standard
+                            ->whereHas('results', $verified, '>=', $indexMin)
+                            ->whereNotNull('description')
+                            ->whereRaw('CHAR_LENGTH(TRIM(description)) >= ?', [$indexDescriptionMin]);
+                    })
+                    ->orWhere(function ($richSingle) use ($verified, $richSingleMin) {
+                        $richSingle
+                            ->whereHas('results', $verified, '>=', 1)
+                            ->whereNotNull('description')
+                            ->whereRaw('CHAR_LENGTH(TRIM(description)) >= ?', [$richSingleMin]);
+                    });
+            });
+    }
+
+    /**
+     * Highest-signal benchmark pages promoted directly through the sitemap.
+     *
+     * This deliberately uses a stronger gate than seoIndexable(): AI Orbit's
+     * crawl-recovery strategy gives direct sitemap priority only to benchmarks
+     * with multiple verified entities plus explanatory/source context.
      */
     public function scopeSeoDiscoveryPriority($query)
     {
@@ -93,19 +132,88 @@ class Benchmark extends Model
 
         return $query
             ->where('is_active', true)
-            ->whereHas('results', $verified)
-            ->where(function ($query) use ($verified) {
-                $query->whereHas('results', $verified, '>=', 2)
-                    ->orWhere(function ($richSingleResult) {
-                        $richSingleResult
-                            ->whereNotNull('description')
-                            ->whereRaw('CHAR_LENGTH(TRIM(description)) >= 160')
-                            ->where(function ($source) {
-                                $source->whereNotNull('official_url')
-                                    ->orWhereNotNull('methodology_url');
-                            });
-                    });
+            ->whereHas('results', $verified, '>=', (int) config('seo_content_quality.benchmark.sitemap_min_verified_results', 5))
+            ->whereNotNull('description')
+            ->whereRaw('CHAR_LENGTH(TRIM(description)) >= ?', [
+                (int) config('seo_content_quality.benchmark.sitemap_min_description_chars', 120),
+            ])
+            ->where(function ($source) {
+                $source->whereNotNull('official_url')
+                    ->orWhereNotNull('methodology_url');
             });
+    }
+
+    public function seoAssessment(): array
+    {
+        $verifiedRows = $this->relationLoaded('results')
+            ? $this->results
+            : $this->results()
+                ->where('verified', true)
+                ->where('status', 'verified')
+                ->get(['id', 'benchmark_id', 'benchmarkable_type', 'benchmarkable_id', 'verified', 'status']);
+
+        $verifiedRows = $verifiedRows
+            ->filter(fn ($row) => (bool) $row->verified && $row->status === 'verified');
+
+        // A benchmark page presents the latest result per entity, so evidence
+        // strength should count distinct entities rather than historical rows.
+        $verifiedEntities = $verifiedRows
+            ->unique(fn ($row) => $row->benchmarkable_type.'|'.$row->benchmarkable_id)
+            ->count();
+
+        $descriptionChars = mb_strlen(trim(strip_tags((string) $this->description)));
+        $hasSource = filled($this->official_url) || filled($this->methodology_url);
+
+        $tierA = $this->is_active
+            && $verifiedEntities >= (int) config('seo_content_quality.benchmark.sitemap_min_verified_results', 5)
+            && $descriptionChars >= (int) config('seo_content_quality.benchmark.sitemap_min_description_chars', 120)
+            && $hasSource;
+
+        $indexMin = (int) config('seo_content_quality.benchmark.index_min_verified_results', 2);
+        $indexDescriptionMin = (int) config('seo_content_quality.benchmark.index_min_description_chars', 100);
+        $highEvidenceMin = (int) config('seo_content_quality.benchmark.high_evidence_verified_results', 5);
+        $richSingleMin = (int) config('seo_content_quality.benchmark.rich_single_min_description_chars', 160);
+
+        $tierB = ! $tierA
+            && $this->is_active
+            && $hasSource
+            && (
+                // Strong result depth is useful evidence even when the benchmark
+                // description is terse (for example a well-known benchmark).
+                $verifiedEntities >= $highEvidenceMin
+                || (
+                    $verifiedEntities >= $indexMin
+                    && $descriptionChars >= $indexDescriptionMin
+                )
+                || (
+                    $verifiedEntities >= 1
+                    && $descriptionChars >= $richSingleMin
+                )
+            );
+
+        $tier = $tierA ? 'A' : ($tierB ? 'B' : 'C');
+
+        return [
+            'tier' => $tier,
+            'indexable' => in_array($tier, ['A', 'B'], true),
+            'sitemap_priority' => $tier === 'A',
+            'robots' => in_array($tier, ['A', 'B'], true)
+                ? 'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1'
+                : 'noindex,follow',
+            'verified_entities' => $verifiedEntities,
+            'description_chars' => $descriptionChars,
+            'has_source' => $hasSource,
+        ];
+    }
+
+    public function isSeoIndexable(): bool
+    {
+        return (bool) ($this->seoAssessment()['indexable'] ?? false);
+    }
+
+    public function isSeoDiscoveryPriority(): bool
+    {
+        return (bool) ($this->seoAssessment()['sitemap_priority'] ?? false);
     }
 
     public function results(): HasMany

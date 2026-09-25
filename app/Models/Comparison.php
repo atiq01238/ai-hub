@@ -331,6 +331,20 @@ class Comparison extends Model
             $warnings[] = 'short_summary';
         }
 
+        $storedSlug = trim((string) $this->slug);
+        $canonicalSlug = $storedSlug;
+        try {
+            $canonicalSlug = $this->canonicalSlug();
+        } catch (\Throwable $e) {
+            report($e);
+        }
+        if ($storedSlug !== '' && $canonicalSlug !== '' && $storedSlug !== $canonicalSlug) {
+            // Runtime already 301-redirects safe aliases to canonicalSlug(). Keep
+            // this as a warning rather than an indexability failure so recovery
+            // work can identify stale persisted slugs without creating outages.
+            $warnings[] = 'stored_slug_mismatch';
+        }
+
         return [
             'indexable' => $reasons === [],
             'pair_key' => $pairKey,
@@ -342,6 +356,8 @@ class Comparison extends Model
                 'faq_count' => $faqCount,
                 'has_intent' => $hasIntent,
                 'has_verification' => $hasVerification,
+                'stored_slug' => $storedSlug,
+                'canonical_slug' => $canonicalSlug,
             ],
         ];
     }
