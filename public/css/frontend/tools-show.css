@@ -685,3 +685,19 @@ body .data-confidence-panel .dc-note svg{
 
 /* Phase 6 — tool verification methodology link */
 body .data-confidence-panel .dc-note a{color:#9f97ff;font-weight:750;text-decoration:none}body .data-confidence-panel .dc-note a:hover{text-decoration:underline}
+
+/* 2026-09-26 — Ranking Recovery Phase 2
+   Search-intent answers are shown only for the small GSC recovery set. */
+.search-intent-answer-panel{
+  background:
+    radial-gradient(circle at 100% 0,rgba(72,111,255,.08),transparent 34%),
+    linear-gradient(150deg,rgba(14,22,44,.99),rgba(8,14,30,.99));
+}
+.search-intent-answer-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding-top:16px}
+.search-intent-answer-grid article{padding:14px;border:1px solid #243252;border-radius:13px;background:#0c152d;min-width:0}
+.search-intent-answer-grid h3{margin:0 0 7px;color:#e1e7fb;font-size:13px;line-height:1.35}
+.search-intent-answer-grid p{margin:0;color:#8d9ab9;font-size:12px;line-height:1.7}
+.search-intent-pricing-link{display:inline-flex;align-items:center;gap:7px;margin-top:13px;padding:9px 11px;border:1px solid #3b3b78;border-radius:10px;background:#151842;color:#b9b8ff;font-size:12px;font-weight:800}
+.search-intent-pricing-link:hover{border-color:#665bd0;color:#fff}
+.search-intent-pricing-link svg{width:13px;height:13px}
+@media(max-width:720px){.search-intent-answer-grid{grid-template-columns:1fr}.search-intent-pricing-link{width:100%;justify-content:space-between}}

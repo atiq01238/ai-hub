@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use App\Services\Seo\EntitySeoService;
 use App\Services\Seo\InternalLinkingService;
 use App\Services\Seo\SeoContentQualityService;
+use App\Services\Seo\ToolSearchIntentAnswerService;
 use App\Services\Frontend\QuickFeedbackService;
 use App\Services\Tools\ToolCommercialProfileService;
 use App\Services\Tools\ToolAlternativeScoringService;
@@ -134,6 +135,7 @@ class ToolController extends Controller
                 ->whereIn('slug', $focusToolSlugs)
                 ->get()
                 ->sortBy(fn (Tool $tool) => $focusToolSlugs->search($tool->slug))
+                ->take(8)
                 ->values();
 
         return view('frontend.tools.index', compact(
@@ -150,7 +152,7 @@ class ToolController extends Controller
         ));
     }
 
-    public function show(Tool $tool, EntitySeoService $seoService, QuickFeedbackService $feedback, BenchmarkScoringService $benchmarkScoring, ToolAlternativeScoringService $alternatives, ToolDataConfidenceService $confidence, ToolEditorialIntelligenceService $editorialIntelligence, InternalLinkingService $internalLinks, SeoContentQualityService $contentQuality)
+    public function show(Tool $tool, EntitySeoService $seoService, QuickFeedbackService $feedback, BenchmarkScoringService $benchmarkScoring, ToolAlternativeScoringService $alternatives, ToolDataConfidenceService $confidence, ToolEditorialIntelligenceService $editorialIntelligence, InternalLinkingService $internalLinks, SeoContentQualityService $contentQuality, ToolSearchIntentAnswerService $searchIntentAnswers)
     {
         abort_unless($tool->status === 'published', 404);
 
@@ -305,6 +307,10 @@ class ToolController extends Controller
 
         $seo = $seoService->tool($tool);
         $seoSchemas = $seoService->schemas('tool', $tool, $seo);
+        $rankingRecoveryAnswers = collect($searchIntentAnswers->build($tool, $pricingPlans));
+        $rankingRecoveryPricingFocus = collect(config('seo.impression_focus_pricing_tool_slugs', []))
+            ->filter()
+            ->contains($tool->slug);
 
         return view('frontend.tools.show', compact(
             'tool',
@@ -338,6 +344,8 @@ class ToolController extends Controller
             'quickRating',
             'seo',
             'seoSchemas',
+            'rankingRecoveryAnswers',
+            'rankingRecoveryPricingFocus',
         ));
     }
 

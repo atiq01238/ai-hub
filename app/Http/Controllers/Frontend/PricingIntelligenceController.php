@@ -138,6 +138,19 @@ class PricingIntelligenceController extends Controller
             'changes' => PricingHistory::where('created_at', '>=', now()->subDays(30))->count(),
         ];
 
+        $pricingFocusSlugs = collect(config('seo.impression_focus_pricing_tool_slugs', []))->filter()->unique()->values();
+        $pricingFocusTools = $pricingFocusSlugs->isEmpty()
+            ? collect()
+            : Tool::query()
+                ->where('status', 'published')
+                ->whereIn('slug', $pricingFocusSlugs)
+                ->whereHas('pricingPlans')
+                ->with(['company:id,name', 'pricingPlans:id,tool_id,monthly_price,yearly_price,last_verified_at'])
+                ->get()
+                ->sortBy(fn (Tool $tool) => $pricingFocusSlugs->search($tool->slug))
+                ->take(10)
+                ->values();
+
         $pricingIndexSeo = $metadata->forKey(
             'static:pricing.index',
             'AI Pricing: Compare Tool Plans and API Costs | AI Orbit',
@@ -156,7 +169,8 @@ class PricingIntelligenceController extends Controller
             'freshness',
             'sort',
             'categories',
-            'pricingIndexSeo'
+            'pricingIndexSeo',
+            'pricingFocusTools'
         ));
     }
 

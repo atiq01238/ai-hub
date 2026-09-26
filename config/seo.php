@@ -26,9 +26,36 @@ return [
     // They are used only to surface already-relevant entities from canonical hubs
     // and to break ties inside existing semantic-link candidate sets.
     'impression_focus_tool_slugs' => [
-        'akool',
+        // Temporary Search Console recovery set. Keep this list deliberately
+        // small: these canonical profiles previously earned impressions and are
+        // surfaced more clearly through existing internal-link modules only.
+        'sudowrite',
+        'recraft',
+        'nabla-copilot',
+        'darktrace',
+        'breeze',
         'codex',
         'ltx-studio',
+        'granola',
+        'gizmo',
+        'adobe-podcast',
+        'hugging-face-hub',
+        'alphasense',
+    ],
+
+    // Pricing-intent recovery set from Search Console. These tools receive
+    // canonical links from the pricing hub; no new pricing URLs are created.
+    'impression_focus_pricing_tool_slugs' => [
+        'sudowrite',
+        'granola',
+        'gumloop',
+        'reclaim-ai',
+        'adobe-podcast',
+        'anyword',
+        'cline',
+        'suno',
+        'ltx-studio',
+        'botpress',
     ],
 
     'impression_focus_model_slugs' => [

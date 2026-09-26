@@ -29,3 +29,15 @@
 @media(max-width:760px){.pi-directory-head{gap:9px}.pi-view-actions{gap:9px}.pi-view-toggle{width:100%}.pi-view-toggle button{flex:1;justify-content:center}.pi-select-hint{font-size:10.5px}.pi-card-select-row{margin-bottom:11px}.pi-card-foot-actions{align-items:flex-end}.pi-card-foot-actions>div{flex-direction:column;align-items:flex-end;gap:5px}.pi-changes-head{align-items:flex-start;flex-direction:column}.pi-change-filters{width:100%}.pi-change-grid{grid-template-columns:1fr}.pi-compare-bar{bottom:10px;grid-template-columns:1fr;padding:11px}.pi-compare-actions{justify-content:stretch}.pi-compare-clear,.pi-compare-submit{flex:1;justify-content:center}.pi-compare-names span{max-width:118px}.pi-directory-table-wrap{margin-inline:-2px}}
 
 .pi-freshness.fresh{white-space:nowrap}.pi-panel-empty{line-height:1.55}.pi-history-v2 p{word-break:break-word}
+
+/* 2026-09-26 — Ranking Recovery Phase 2: canonical pricing-intent links */
+.pi-recovery-links{display:grid;grid-template-columns:minmax(220px,.8fr) minmax(0,1.8fr);gap:20px;align-items:center;margin-top:18px;padding:17px 18px;border:1px solid #263457;border-radius:15px;background:linear-gradient(145deg,#0f1731,#0a1228)}
+.pi-recovery-links__copy>span{display:flex;align-items:center;gap:6px;color:#9d96ff;font-size:11px;font-weight:850;text-transform:uppercase;letter-spacing:.06em}
+.pi-recovery-links__copy>span svg{width:13px;height:13px}
+.pi-recovery-links__copy p{margin:6px 0 0;color:#7e8baa;font-size:11px;line-height:1.55}
+.pi-recovery-links__grid{display:flex;flex-wrap:wrap;gap:7px}
+.pi-recovery-links__grid a{display:inline-flex;align-items:center;gap:5px;min-height:32px;padding:7px 9px;border:1px solid #303d65;border-radius:9px;background:#121a35;color:#b9c2e5;font-size:11px;font-weight:750}
+.pi-recovery-links__grid a:hover{border-color:#5f57b9;color:#fff}
+.pi-recovery-links__grid a svg{width:11px;height:11px;color:#8f84ff}
+@media(max-width:760px){.pi-recovery-links{grid-template-columns:1fr}.pi-recovery-links__grid{display:grid;grid-template-columns:1fr 1fr}.pi-recovery-links__grid a{justify-content:space-between}}
+@media(max-width:430px){.pi-recovery-links__grid{grid-template-columns:1fr}}

@@ -21,7 +21,7 @@
 @endpush
 
 @push('styles')
-<link rel="stylesheet" href="{{ asset('css/frontend/tools-show.css') }}?v=20260908-editorial-decision-v1">
+<link rel="stylesheet" href="{{ asset('css/frontend/tools-show.css') }}?v=20260926-ranking-recovery-v1">
 @endpush
 
 @section('content')
@@ -127,6 +127,7 @@
     <div class="tool-detail-wrap sticky-nav-inner">
         <div class="detail-nav-links">
             <a href="#overview" class="active">Overview</a>
+            @if(($rankingRecoveryAnswers ?? collect())->isNotEmpty())<a href="#quick-answers">Quick answers</a>@endif
             @if($editorialBrief['show'] ?? false)<a href="#decision">Decision brief</a>@endif
             @if($capabilities->isNotEmpty() || $tool->featureTerms->isNotEmpty())<a href="#features">Features</a>@endif
             @if($hasTechnicalIntel)<a href="#technical">Technical</a>@endif
@@ -162,6 +163,32 @@
             <div class="best-for-box"><span><i data-lucide="target"></i>Best for</span><div>@foreach($tool->useCaseTerms->take(5) as $useCase)<b title="{{ $useCase->pivot?->fit_note ?: ($useCase->short_description ?: 'AI Orbit use-case classification') }}">{{ $useCase->name }}@if(($useCase->pivot?->verification_status ?? 'pending') === 'verified') <i data-lucide="badge-check"></i>@endif</b>@endforeach</div></div>
             @endif
         </section>
+
+        @if(($rankingRecoveryAnswers ?? collect())->isNotEmpty())
+        <section class="detail-panel search-intent-answer-panel" id="quick-answers">
+            <div class="detail-section-head">
+                <div>
+                    <span>Quick answers</span>
+                    <h2>Common questions about {{ $tool->name }}</h2>
+                    <p>Short answers built from the structured profile and current pricing evidence. Missing facts are not guessed.</p>
+                </div>
+                <i data-lucide="search-check"></i>
+            </div>
+            <div class="search-intent-answer-grid">
+                @foreach($rankingRecoveryAnswers as $answer)
+                    <article>
+                        <h3>{{ $answer['question'] }}</h3>
+                        <p>{{ $answer['answer'] }}</p>
+                    </article>
+                @endforeach
+            </div>
+            @if(($rankingRecoveryPricingFocus ?? false) && $pricingPlans->isNotEmpty())
+                <a class="search-intent-pricing-link" href="{{ route('pricing.show', $tool) }}">
+                    View {{ $tool->name }} pricing, plans and verification dates <i data-lucide="arrow-right"></i>
+                </a>
+            @endif
+        </section>
+        @endif
 
         @if($editorialBrief['show'] ?? false)
             @include('frontend.tools.partials.editorial-decision-brief')

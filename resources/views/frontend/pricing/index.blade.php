@@ -111,6 +111,20 @@
     </div>
 </section>
 
+@if(!$pricingHasFilters && $pricingPage === 1 && ($pricingFocusTools ?? collect())->isNotEmpty())
+<section class="pi-wrap pi-recovery-links" aria-label="Popular AI pricing research">
+    <div class="pi-recovery-links__copy">
+        <span><i data-lucide="search-check"></i> Popular pricing research</span>
+        <p>Direct links to canonical pricing pages that users have recently searched for. Pricing claims stay tied to the stored plan evidence.</p>
+    </div>
+    <div class="pi-recovery-links__grid">
+        @foreach($pricingFocusTools as $focusTool)
+            <a href="{{ route('pricing.show', $focusTool) }}">{{ $focusTool->name }} pricing <i data-lucide="arrow-right"></i></a>
+        @endforeach
+    </div>
+</section>
+@endif
+
 <section class="pi-wrap pi-body">
     <div class="pi-explorer-head">
         <div>
