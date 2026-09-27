@@ -136,6 +136,39 @@ class MediaUrl
         return '/images/frontend/logo-placeholder.svg';
     }
 
+    /**
+     * Prefer a pre-generated performance variant for internal /media URLs.
+     * External/provider URLs and media without a matching variant fall back
+     * to the original URL unchanged.
+     */
+    public static function variantUrl(?string $url, int $width): ?string
+    {
+        $url = trim((string) $url);
+        $width = max(1, min(2000, $width));
+
+        if ($url === '' || ! Str::startsWith($url, '/media/')) {
+            return $url !== '' ? $url : null;
+        }
+
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        $encodedRelative = Str::after($path, '/media/');
+        $relative = self::diskPath(rawurldecode($encodedRelative));
+
+        if (! $relative) {
+            return $url;
+        }
+
+        $directory = trim((string) pathinfo($relative, PATHINFO_DIRNAME), './');
+        $filename = (string) pathinfo($relative, PATHINFO_FILENAME);
+        $variant = ($directory !== '' ? $directory . '/' : '') . $filename . '.perf-' . $width . '.webp';
+
+        if (! self::exists($variant)) {
+            return $url;
+        }
+
+        return '/media/' . self::encodePath($variant);
+    }
+
     private static function encodePath(string $path): string
     {
         return collect(explode('/', trim($path, '/')))

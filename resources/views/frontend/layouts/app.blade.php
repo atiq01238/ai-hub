@@ -73,6 +73,7 @@
         $adsenseRobots = strtolower(trim($__env->yieldContent('robots')));
         $adsenseRobotsSafe = $adsenseRobots === '' || ! str_contains($adsenseRobots, 'noindex');
         $adsenseEligible = (bool) config('adsense.enabled', true)
+            && (! request()->routeIs('home') || (bool) config('adsense.home_enabled', false))
             && $adsenseRouteEligible
             && $adsenseQuerySafe
             && $adsenseRobotsSafe
@@ -243,11 +244,31 @@
         </div>
     </footer>
 </div>
-<script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-<script src="{{ asset('js/frontend/app.js') }}?v=20260909-phase8"></script>
-<script src="{{ asset('js/frontend/search-intelligence.js') }}?v=20260827-search2"></script>
-<script src="{{ asset('js/frontend/saved.js') }}?v=20260827-reviewfix1"></script>
-<script src="{{ asset('js/frontend/community.js') }}?v=20260827-reviewfix1"></script>
+@php
+    // Load heavier interaction bundles only on pages that actually use them.
+    // This keeps the homepage and directory pages from parsing/executing unused JS.
+    $frontNeedsSavedJs = request()->routeIs(
+        'tools.index', 'tools.show',
+        'models.index', 'models.show',
+        'companies.index', 'companies.show',
+        'news.index', 'news.show',
+        'articles.index', 'articles.show',
+        'saved.index'
+    );
+    $frontNeedsCommunityJs = request()->routeIs(
+        'tools.show', 'models.show', 'news.show', 'articles.show',
+        'comparisons.show', 'benchmarks.discussion', 'testlab.show'
+    );
+@endphp
+<script defer src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+<script defer src="{{ asset('js/frontend/app.js') }}?v=20260927-perf1"></script>
+<script defer src="{{ asset('js/frontend/search-intelligence.js') }}?v=20260927-perf1"></script>
+@if($frontNeedsSavedJs)
+    <script defer src="{{ asset('js/frontend/saved.js') }}?v=20260927-perf1"></script>
+@endif
+@if($frontNeedsCommunityJs)
+    <script defer src="{{ asset('js/frontend/community.js') }}?v=20260927-perf1"></script>
+@endif
 @stack('scripts')
 </body>
 </html>

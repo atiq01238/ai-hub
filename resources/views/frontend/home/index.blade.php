@@ -73,7 +73,7 @@
             <div class="trend-items">
                 @foreach($trendingTools as $tool)
                     <a href="{{ route('tools.show', $tool) }}" class="trend-item">
-                        <img loading="lazy" decoding="async" src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo">
+                        <img loading="lazy" decoding="async" src="{{ \App\Support\MediaUrl::variantUrl($tool->logo_url, 96) }}" alt="{{ $tool->name }} logo" width="30" height="30">
                         <span>{{ $tool->name }}</span>
                         @if($tool->trend_is_hot)
                             <span class="trend-hot-fire" aria-label="Gaining search clicks on AI Orbit" title="Gaining search clicks on AI Orbit">🔥</span>
@@ -115,7 +115,7 @@
                                  data-search="{{ strtolower($tool->name.' '.$tool->short_description.' '.($tool->company?->name ?? '')) }}"
                                  @if(!$bestTools->contains('id', $tool->id)) hidden @endif>
                             <div class="tool-card-top">
-                                <img loading="lazy" decoding="async" class="tool-logo" src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo">
+                                <img loading="lazy" decoding="async" class="tool-logo" src="{{ \App\Support\MediaUrl::variantUrl($tool->logo_url, 96) }}" alt="{{ $tool->name }} logo" width="46" height="46">
                                 <div class="tool-title">
                                     <h3><a class="home-entity-link" href="{{ route('tools.show', $tool) }}">{{ $tool->name }}</a></h3>
                                     <span>{{ $tool->subcategory ?: $tool->category?->name }}</span>
@@ -150,7 +150,7 @@
                     @foreach($mobileBestTools as $tool)
                         <article class="tool-card home-classic-tool-card">
                             <div class="tool-card-top">
-                                <img loading="lazy" decoding="async" class="tool-logo" src="{{ $tool->logo_url }}" alt="{{ $tool->name }} logo">
+                                <img loading="lazy" decoding="async" class="tool-logo" src="{{ \App\Support\MediaUrl::variantUrl($tool->logo_url, 96) }}" alt="{{ $tool->name }} logo" width="46" height="46">
                                 <div class="tool-title">
                                     <h3><a class="home-entity-link" href="{{ route('tools.show', $tool) }}">{{ $tool->name }}</a></h3>
                                     <span>{{ $tool->subcategory ?: $tool->category?->name }}</span>
@@ -200,7 +200,7 @@
                     <article class="comparison-mini-card home-comparison-card">
                         <div class="comparison-icons">
                             @foreach($items as $item)
-                                <img loading="lazy" decoding="async" src="{{ $item->logo_url }}" alt="{{ $item->name }}">
+                                <img loading="lazy" decoding="async" src="{{ \App\Support\MediaUrl::variantUrl($item->logo_url, 96) }}" alt="{{ $item->name }}" width="39" height="39">
                             @endforeach
                             <span>VS</span>
                         </div>
@@ -233,7 +233,7 @@
                         @foreach($latestNews as $news)
                             @php($newsImage = $news->image_url ?: '/images/frontend/content-placeholder.svg')
                             <a class="home-insight-row" href="{{ route('news.show', $news) }}">
-                                <img src="{{ $newsImage }}" alt="{{ $news->headline }}" loading="lazy" decoding="async">
+                                <img src="{{ \App\Support\MediaUrl::variantUrl($newsImage, 160) }}" alt="{{ $news->headline }}" width="64" height="45" loading="lazy" decoding="async">
                                 <div>
                                     <span>{{ strtoupper($news->category ?? 'AI UPDATE') }}</span>
                                     <h3>{{ $news->headline }}</h3>
@@ -251,7 +251,7 @@
                         @foreach($featuredArticles as $article)
                             @php($articleImage = $article->featured_image_url ?: '/images/frontend/content-placeholder.svg')
                             <a class="home-insight-row" href="{{ route('articles.show', $article) }}">
-                                <img src="{{ $articleImage }}" alt="{{ $article->title }}" loading="lazy" decoding="async">
+                                <img src="{{ \App\Support\MediaUrl::variantUrl($articleImage, 160) }}" alt="{{ $article->title }}" width="64" height="45" loading="lazy" decoding="async">
                                 <div>
                                     <span>{{ strtoupper($article->category ?: 'GUIDE') }}</span>
                                     <h3>{{ $article->title }}</h3>

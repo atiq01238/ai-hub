@@ -11,6 +11,9 @@ return [
     |
     */
     'enabled' => env('ADSENSE_ENABLED', true),
+    // Keep the homepage fast by default. Content/detail pages remain eligible.
+    // Set ADSENSE_HOME_ENABLED=true only if homepage auto ads are worth the extra JS cost.
+    'home_enabled' => env('ADSENSE_HOME_ENABLED', false),
     'publisher_id' => env('ADSENSE_PUBLISHER_ID', 'pub-9025296892842875'),
     'client_id' => env('ADSENSE_CLIENT_ID', 'ca-pub-9025296892842875'),
 

@@ -1841,3 +1841,7 @@ a{overflow-wrap:anywhere}
 @media(max-width:380px){
   .mobile-nav,.mobile-nav.open{width:calc(100vw - 20px)!important;left:10px!important}
 }
+
+
+/* Performance Phase 1: let the browser skip initial layout/paint work for lower homepage sections. */
+#best-tools,#comparisons,#latest-insights{content-visibility:auto;contain-intrinsic-size:1px 620px}

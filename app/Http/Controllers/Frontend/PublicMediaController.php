@@ -26,7 +26,7 @@ class PublicMediaController extends Controller
         $disk = Storage::disk('public');
         if ($disk->exists($relative)) {
             return response()->file($disk->path($relative), [
-                'Cache-Control' => 'public, max-age=86400',
+                'Cache-Control' => 'public, max-age=2592000, stale-while-revalidate=86400',
                 'X-Content-Type-Options' => 'nosniff',
             ]);
         }
@@ -35,7 +35,7 @@ class PublicMediaController extends Controller
         abort_unless(is_file($legacyPublicFile), 404);
 
         return response()->file($legacyPublicFile, [
-            'Cache-Control' => 'public, max-age=86400',
+            'Cache-Control' => 'public, max-age=2592000, stale-while-revalidate=86400',
             'X-Content-Type-Options' => 'nosniff',
         ]);
     }
