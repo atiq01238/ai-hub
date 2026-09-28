@@ -10,6 +10,7 @@ use App\Models\PricingPlan;
 use App\Models\BenchmarkResult;
 use App\Services\Imports\CompanySpreadsheetReader;
 use App\Services\Imports\SpreadsheetReader;
+use App\Services\BenchmarkScoringService;
 use App\Services\Taxonomy\TaxonomyNormalizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -261,7 +262,7 @@ class DataImportController extends Controller
         return view('data-import.models-preview', compact('preview','stats','token'));
     }
 
-    public function importModels(Request $request, TaxonomyNormalizer $taxonomy)
+    public function importModels(Request $request, TaxonomyNormalizer $taxonomy, BenchmarkScoringService $benchmarkScoring)
     {
         $data = $request->validate([
             'token' => ['required','string','size:40'],
@@ -275,7 +276,7 @@ class DataImportController extends Controller
 
         $created = $updated = $skipped = $invalid = 0;
 
-        DB::transaction(function () use ($payload, $data, $taxonomy, &$created, &$updated, &$skipped, &$invalid) {
+        DB::transaction(function () use ($payload, $data, $taxonomy, $benchmarkScoring, &$created, &$updated, &$skipped, &$invalid) {
             foreach ($payload['rows'] ?? [] as $row) {
                 if (($row['state'] ?? '') === 'invalid' || ! empty($row['errors']) || empty($row['company_id'])) {
                     $invalid++;
@@ -347,6 +348,15 @@ class DataImportController extends Controller
                 if (! $existing || ($provided['capabilities'] ?? false)) {
                     $model->featureTerms()->sync($taxonomy->featureIds($row['capabilities']));
                     $model->useCaseTerms()->sync($taxonomy->inferredUseCaseIds($row['capabilities']));
+                }
+
+                // benchmark_score is a derived compatibility mirror whenever this model
+                // already has verified benchmark evidence. Model spreadsheet imports may
+                // carry a legacy score, but they must not overwrite the source-of-truth
+                // composite calculated from verified benchmark results. Models without
+                // verified benchmark evidence keep the imported score unchanged.
+                if ($benchmarkScoring->primaryCompositeClass($model) !== null) {
+                    $benchmarkScoring->sync($model);
                 }
             }
         });

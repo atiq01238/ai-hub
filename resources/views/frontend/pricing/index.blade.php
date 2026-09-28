@@ -201,7 +201,7 @@
     </nav>
 
     <div class="pi-layout">
-        <main>
+        <div class="pi-main-content">
             <div class="pi-directory-head">
                 <div class="pi-heading">
                     <div>
@@ -432,7 +432,7 @@
                     @endif
                 </nav>
             @endif
-        </main>
+        </div>
 
         <aside>
             <section class="pi-panel pi-action-guide">

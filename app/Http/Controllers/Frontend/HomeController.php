@@ -70,15 +70,11 @@ class HomeController extends Controller
             ->unique('id')
             ->values();
 
-        // Mobile gets a deliberately small random discovery sample. This is
-        // rendered separately from the desktop Best Tools ranking so the phone
-        // layout can stay one-card-per-row without changing desktop ordering.
-        $mobileBestTools = Tool::query()
-            ->with(['company', 'category'])
-            ->where('status', 'published')
-            ->inRandomOrder()
-            ->take(5)
-            ->get();
+        // Mobile should expose the same editorially curated ranking as desktop.
+        // A random-only mobile list gives crawlers and users a different homepage
+        // topic/internal-link set on every request. Keep the smaller phone layout,
+        // but take its five cards from the stable Best Tools ranking.
+        $mobileBestTools = $bestTools->take(5)->values();
 
         $trendingTools = $toolTrending->homepage(6);
 
