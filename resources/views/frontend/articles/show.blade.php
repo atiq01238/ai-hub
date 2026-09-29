@@ -138,7 +138,7 @@
 @endif
 @endpush
 
-@push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/content.css') }}?v=20260921-adsense2">@endpush
+@push('styles')<link rel="stylesheet" href="{{ asset('css/frontend/content.css') }}?v=20260929-links">@endpush
 @section('content')
 @php
 $image = $article->featured_image_url ?: '/images/frontend/content-placeholder.svg';
